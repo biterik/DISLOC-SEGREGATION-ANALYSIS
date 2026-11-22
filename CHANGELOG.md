@@ -13,5 +13,8 @@ the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 - `disegreg.geometry`: triclinic periodic cell, polyline densification, distance to DXA lines over all periodic images
   (DEFINITIONS 3.1), projected line coverage f_cov (3.2), fallback core axis from the structure (3.3), neighbour pairs
   with ghost atoms for triclinic cells.
+- Definition set D1 draft rev. 3 (Erik, 22 Nov): fallback axis per line defect cluster (every cluster running along >= 50 % of
+  the slabs, dipole cells get two axes), used only slab-wise where DXA misses the line (DXA points assigned to clusters by
+  the nearest non-fcc atom); `geometry.line_distances` returns r, r_DXA, r_axis, mode and per-cluster coverage.
 - Synthetic tests against brute-force references (incl. the tilted-cell y-boundary case), OVITO smoke test,
   GitHub Actions: synthetic tests on Python 3.11-3.13, OVITO tests on Linux, conda environment + all tests on macOS arm64.

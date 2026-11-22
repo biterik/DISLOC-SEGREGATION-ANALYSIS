@@ -12,7 +12,9 @@ def test_d1_loads_with_decided_values():
     assert reg["far_field_radius"] == 60.0       # decided 22 Nov
     assert reg["surface_exclusion"] == 15.0
     assert reg["core_radius"] == 5.0 and reg["shell_radius"] == 10.0 and reg["fault_half_width"] == 4.0
-    assert d["distance"]["polyline_spacing"] == 0.25 and d["distance"]["coverage_threshold"] == 0.9
+    assert d["distance"]["polyline_spacing"] == 0.25
+    fb = d["distance"]["fallback_axis"]
+    assert fb["min_slab_fraction"] == 0.5 and fb["active_below_dxa_coverage"] == 0.5
     assert d["order"]["shell2_cutoff_a"] == 1.112
     assert "D1" in available()
 

@@ -1,4 +1,4 @@
-# disegreg -- definitions (set D1, DRAFT 2026-11-22 rev. 2, for Erik's review)
+# disegreg -- definitions (set D1, DRAFT 2026-11-22 rev. 3, for Erik's review)
 
 Every number produced by `disegreg` carries the tool version (git hash) AND the definition-set label (D1, D2, ...).
 A change to anything in this file creates a new label; the paper's Methods section quotes the label it used.
@@ -47,18 +47,31 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
   Projected coverage, not total length / (2 L_x): a fully constricted line found as perfect segments has f_cov = 1, not 0.5.
 - Also reported: f_Shockley = the same for Shockley segments only, and the total DXA length per type.
 
-### 3.3 Fallback core axis from the structure, used when f_cov < 0.9
-- Line defect cluster: the largest connected cluster of interior non-fcc atoms (a-CNA hcp + other, 1st-shell connectivity, excluded layers
-  of section 4 removed first -- otherwise free surfaces would be picked up).
-- Axis: in X slabs of 5 A, the centroid (Y, Z) of that cluster's "other" atoms (core atoms, not the hcp ribbon), with periodic-image-aware
-  averaging in Y, smoothed by a running mean over 3 slabs (periodic in X).
-- r_axis = distance to that axis, same periodic-image treatment as 3.1.
+### 3.3 Fallback core axes from the structure [rev. 3]
+- Line defect clusters: connected clusters of interior non-fcc atoms (a-CNA hcp + other + any other non-fcc label, 1st-shell
+  connectivity, excluded layers of section 4 removed first -- otherwise free surfaces would be picked up).
+  EVERY cluster that runs along the line counts: its core-type atoms ("other") occupy at least 50 % of the X slabs below. [CONFIRM 50 %]
+  This keeps vacancies, isolated distorted solute sites and compact precipitates away from the line out, and gives a cell with two
+  dislocations (dipole, e.g. TURLO t50 R1) two axes.
+- One axis per such cluster: in X slabs of 5 A, the centroid (Y, Z) of the cluster's "other" atoms (core atoms, not the hcp ribbon);
+  periodic in Y (minimum image around the circular mean, then the arithmetic mean); slabs without core atoms are interpolated;
+  smoothed by a running mean over 3 slabs (periodic in X).
+- r_axis = distance to all axes, same periodic-image treatment as 3.1 (diagnostic, always reported).
 - Limitation: a coherent fcc precipitate is "fcc" and invisible to this fallback; DXA still sees the line in that case.
 
-### 3.4 Distance actually used, and what is reported
-- f_cov >= 0.9: r = r_DXA (mode "polyline"). f_cov < 0.9: r = min(r_DXA, r_axis) (mode "mixed"; with no DXA segment at all this is the axis).
-- r_DXA and r_axis are BOTH computed for every snapshot, and Gamma(R) is reported under both, so a time series that switches mode shows
-  the size of the switch. Every snapshot records f_cov, f_Shockley and the mode.
+### 3.4 Distance actually used, and what is reported [rev. 3]
+- Assignment of DXA to the axes: every DXA line point belongs to the cluster of its nearest interior non-fcc atom, if that atom is closer
+  than the 1st-shell cut-off 0.854 a (else to none). Per cluster m and slab k: DXA coverage f_km = covered fraction of the slab (projected,
+  as in 3.2, using only cluster m's DXA points).
+- The axis of cluster m is ACTIVE only in the slabs where DXA covers less than half of the slab for that cluster, f_km < 0.5 [CONFIRM 0.5].
+  Where DXA has found the line, the axis is not used -- in a still-dissociated line the axis lies in the middle of the stacking fault, and
+  using it there would turn fault atoms into core atoms.
+- r, slab-wise: an atom whose X lies in an active slab of cluster m gets r = min(r_DXA, distance to axis m); every other atom r = r_DXA.
+  (Slab-wise, not "distance to the active stretches": the end of a stretch would otherwise reach ~5 A into the neighbouring slab where
+  DXA did find the partials.) Mode "polyline" if no slab is active, "mixed" otherwise ("axis" if there is no DXA line at all, "none" if
+  there is neither a DXA line nor a line defect cluster).
+- r_DXA and r_axis are BOTH computed for every snapshot, and Gamma(R) is reported under r_DXA and under r, so a time series that switches
+  mode shows the size of the switch. Every snapshot records f_cov, f_Shockley, per cluster f_cov,m and the number of active slabs, and the mode.
 - Glide-plane height z_gp: from the cell-builder metadata (manifest), checked against the median Z of the Shockley line points (or of
   the fallback axis); a difference larger than one (111) plane spacing is flagged.
 - Regression pair: TURLO t50 R4 final (two complete Shockley partials, polyline mode) vs t50 R3 final (complexion, mixed mode), same cell
@@ -156,3 +169,9 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
   line coverage + fallback axis (coverage made projected, fallback restricted to core-type atoms and interior, both distances always
   reported, z_gp from builder metadata), x_iso also without a bulk control (with the diagnostic-(iv) caveat), PTM incl. icosahedral template as
   stored extra label. Proposed Gamma(20 A), Gamma(40 A) as headline numbers.
+- rev. 3 (22 Nov, Erik accepted both proposals from the analysis-tool session): (1) the fallback axis is used only in the slabs where DXA
+  misses the line (f_km < 0.5), not along the whole line -- otherwise mid-fault atoms of a partially found dissociated line become core;
+  replaces the global switch "f_cov < 0.9 -> mixed"; (2) every line defect cluster that runs along the line (>= 50 % of the slabs) gets its
+  own axis, not only the largest -- dipole cells; DXA points assigned to clusters by the nearest non-fcc atom. The axis is applied
+  slab-wise (atoms in active slabs only), so it cannot reach into slabs where DXA found the line. Y centroid made exact
+  (minimum image around the circular mean). Still label D1: no number has been produced with D1 yet.

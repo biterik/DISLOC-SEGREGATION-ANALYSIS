@@ -2,7 +2,7 @@
 # Section numbers refer to docs/DEFINITIONS.md. Lengths in Angstrom unless stated otherwise.
 # Changing ANY value here creates a new definition set (D2, ...) with a line in the revision log of docs/DEFINITIONS.md.
 label: D1
-status: "draft rev. 2 (2026-11-22), under review"
+status: "draft rev. 3 (2026-11-22), under review"
 
 input:                                   # section 1
   snapshots: quenched                    # energy-minimised snapshots only
@@ -19,11 +19,13 @@ structure:                               # section 2
 distance:                                # section 3
   polyline_spacing: 0.25                 # 3.1: densify DXA polylines; max error < 0.02 A at r >= 0.5 A
   periodic_images: 1                     # 3.1: neighbouring images in each periodic direction (exact for LAMMPS tilt limits)
-  coverage_threshold: 0.9                # 3.2/3.4: f_cov >= 0.9 -> "polyline" mode, else "mixed"
-  fallback_axis:                         # 3.3
+  fallback_axis:                         # 3.3 / 3.4 (rev. 3)
     slab_width: 5.0                      # X slabs (actual width = L_x / round(L_x / 5))
     smoothing_slabs: 3                   # running mean, periodic in X
     connectivity_cutoff_a: 0.854         # 1st-shell connectivity, in units of a_cell
+    min_slab_fraction: 0.5               # a cluster counts as a line if its core atoms fill >= 50 % of the slabs [CONFIRM]
+    dxa_assign_cutoff_a: 0.854           # DXA point -> cluster of nearest non-fcc atom if closer than this (units of a_cell)
+    active_below_dxa_coverage: 0.5       # axis used in slab k of cluster m only if DXA covers < 50 % of it [CONFIRM]
   z_gp_tolerance_planes: 1.0             # 3.4: flag if |z_gp(metadata) - z_gp(lines)| > 1 (111) spacing = a/sqrt(3)
 
 regions:                                 # section 4

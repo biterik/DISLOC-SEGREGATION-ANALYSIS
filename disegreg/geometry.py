@@ -192,6 +192,46 @@ class LineDistance:
         return r, self._owner[i]
 
 
+def _pair_intervals(cell: Cell, dense: np.ndarray):
+    """Intervals [lo, hi] in s_a (shifted so lo is in [0, 1)) of the consecutive point pairs of one continuous polyline."""
+    s = cell.to_fractional(dense)[:, 0]
+    lo = np.minimum(s[:-1], s[1:])
+    hi = np.maximum(s[:-1], s[1:])
+    shift = np.floor(lo)
+    return lo - shift, hi - shift
+
+
+def _merge_intervals(lo, hi):
+    """Union of intervals [lo, hi] with lo in [0, 1), periodic with period 1 -> sorted disjoint (starts, ends) in [0, 1]."""
+    lo = np.asarray(lo, dtype=float)
+    hi = np.asarray(hi, dtype=float)
+    if len(lo) == 0:
+        return np.empty(0), np.empty(0)
+    over = hi > 1.0  # crosses the periodic boundary: split
+    lo = np.concatenate([lo, np.zeros(over.sum())])
+    hi = np.concatenate([np.minimum(hi, 1.0), hi[over] - 1.0])
+    order = np.argsort(lo, kind="stable")
+    lo, hi = lo[order], hi[order]
+    run_max = np.maximum.accumulate(hi)
+    prev = np.concatenate([[-np.inf], run_max[:-1]])
+    new = lo > prev
+    last = np.concatenate([np.nonzero(new)[0][1:] - 1, [len(lo) - 1]])
+    return lo[new], run_max[last]
+
+
+def _intervals_of(cell, polylines, spacing):
+    lo, hi = [], []
+    for pl in polylines:
+        d = densify_polyline(pl, spacing)
+        if len(d) >= 2:
+            a, b = _pair_intervals(cell, d)
+            lo.append(a)
+            hi.append(b)
+    if not lo:
+        return np.empty(0), np.empty(0)
+    return np.concatenate(lo), np.concatenate(hi)
+
+
 def line_coverage(cell: Cell, polylines, spacing: float = 0.25) -> float:
     """Projected line coverage f_cov (DEFINITIONS 3.2).
 
@@ -199,32 +239,22 @@ def line_coverage(cell: Cell, polylines, spacing: float = 0.25) -> float:
     polylines' intervals in the fractional coordinate s_a (modulo 1). Overlapping lines (two partials) count once, so a
     fully constricted line and a fully dissociated line both give 1.
     """
-    lo_all, hi_all = [], []
-    for pl in polylines:
-        d = densify_polyline(pl, spacing)
-        if len(d) < 2:
-            continue
-        s = cell.to_fractional(d)[:, 0]
-        lo = np.minimum(s[:-1], s[1:])
-        hi = np.maximum(s[:-1], s[1:])
-        shift = np.floor(lo)
-        lo, hi = lo - shift, hi - shift
-        over = hi > 1.0  # interval crosses the periodic boundary: split it
-        lo_all += [lo, np.zeros(over.sum())]
-        hi_all += [np.minimum(hi, 1.0), hi[over] - 1.0]
-    if not lo_all:
-        return 0.0
-    lo = np.concatenate(lo_all)
-    hi = np.concatenate(hi_all)
-    order = np.argsort(lo, kind="stable")
-    lo, hi = lo[order], hi[order]
-    run_max = np.maximum.accumulate(hi)
-    prev = np.concatenate([[-np.inf], run_max[:-1]])
-    new = lo > prev
-    starts = lo[new]
-    last = np.concatenate([np.nonzero(new)[0][1:] - 1, [len(lo) - 1]])
-    covered = float(np.sum(run_max[last] - starts))
-    return min(covered, 1.0)
+    starts, ends = _merge_intervals(*_intervals_of(cell, polylines, spacing))
+    return min(float(np.sum(ends - starts)), 1.0)
+
+
+def slab_coverage_from_intervals(starts, ends, n_slabs: int) -> np.ndarray:
+    """Covered fraction of each of n_slabs equal slabs in s_a, from disjoint intervals (starts, ends) in [0, 1]."""
+    edges = np.arange(n_slabs + 1) / n_slabs
+    cov = np.zeros(n_slabs)
+    for s0, s1 in zip(starts, ends):
+        cov += np.clip(np.minimum(edges[1:], s1) - np.maximum(edges[:-1], s0), 0.0, None)
+    return np.minimum(cov * n_slabs, 1.0)
+
+
+def slab_coverage(cell: Cell, polylines, n_slabs: int, spacing: float = 0.25) -> np.ndarray:
+    """Per-slab projected coverage of polylines (slabs = n_slabs equal intervals of s_a)."""
+    return slab_coverage_from_intervals(*_merge_intervals(*_intervals_of(cell, polylines, spacing)), n_slabs)
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -273,16 +303,46 @@ def neighbor_pairs(cell: Cell, positions, cutoff: float):
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# Fallback core axis from the structure (DEFINITIONS 3.3)
+# Fallback core axes from the structure, and the distance actually used (DEFINITIONS 3.3, 3.4, rev. 3)
 # --------------------------------------------------------------------------------------------------------------------
+def n_slabs_for(cell: Cell, slab_width: float) -> int:
+    """Number of X slabs: round(L_x / slab_width), at least 1 (actual width L_x / n)."""
+    return max(1, int(round(cell.line_length / slab_width)))
+
+
 @dataclass
 class CoreAxis:
-    points: np.ndarray        # (n_slabs + 1, 3) continuous closed polyline; last point = first + a (+ winding * b)
-    n_cluster_atoms: int      # atoms in the largest connected non-fcc cluster
-    n_core_atoms: int         # of which core-type ("other") atoms, used for the centroids
-    n_slabs: int
+    """Axis of one line defect cluster: per-slab centroid (fractional s_b, s_c) at slab centres s_a = (k + 0.5) / n."""
+    sb: np.ndarray            # (n_slabs,) continuous (unwrapped) fractional b coordinate
+    sc: np.ndarray            # (n_slabs,) fractional c coordinate
+    winding: float            # integer: net b periods per a period (normally 0)
+    members: np.ndarray       # indices (into the positions passed in) of all atoms of the cluster
+    n_core_atoms: int         # core-type atoms of the cluster, used for the centroids
     n_filled_slabs: int       # slabs that contained core atoms (the others are interpolated)
-    n_clusters: int           # number of connected non-fcc clusters found
+
+    @property
+    def n_slabs(self) -> int:
+        return len(self.sb)
+
+    def fractional_at(self, sa) -> np.ndarray:
+        """Axis position (s_a, s_b, s_c) at arbitrary (unwrapped) s_a, periodic linear interpolation."""
+        sa = np.atleast_1d(np.asarray(sa, dtype=float))
+        n = self.n_slabs
+        u = sa * n - 0.5
+        k0 = np.floor(u).astype(np.int64)
+        t = u - k0
+
+        def val(arr, k, w):
+            return arr[np.mod(k, n)] + w * np.floor_divide(k, n)
+
+        sb = (1 - t) * val(self.sb, k0, self.winding) + t * val(self.sb, k0 + 1, self.winding)
+        sc = (1 - t) * val(self.sc, k0, 0.0) + t * val(self.sc, k0 + 1, 0.0)
+        return np.column_stack([sa, sb, sc])
+
+    def polyline(self, cell: Cell) -> np.ndarray:
+        """Closed continuous polyline through the slab centres; last point = first + a (+ winding * b)."""
+        n = self.n_slabs
+        return cell.to_cartesian(self.fractional_at((np.arange(n + 1) + 0.5) / n))
 
 
 def _periodic_centroid_unit(x, bin_index, n_bins):
@@ -305,68 +365,165 @@ def _periodic_centroid_unit(x, bin_index, n_bins):
     return out, cnt
 
 
-def fallback_core_axis(cell: Cell, positions, nonfcc_mask, core_mask, connectivity_cutoff: float,
-                       slab_width: float = 5.0, smoothing_slabs: int = 3) -> CoreAxis | None:
-    """Core axis from the structure, for snapshots where DXA finds too little of the line (DEFINITIONS 3.3).
-
-    Parameters
-    ----------
-    nonfcc_mask : bool array, INTERIOR atoms that are not a-CNA fcc (excluded surface layers already removed).
-    core_mask : bool array, atoms of core type (a-CNA "other"); only those inside the largest cluster are used.
-    connectivity_cutoff : 1st-shell cut-off (0.854 a_cell in D1).
-
-    Returns None when there is no non-fcc atom or the largest cluster contains no core-type atom.
-    """
-    pos = np.asarray(positions, dtype=float).reshape(-1, 3)
-    nonfcc_mask = np.asarray(nonfcc_mask, dtype=bool)
-    core_mask = np.asarray(core_mask, dtype=bool)
-    idx = np.nonzero(nonfcc_mask)[0]
-    if len(idx) == 0:
-        return None
-    i, j, _ = neighbor_pairs(cell, pos[idx], connectivity_cutoff)
-    m = len(idx)
-    graph = coo_matrix((np.ones(len(i), dtype=np.int8), (i, j)), shape=(m, m))
-    n_comp, lab = connected_components(graph, directed=False)
-    counts = np.bincount(lab)
-    members = idx[lab == np.argmax(counts)]
-    core_members = members[core_mask[members]]
-    if len(core_members) == 0:
-        return None
-
-    s = cell.wrap_fractional(cell.to_fractional(pos[core_members]))
-    n_slabs = max(1, int(round(cell.line_length / slab_width)))
+def _axis_from_core_atoms(cell, core_pos, n_slabs, smoothing_slabs):
+    s = cell.wrap_fractional(cell.to_fractional(core_pos))
     k = np.minimum((s[:, 0] * n_slabs).astype(np.int64), n_slabs - 1)
     sb, cnt = _periodic_centroid_unit(s[:, 1], k, n_slabs)
-    sc = np.full(n_slabs, np.nan)
     ok = cnt > 0
+    sc = np.full(n_slabs, np.nan)
     sc[ok] = np.bincount(k, s[:, 2], minlength=n_slabs)[ok] / cnt[ok]
 
-    # make s_b continuous along the filled slabs; winding = net number of b periods over one a period (normally 0)
     f = np.nonzero(ok)[0]
-    sb_f = np.unwrap(sb[f], period=1.0)
+    sb_f = np.unwrap(sb[f], period=1.0)  # continuous along the filled slabs
     sc_f = sc[f]
-    # integer winding that makes the step from the last filled slab to the first one (one a-period later) smallest
-    winding = float(np.round(sb_f[-1] - sb_f[0]))
+    winding = float(np.round(sb_f[-1] - sb_f[0]))  # makes the step last -> first (one a-period later) smallest
 
-    # periodic interpolation of empty slabs
-    x_ext = np.concatenate([[f[-1] - n_slabs], f, [f[0] + n_slabs]])
+    x_ext = np.concatenate([[f[-1] - n_slabs], f, [f[0] + n_slabs]])  # periodic interpolation of empty slabs
     sb_ext = np.concatenate([[sb_f[-1] - winding], sb_f, [sb_f[0] + winding]])
     sc_ext = np.concatenate([[sc_f[-1]], sc_f, [sc_f[0]]])
     xs = np.arange(n_slabs)
     sb_full = np.interp(xs, x_ext, sb_ext)
     sc_full = np.interp(xs, x_ext, sc_ext)
 
-    # running mean over smoothing_slabs, periodic in X
-    h = max(0, int(smoothing_slabs) // 2)
+    h = max(0, int(smoothing_slabs) // 2)  # running mean, periodic in X
     if h > 0 and n_slabs > 1:
         h = min(h, n_slabs - 1)
         ker = np.ones(2 * h + 1) / (2 * h + 1)
         sb_full = np.convolve(np.concatenate([sb_full[-h:] - winding, sb_full, sb_full[:h] + winding]), ker, "valid")
         sc_full = np.convolve(np.concatenate([sc_full[-h:], sc_full, sc_full[:h]]), ker, "valid")
+    return sb_full, sc_full, winding, int(ok.sum()), k
 
-    sa = (xs + 0.5) / n_slabs
-    frac = np.column_stack([sa, sb_full, sc_full])
-    frac = np.vstack([frac, frac[:1] + np.array([1.0, winding, 0.0])])
-    return CoreAxis(points=cell.to_cartesian(frac), n_cluster_atoms=int(len(members)),
-                    n_core_atoms=int(len(core_members)), n_slabs=n_slabs, n_filled_slabs=int(ok.sum()),
-                    n_clusters=int(n_comp))
+
+def line_defect_axes(cell: Cell, positions, nonfcc_mask, core_mask, connectivity_cutoff: float,
+                     slab_width: float = 5.0, smoothing_slabs: int = 3, min_slab_fraction: float = 0.5):
+    """Fallback core axes from the structure (DEFINITIONS 3.3, rev. 3).
+
+    Parameters
+    ----------
+    nonfcc_mask : bool array, INTERIOR atoms that are not a-CNA fcc (excluded surface layers already removed).
+    core_mask : bool array, atoms of core type (a-CNA "other").
+    connectivity_cutoff : 1st-shell cut-off (0.854 a_cell in D1).
+
+    Returns
+    -------
+    axes : list of CoreAxis, one per connected non-fcc cluster whose core atoms occupy >= min_slab_fraction of the
+           slabs, sorted by cluster size (largest first).
+    atom_axis : int array (len(positions)), index into ``axes`` for atoms of those clusters, -1 otherwise.
+    n_clusters : number of connected non-fcc clusters found (all sizes).
+    """
+    pos = np.asarray(positions, dtype=float).reshape(-1, 3)
+    nonfcc_mask = np.asarray(nonfcc_mask, dtype=bool)
+    core_mask = np.asarray(core_mask, dtype=bool)
+    atom_axis = np.full(len(pos), -1, dtype=np.int64)
+    idx = np.nonzero(nonfcc_mask)[0]
+    if len(idx) == 0:
+        return [], atom_axis, 0
+    i, j, _ = neighbor_pairs(cell, pos[idx], connectivity_cutoff)
+    m = len(idx)
+    graph = coo_matrix((np.ones(len(i), dtype=np.int8), (i, j)), shape=(m, m))
+    n_comp, lab = connected_components(graph, directed=False)
+    sizes = np.bincount(lab)
+    n_slabs = n_slabs_for(cell, slab_width)
+
+    # slab occupancy of the core atoms of every cluster, in one pass
+    core_sel = core_mask[idx]
+    s_core = cell.wrap_fractional(cell.to_fractional(pos[idx[core_sel]]))
+    k_core = np.minimum((s_core[:, 0] * n_slabs).astype(np.int64), n_slabs - 1)
+    occupied = np.zeros((n_comp, n_slabs), dtype=bool)
+    occupied[lab[core_sel], k_core] = True
+    qualifies = occupied.sum(axis=1) >= min_slab_fraction * n_slabs
+
+    axes = []
+    for c in sorted(np.nonzero(qualifies)[0], key=lambda c: -sizes[c]):
+        members = idx[lab == c]
+        core_members = members[core_mask[members]]
+        sb, sc, winding, n_filled, _ = _axis_from_core_atoms(cell, pos[core_members], n_slabs, smoothing_slabs)
+        atom_axis[members] = len(axes)
+        axes.append(CoreAxis(sb=sb, sc=sc, winding=winding, members=members, n_core_atoms=int(len(core_members)),
+                             n_filled_slabs=n_filled))
+    return axes, atom_axis, int(n_comp)
+
+
+def assign_points_to_axes(cell: Cell, points, positions, nonfcc_mask, atom_axis, cutoff: float, n_images: int = 1):
+    """Axis index of the nearest interior non-fcc atom for every point, -1 if that atom is farther than ``cutoff``
+    or belongs to no line defect cluster (DEFINITIONS 3.4, rev. 3)."""
+    pts = np.asarray(points, dtype=float).reshape(-1, 3)
+    out = np.full(len(pts), -1, dtype=np.int64)
+    idx = np.nonzero(np.asarray(nonfcc_mask, dtype=bool))[0]
+    if len(idx) == 0 or len(pts) == 0:
+        return out
+    shifts = cell.image_shifts(n_images)
+    atoms = cell.wrap(np.asarray(positions, dtype=float)[idx])
+    tree = cKDTree((atoms[None] + shifts[:, None]).reshape(-1, 3))
+    d, k = tree.query(cell.wrap(pts), k=1, distance_upper_bound=cutoff)
+    hit = np.isfinite(d)
+    out[hit] = np.asarray(atom_axis)[idx[k[hit] % len(idx)]]
+    return out
+
+
+@dataclass
+class LineDistances:
+    r: np.ndarray                  # distance actually used (3.4)
+    r_dxa: np.ndarray              # distance to the DXA polylines (3.1); inf without DXA lines
+    r_axis: np.ndarray             # distance to all fallback axes, whole length (diagnostic); inf without axes
+    mode: str                      # "polyline" | "mixed" | "axis" | "none"
+    f_cov: float                   # projected coverage of all DXA lines (3.2)
+    f_cov_axis: list               # per axis: projected coverage by the DXA points assigned to it
+    active: list                   # per axis: bool array of active slabs
+    n_slabs: int
+    axes: list                     # CoreAxis objects
+    n_clusters: int                # connected non-fcc clusters of any size
+
+
+def line_distances(cell: Cell, positions, dxa_polylines, nonfcc_mask, core_mask, a_cell: float, *,
+                   spacing: float = 0.25, n_images: int = 1, slab_width: float = 5.0, smoothing_slabs: int = 3,
+                   connectivity_cutoff_a: float = 0.854, min_slab_fraction: float = 0.5,
+                   dxa_assign_cutoff_a: float = 0.854, active_below_dxa_coverage: float = 0.5,
+                   workers: int = -1) -> LineDistances:
+    """All distances of DEFINITIONS 3.1-3.4 (rev. 3) for one snapshot.
+
+    nonfcc_mask must contain INTERIOR non-fcc atoms only; core_mask marks a-CNA "other" atoms.
+    """
+    pos = np.asarray(positions, dtype=float).reshape(-1, 3)
+    dxa_polylines = [np.asarray(p, dtype=float).reshape(-1, 3) for p in dxa_polylines]
+    ld = LineDistance(cell, dxa_polylines, spacing=spacing, n_images=n_images)
+    r_dxa, _ = ld.query(pos, workers=workers)
+    f_cov = line_coverage(cell, dxa_polylines, spacing)
+    n_slabs = n_slabs_for(cell, slab_width)
+
+    axes, atom_axis, n_clusters = line_defect_axes(cell, pos, nonfcc_mask, core_mask, connectivity_cutoff_a * a_cell,
+                                                   slab_width, smoothing_slabs, min_slab_fraction)
+    f_cov_axis, active = [], []
+    if axes:
+        # assign every dense DXA point to an axis; a point pair counts for axis m when both points belong to m
+        dense = [densify_polyline(p, spacing) for p in dxa_polylines if len(p) >= 2]
+        lab = [assign_points_to_axes(cell, d, pos, nonfcc_mask, atom_axis, dxa_assign_cutoff_a * a_cell, n_images)
+               for d in dense]
+        for m, ax in enumerate(axes):
+            lo, hi = [], []
+            for d, l in zip(dense, lab):
+                both = (l[:-1] == m) & (l[1:] == m)
+                if both.any():
+                    a_, b_ = _pair_intervals(cell, d)
+                    lo.append(a_[both])
+                    hi.append(b_[both])
+            starts, ends = _merge_intervals(np.concatenate(lo) if lo else [], np.concatenate(hi) if hi else [])
+            f_cov_axis.append(min(float(np.sum(ends - starts)), 1.0))
+            active.append(slab_coverage_from_intervals(starts, ends, n_slabs) < active_below_dxa_coverage)
+    # r_axis: distance to all axes (diagnostic). r: an atom whose X lies in an active slab of axis m also counts its
+    # distance to axis m; everywhere else r = r_DXA, so the axis never reaches into slabs where DXA found the line.
+    r_axis = np.full(len(pos), np.inf)
+    r = r_dxa.copy()
+    k_atom = np.minimum((cell.wrap_fractional(cell.to_fractional(pos))[:, 0] * n_slabs).astype(np.int64), n_slabs - 1)
+    for ax, act in zip(axes, active):
+        r_m, _ = LineDistance(cell, [ax.polyline(cell)], spacing=spacing, n_images=n_images).query(pos, workers=workers)
+        r_axis = np.minimum(r_axis, r_m)
+        use = act[k_atom]
+        r[use] = np.minimum(r[use], r_m[use])
+
+    if ld.empty:
+        mode = "axis" if axes else "none"
+    else:
+        mode = "mixed" if any(a.any() for a in active) else "polyline"
+    return LineDistances(r=r, r_dxa=r_dxa, r_axis=r_axis, mode=mode, f_cov=f_cov, f_cov_axis=f_cov_axis,
+                         active=active, n_slabs=n_slabs, axes=axes, n_clusters=n_clusters)
