@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data and caches: never in git (simulation data live on cmmg / the M5, see docs/DESIGN.md)
+DISEGREG-CACHE/
+*.npz
+*.dump
+*.dump.gz
+*.lammpstrj
+*.lammpstrj.gz
+*.data
+*.restart
+*.ovito
+regression/output/
+
+# Local
+.DS_Store
+.claude/settings.local.json
+.env

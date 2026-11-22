@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "disegreg: shared analysis of solute segregation and defect phases at dislocations in atomistic simulations"
+abstract: >-
+  disegreg analyses LAMMPS molecular-dynamics / Monte-Carlo snapshots of
+  single dislocations in fcc alloys with one common set of definitions:
+  dislocation lines (OVITO DXA) with exact periodic distances in triclinic
+  cells, region-resolved solute concentrations, line excess Gamma(R),
+  chemical short-range order, solute clusters, drift-based convergence and
+  block-averaged time averages, and cross-run diagnostics (uptake exponent,
+  McLean comparison, hysteresis) referenced to bulk control cells.
+  Funded by the Deutsche Forschungsgemeinschaft (DFG, German Research
+  Foundation) through Project No. A02 of the SFB 1394 "Structural and
+  Chemical Atomic Complexity – From Defect Phase Diagrams to Material
+  Properties", Project ID 409476157.
+type: software
+authors:
+  - family-names: Bitzek
+    given-names: Erik
+    orcid: "https://orcid.org/0000-0001-7430-3694"
+    email: e.bitzek@mpi-susmat.de
+    affiliation: >-
+      Max-Planck-Institut for Sustainable Materials, Düsseldorf, Germany;
+      Institute of Materials Simulation (WW8), Friedrich-Alexander-Universität
+      Erlangen-Nürnberg (FAU), Fürth, Germany
+repository-code: "https://github.com/biterik/DISLOC-SEGREGATION-ANALYSIS"
+url: "https://github.com/biterik/DISLOC-SEGREGATION-ANALYSIS"
+license: BSD-3-Clause
+keywords:
+  - materials science
+  - atomistic simulation
+  - LAMMPS
+  - OVITO
+  - dislocations
+  - solute segregation
+  - defect phases
+  - semi-grand-canonical Monte Carlo

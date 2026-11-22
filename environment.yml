@@ -1,0 +1,31 @@
+# disegreg -- reproducible environment (2026-11-22)
+# Same file on the M5 (macOS arm64) and on cmmg (x86_64 Linux, SLES 15 SP7, glibc 2.38).
+#
+# Everything comes from conda. OVITO's Python module comes from OVITO GmbH's own
+# channel (conda.ovito.org), built against conda-forge's Qt; the conda-forge
+# package called "ovito" is the desktop application, and the pip wheel inside a
+# conda environment risks Qt library conflicts (OVITO warns about this itself).
+#
+# The OVITO version is pinned EXACTLY because DXA output can change between
+# versions; every disegreg output records the version it ran with.
+#
+# Create:  mamba env create -f environment.yml --channel-priority flexible
+#   ("flexible" is required: under strict priority the solver refuses the OVITO-channel build,
+#    tested 2026-11-22 with mamba 2.6.0; the exact pin plus the lock files keep it reproducible.)
+# Exact package lists actually solved: env-lock/disegreg-<platform>.txt
+#   (rebuild bit-identically with: mamba create -n disegreg --file env-lock/disegreg-<platform>.txt)
+name: disegreg
+channels:
+  - https://conda.ovito.org
+  - conda-forge
+dependencies:
+  - python=3.12
+  - ovito=3.17.2=py312*   # build tag py312*: the Python module from conda.ovito.org; conda-forge's "ovito" (build h*) is the desktop app
+  - numpy=2.5
+  - scipy=1.18
+  - pyyaml
+  - pandas
+  - pyarrow          # tidy results tables as parquet as well as CSV
+  - matplotlib
+  - pytest
+  - pip
