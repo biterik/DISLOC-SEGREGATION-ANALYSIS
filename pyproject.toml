@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "disegreg"
+dynamic = ["version"]
+description = "Shared analysis of solute segregation at dislocations in atomistic MD/MC simulations: one definition set for all projects."
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [{ name = "Erik Bitzek", email = "e.bitzek@mpi-susmat.de" }]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.25",
+    "scipy>=1.11",
+    "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+# OVITO is needed only for Stage 1 (reading dumps, a-CNA, PTM, DXA). Pinned exactly: DXA output can change between versions.
+# Preferred install is the conda environment (environment.yml); this extra is for plain pip environments such as CI.
+ovito = ["ovito==3.17.2"]
+test = ["pytest>=7"]
+
+[project.scripts]
+disegreg = "disegreg.cli:main"
+
+[project.urls]
+Repository = "https://github.com/biterik/DISLOC-SEGREGATION-ANALYSIS"
+
+[tool.setuptools.dynamic]
+version = { attr = "disegreg.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["disegreg*"]
+
+[tool.setuptools.package-data]
+disegreg = ["definitions/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["ovito: needs the OVITO Python module (skipped automatically when it is not installed)"]

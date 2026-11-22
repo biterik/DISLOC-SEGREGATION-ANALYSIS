@@ -1,0 +1,56 @@
+"""Loading of the versioned definition sets (``D1.yaml``, ``D2.yaml``, ...).
+
+A definition set is the complete list of numerical parameters of docs/DEFINITIONS.md. Every output of disegreg records
+the label and the SHA-256 of the YAML file it used, so a number can always be traced to its definitions.
+"""
+
+from __future__ import annotations
+
+import copy
+import hashlib
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import yaml
+
+DEFAULT_LABEL = "D1"
+_DIR = Path(__file__).resolve().parent
+
+
+@dataclass(frozen=True)
+class Definitions:
+    label: str
+    status: str
+    sha256: str
+    path: str
+    params: dict = field(repr=False)
+
+    def __getitem__(self, key):
+        # deep copy: callers cannot change the loaded set by accident
+        return copy.deepcopy(self.params[key])
+
+
+def available() -> list[str]:
+    """Labels of all definition sets shipped with this version of disegreg."""
+    return sorted(p.stem for p in _DIR.glob("D*.yaml"))
+
+
+def load_definitions(label_or_path: str | Path = DEFAULT_LABEL) -> Definitions:
+    """Load a shipped definition set by label ("D1") or any YAML file by path."""
+    p = Path(label_or_path)
+    if not p.suffix:
+        p = _DIR / f"{label_or_path}.yaml"
+        if not p.is_file():
+            raise FileNotFoundError(f"definition set {label_or_path!r} not shipped; available: {available()}")
+    raw = p.read_bytes()
+    params = yaml.safe_load(raw)
+    for key in ("label", "status"):
+        if key not in params:
+            raise ValueError(f"{p}: missing top-level key {key!r}")
+    return Definitions(
+        label=params["label"],
+        status=params["status"],
+        sha256=hashlib.sha256(raw).hexdigest(),
+        path=str(p),
+        params=params,
+    )
