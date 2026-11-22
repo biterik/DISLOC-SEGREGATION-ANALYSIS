@@ -59,3 +59,52 @@ def fcc_in_cell(cell, a):
     eps = 1e-9
     inside = np.all((s >= -eps) & (s < 1 - eps), axis=1)
     return pts[inside]
+
+
+def write_lammps_dump(path, cell, ids, types, positions, timestep=1000, pbc=("pp", "pp", "ss")):
+    """Write a LAMMPS text dump (triclinic header if the cell is tilted), optionally gzipped (path ending in .gz)."""
+    import gzip
+
+    H, o = cell.H, cell.origin
+    lx, ly, lz = H[0, 0], H[1, 1], H[2, 2]
+    xy, xz, yz = H[0, 1], H[0, 2], H[1, 2]
+    xlo, ylo, zlo = o
+    tilted = any(abs(t) > 0 for t in (xy, xz, yz))
+    lines = ["ITEM: TIMESTEP", str(timestep), "ITEM: NUMBER OF ATOMS", str(len(ids))]
+    if tilted:
+        lines.append("ITEM: BOX BOUNDS xy xz yz " + " ".join(pbc))
+        lines.append(f"{xlo + min(0, xy, xz, xy + xz):.10f} {xlo + lx + max(0, xy, xz, xy + xz):.10f} {xy:.10f}")
+        lines.append(f"{ylo + min(0, yz):.10f} {ylo + ly + max(0, yz):.10f} {xz:.10f}")
+        lines.append(f"{zlo:.10f} {zlo + lz:.10f} {yz:.10f}")
+    else:
+        lines.append("ITEM: BOX BOUNDS " + " ".join(pbc))
+        lines += [f"{xlo:.10f} {xlo + lx:.10f}", f"{ylo:.10f} {ylo + ly:.10f}", f"{zlo:.10f} {zlo + lz:.10f}"]
+    lines.append("ITEM: ATOMS id type x y z c_PE_ATOM")
+    body = "\n".join(f"{i} {t} {x:.8f} {y:.8f} {z:.8f} -4.45" for i, t, (x, y, z) in zip(ids, types, positions))
+    text = "\n".join(lines) + "\n" + body + "\n"
+    opener = gzip.open if str(path).endswith(".gz") else open
+    with opener(path, "wt") as f:
+        f.write(text)
+
+
+def screw_dislocation_cell(a=3.52, nx=8, ny=10, nz=7):
+    """fcc crystal X = [1-10] (line, periodic), Y = [11-2], Z = [111], with the unrelaxed (isotropic) displacement field
+    of a perfect screw dislocation b = a/2[1-10] along X; free surfaces in Y and Z (10 A vacuum).
+    Returns (Cell, positions, (y0, z0))."""
+    from disegreg.geometry import Cell
+
+    R = np.array([[1, -1, 0], [1, 1, -2], [1, 1, 1]], float)
+    R /= np.linalg.norm(R, axis=1)[:, None]
+    lx, ly, lz = nx * a / np.sqrt(2), ny * a * np.sqrt(6) / 2, nz * a * np.sqrt(3)
+    basis = np.array([[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
+    n = int(np.ceil(max(lx, ly, lz) / a * 1.8)) + 2
+    g = np.arange(-n, n + 1)
+    grid = np.array(np.meshgrid(g, g, g, indexing="ij")).reshape(3, -1).T
+    pts = ((grid[:, None, :] + basis[None]) * a).reshape(-1, 3) @ R.T + 1e-6
+    keep = ((pts[:, 0] >= 0) & (pts[:, 0] < lx - 1e-4) & (pts[:, 1] >= 0) & (pts[:, 1] < ly)
+            & (pts[:, 2] >= 0) & (pts[:, 2] < lz))
+    pts = pts[keep]
+    y0, z0 = ly / 2 + 0.7, lz / 2 + 0.4
+    pts[:, 0] += a / np.sqrt(2) / (2 * np.pi) * np.arctan2(pts[:, 2] - z0, pts[:, 1] - y0)
+    cell = Cell(np.diag([lx, ly + 20.0, lz + 20.0]), origin=(0.0, -10.0, -10.0), pbc=(True, False, False))
+    return cell, pts, (y0, z0)

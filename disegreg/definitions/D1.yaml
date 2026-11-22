@@ -11,9 +11,16 @@ input:                                   # section 1
 
 structure:                               # section 2
   regions_from: adaptive-CNA             # a-CNA, parameter-free
-  dxa_input_structure: fcc
+  dxa:                                   # line detection; OVITO 3.17.2 defaults, recorded explicitly (DXA uses its own internal
+    input_structure: fcc                 #   structure identification -- verified 2026-11-22 on Ni-Cu d60: lines identical with or
+    trial_circuit_length: 14             #   without a preceding PTM / a-CNA)
+    circuit_stretchability: 9
+    line_smoothing_level: 1
+    line_coarsening: true
+    defect_mesh_smoothing_level: 8
+    only_perfect_dislocations: false
   ptm_extra_label:                       # stored, NOT used for regions
-    templates: [fcc, hcp, bcc, ico]
+    templates: [fcc, hcp, bcc, ico]      # OVITO default would be fcc, hcp, bcc and RMSD cut-off 0.1
     rmsd_cutoff: 0.12
 
 distance:                                # section 3
