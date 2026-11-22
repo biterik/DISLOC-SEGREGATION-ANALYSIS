@@ -31,7 +31,8 @@ disegreg/
   results.py      tidy long table (run, quantity, region, value, error, definition set, tool version) + provenance
   plotting.py     Erik's house style: fonts >= 13 pt at slide size, colour-blind-safe, SYMMETRIC colour scales for signed maps
   cli.py          disegreg manifest | stage1 | slurm | analyse | table | plot | version
-definitions/D1.yaml   all numerical definition parameters (R_far = 60 A, core 5 A, shell 10 A, fault 4 A, surface 15 A, ...)
+  definitions/D1.yaml all numerical definition parameters (R_far = 60 A, core 5 A, shell 10 A, fault 4 A, surface 15 A, ...);
+                  inside the package so a pip-installed release carries its definitions (versioned separately from the code)
 docs/DEFINITIONS.md   (the paper's Methods section quotes it)   docs/DESIGN.md (this file)
 tests/  regression/  examples/manifests/  CITATION.cff  LICENSE  CHANGELOG.md  pyproject.toml  .github/workflows/ci.yml
 ```

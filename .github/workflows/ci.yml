@@ -1,0 +1,49 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  synthetic:
+    name: synthetic tests (no OVITO), Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e ".[test]"
+      - run: pytest -ra
+
+  ovito-linux:
+    name: OVITO tests, Linux x86_64 (pip wheel)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: system libraries needed by the OVITO wheel (Qt) on a headless runner
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libopengl0 libxkbcommon0 libfontconfig1 libdbus-1-3
+      - run: pip install -e ".[test,ovito]"
+      - run: pytest -ra
+
+  conda-macos:
+    name: environment.yml + all tests, macOS arm64 (conda)
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: environment.yml
+          condarc: |
+            channel_priority: flexible
+      - run: pip install -e . --no-deps
+      - run: pytest -ra

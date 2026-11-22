@@ -49,6 +49,7 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   env-lock/disegreg-linux-64.txt.
 - OVITO pin 3.17.2 agreed; if regression shows DXA differences vs the old scripts, rerun one snapshot with the old OVITO version.
 
+- Step 3 done: package skeleton, definitions/D1.yaml (inside the package: disegreg/definitions/), geometry.py + tests, CI.
+
 ## Next steps
-3. pyproject.toml, package skeleton, definitions/D1.yaml, geometry.py + its synthetic tests (pure numpy/scipy), CI workflow.
 4. io_ovito.py + cache.py; verify the DXA-internal-labels question on one real snapshot; then regions/composition/order; regression report.
