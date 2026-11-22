@@ -80,7 +80,7 @@ tests/  regression/  examples/manifests/  CITATION.cff  LICENSE  CHANGELOG.md  p
   ~/Desktop/SIMULATIONS/TURLO-REDO/51_COMPLEXION-ONSET-DMU-SCAN-CU-ZR/analyse-thread51.py; isotherm in TURLO-REDO/32_BULK-X-OF-DMU-AND-A-AT-T
 - 0 K site energies for McLean: Ni-Cu thread 09, Nb-Au thread 06 (folders 09_SEGREGATION-ENERGY-0K-SINGLE-CU, 06_SEGREGATION-ENERGY-0K-SINGLE-SOLUTE).
 Known defects of the old scripts (see DEFINITIONS.md section 11): Ni-Cu distance to the mean line; Nb-Au orthogonal box for tilted cells;
-the Ni-Cu "PTM" labels are probably DXA's internal labels (read after DXA); old Nb-Au comment "R2 ~ 4 for D0_22" is wrong (L1_2: 4, D0_22: 2.7).
+the Ni-Cu "PTM" labels are DXA's internal labels (read after DXA; verified 22 Nov on d60); old Nb-Au comment "R2 ~ 4 for D0_22" is wrong (L1_2: 4, D0_22: 2.7).
 
 ## Testing
 - pytest. Synthetic tests without OVITO: perfect fcc cell; straight analytic line -> exact distances; triclinic image test (solute near the

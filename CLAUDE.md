@@ -50,6 +50,13 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - OVITO pin 3.17.2 agreed; if regression shows DXA differences vs the old scripts, rerun one snapshot with the old OVITO version.
 
 - Step 3 done: package skeleton, definitions/D1.yaml (inside the package: disegreg/definitions/), geometry.py + tests, CI.
+- D1 rev. 3 (Erik accepted both proposals): per-cluster fallback axes, used slab-wise only where DXA misses. Open [CONFIRM]s:
+  min_slab_fraction 0.5, active_below_dxa_coverage 0.5.
+- Step 4 (first half) done: io_ovito.py, cache.py, `disegreg stage1`; DXA-internal-labels question VERIFIED on Ni-Cu d60 (see
+  DEFINITIONS section 2). First real cache entry: ~/Desktop/SIMULATIONS/DISEGREG-CACHE/Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE/... (5.6 MB, 4.6 s).
 
 ## Next steps
-4. io_ovito.py + cache.py; verify the DXA-internal-labels question on one real snapshot; then regions/composition/order; regression report.
+4b. regions.py (codes X C F S T B O, z_gp from manifest checked against lines), composition.py (c_k, radial bins, Gamma(R) under
+    r_DXA and r), order.py (Warren-Cowley, R2, clusters); manifest.py (Stage 0 schema, so project instances can write manifests).
+5. Regression report against Nb-Au time-avg_07_2026-11-21.dat and Ni-Cu v6.2; TURLO pair t50 R4 / R3.
+6. Recipe for the cmmg environment (conda env under PTMP) + env-lock/disegreg-linux-64.txt; Slurm array for Stage 1.

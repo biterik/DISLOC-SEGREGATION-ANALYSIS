@@ -26,9 +26,11 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
 
 ## 2. Structure labels
 - Region labels (fcc / hcp / other): a-CNA on the quenched snapshot. Parameter-free.
-- Line detection: DXA with input structure fcc. As far as known, DXA does its own internal structure identification and does not use a
-  preceding PTM or a-CNA result. [TO VERIFY on one real snapshot in v0.1.0.] The a-CNA labels are computed separately and are the only ones
-  used for regions.
+- Line detection: DXA with input structure fcc and OVITO's default parameters (recorded in D1.yaml). DXA does its own internal
+  structure identification and does not use a preceding PTM or a-CNA result -- VERIFIED 2026-11-22 on Ni-Cu d60 (Lee-Shim MEAM,
+  -0.25 kT, quenched step 830000, 568 280 atoms): the DXA lines are bit-identical with DXA alone, PTM -> DXA and a-CNA -> DXA, and the
+  "Structure Type" read after PTM -> DXA equals DXA's own labels, not PTM's (it differs from a-CNA for 67 atoms, 0.012 %). The a-CNA
+  labels are computed in a separate pipeline and are the only ones used for regions.
 - Extra per-atom label, stored for every snapshot but NOT used for regions: PTM with the fcc, hcp, bcc and icosahedral templates,
   RMSD (root-mean-square deviation from the ideal template) cut-off 0.12. It distinguishes a core state with a definite local structure
   (e.g. the icosahedral Cu layer of the Cu-Zr complexion, which a-CNA calls "other") from a disordered core. [from TURLO-REDO feedback]
@@ -154,7 +156,7 @@ Tool version (git hash), definition set, OVITO version (pinned), Python/numpy/sc
 | far field (Nb-Au) | fcc, > 40 A from the glide plane | r >= R_far (slab kept as optional column) |
 | far field (TURLO) | > 60 A from every core | r >= R_far |
 | structure (TURLO) | own conventional CNA, r_c = 3.14 A | a-CNA |
-| structure (Ni-Cu) | "PTM" -- probably DXA's internal labels (read after DXA) | a-CNA [to verify] |
+| structure (Ni-Cu) | "PTM" -- in fact DXA's internal labels (read after DXA; verified 22 Nov) | a-CNA |
 | surface layers (TURLO) | 10 A | 15 A |
 | shell (Nb-Au) | 5-10 A including hcp fault atoms | fault atoms only in F |
 | core when DXA finds only part of the line | not handled (core atoms get a large r) | coverage f_cov + fallback axis (3.2-3.4) |
@@ -175,3 +177,4 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
   own axis, not only the largest -- dipole cells; DXA points assigned to clusters by the nearest non-fcc atom. The axis is applied
   slab-wise (atoms in active slabs only), so it cannot reach into slabs where DXA found the line. Y centroid made exact
   (minimum image around the circular mean). Still label D1: no number has been produced with D1 yet.
+  Same day: DXA parameters recorded (OVITO 3.17.2 defaults); the DXA-internal-labels question of section 2 verified (no change).

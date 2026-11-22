@@ -16,5 +16,10 @@ the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 - Definition set D1 draft rev. 3 (Erik, 22 Nov): fallback axis per line defect cluster (every cluster running along >= 50 % of
   the slabs, dipole cells get two axes), used only slab-wise where DXA misses the line (DXA points assigned to clusters by
   the nearest non-fcc atom); `geometry.line_distances` returns r, r_DXA, r_axis, mode and per-cluster coverage.
+- Stage 1: `disegreg.io_ovito` (the only OVITO module: dump -> a-CNA, PTM fcc/hcp/bcc/ico RMSD 0.12, DXA, in separate
+  pipelines), `disegreg.cache` (one compressed .npz per snapshot, keyed by Stage-1 parameters + OVITO version, validated by
+  the dump's SHA-256, atomic writes), `disegreg stage1` command, `disegreg.frame` (Burgers-vector families),
+  `disegreg.provenance`. DXA parameters recorded in D1.yaml.
+- Verified on Ni-Cu d60: DXA ignores a preceding PTM / a-CNA; the old Ni-Cu "PTM" labels were DXA's internal ones.
 - Synthetic tests against brute-force references (incl. the tilted-cell y-boundary case), OVITO smoke test,
   GitHub Actions: synthetic tests on Python 3.11-3.13, OVITO tests on Linux, conda environment + all tests on macOS arm64.
