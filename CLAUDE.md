@@ -40,12 +40,15 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - Review of docs/DEFINITIONS.md rev. 2 (incl. the TURLO-REDO additions: line coverage, fallback core axis, x_iso without bulk control,
   PTM icosahedral label; proposal Gamma(20 A), Gamma(40 A) as headline numbers).
 
-## State at hand-over (22 Nov 2026, from the claude.ai design session)
-Present: LICENSE, CITATION.cff, CLAUDE.md, docs/DESIGN.md, docs/DEFINITIONS.md, docs/FEEDBACK_from-TURLO-REDO_2026-11-22.md.
-No code, no git repository, no GitHub repository yet.
+## State (22 Nov 2026, evening)
+- Done: steps 1 and 2. M5 conda env `disegreg` (Python 3.12, OVITO 3.17.2 from conda.ovito.org, created with
+  `mamba env create -f environment.yml --channel-priority flexible`; a-CNA + DXA smoke test passed). Git repo on GitHub
+  biterik/DISLOC-SEGREGATION-ANALYSIS (public), branch main.
+- cmmg facts: SLES 15 SP7, glibc 2.38 (OVITO 3.17.2 wheels/conda builds OK). Existing cmmg env /cmmc/ptmp/$USER/conda-envs/ovito_env has
+  OVITO 3.14.1 -- leave it alone; disegreg gets its own env under PTMP from environment.yml (recipe still to write), plus
+  env-lock/disegreg-linux-64.txt.
+- OVITO pin 3.17.2 agreed; if regression shows DXA differences vs the old scripts, rerun one snapshot with the old OVITO version.
 
 ## Next steps
-1. Check the M5 environment (Python, OVITO pip module version; Erik prefers reproducible conda-forge environments) and propose environment.yml.
-2. git init, first commit of the existing files; create the public GitHub repository (with Erik's approval, `gh` if authenticated).
 3. pyproject.toml, package skeleton, definitions/D1.yaml, geometry.py + its synthetic tests (pure numpy/scipy), CI workflow.
 4. io_ovito.py + cache.py; verify the DXA-internal-labels question on one real snapshot; then regions/composition/order; regression report.
