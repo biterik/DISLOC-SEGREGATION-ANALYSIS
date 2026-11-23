@@ -57,6 +57,7 @@ FIELDS = {
     "start_type": (True, str, "bottom-up | top-down | seeded"),
     "seeded_from": (False, str, "run id the start configuration was taken from (start_type seeded)"),
     "mc_stream": (False, str, "MC stream file (total solute count vs step), for the drift test"),
+    "mc_stream_column": (False, str, "solute-count column of the stream (default: n*_interior or n*_mcgroup)"),
     "notes": (False, str, "free text"),
 }
 CHOICES = {
