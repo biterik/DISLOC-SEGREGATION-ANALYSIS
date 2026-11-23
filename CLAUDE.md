@@ -37,7 +37,7 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - Scope: v0.1.0 and v0.2 as in docs/DESIGN.md.
 
 ## Open (waiting for Erik)
-- Review of docs/DEFINITIONS.md rev. 2 (incl. the TURLO-REDO additions: line coverage, fallback core axis, x_iso without bulk control,
+- Review of docs/DEFINITIONS.md rev. 3 (incl. the TURLO-REDO additions: line coverage, fallback core axis, x_iso without bulk control,
   PTM icosahedral label; proposal Gamma(20 A), Gamma(40 A) as headline numbers).
 
 ## State (22 Nov 2026, evening)
@@ -50,13 +50,15 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - OVITO pin 3.17.2 agreed; if regression shows DXA differences vs the old scripts, rerun one snapshot with the old OVITO version.
 
 - Step 3 done: package skeleton, definitions/D1.yaml (inside the package: disegreg/definitions/), geometry.py + tests, CI.
-- D1 rev. 3 (Erik accepted both proposals): per-cluster fallback axes, used slab-wise only where DXA misses. Open [CONFIRM]s:
-  min_slab_fraction 0.5, active_below_dxa_coverage 0.5.
+- D1 rev. 3 (Erik accepted both proposals): per-cluster fallback axes, used slab-wise only where DXA misses. min_slab_fraction 0.5 and
+  active_below_dxa_coverage 0.5 confirmed by Erik 23 Nov. Open [CONFIRM]s: region precedence F before O; partial_merge_distance 2 A.
 - Step 4 (first half) done: io_ovito.py, cache.py, `disegreg stage1`; DXA-internal-labels question VERIFIED on Ni-Cu d60 (see
   DEFINITIONS section 2). First real cache entry: ~/Desktop/SIMULATIONS/DISEGREG-CACHE/Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE/... (5.6 MB, 4.6 s).
 
+- Step 4b done (23 Nov): regions, composition, order, manifest (schema 1), stage2 driver, results CSV, `disegreg manifest|analyse`;
+  83 tests. Ni-Cu d60 demo (examples/manifests/): z_gp builder 125.51 vs lines 125.47 A; partial separation 18.8 +- 1.0 A;
+  Stage 2 1.1 s/snapshot; c_B / x_iso = 0.93 (so Gamma(R) falls beyond ~20 A with x_ref = x_iso -- point for the regression report).
+
 ## Next steps
-4b. regions.py (codes X C F S T B O, z_gp from manifest checked against lines), composition.py (c_k, radial bins, Gamma(R) under
-    r_DXA and r), order.py (Warren-Cowley, R2, clusters); manifest.py (Stage 0 schema, so project instances can write manifests).
 5. Regression report against Nb-Au time-avg_07_2026-11-21.dat and Ni-Cu v6.2; TURLO pair t50 R4 / R3.
 6. Recipe for the cmmg environment (conda env under PTMP) + env-lock/disegreg-linux-64.txt; Slurm array for Stage 1.

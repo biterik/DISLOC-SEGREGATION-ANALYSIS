@@ -25,12 +25,14 @@ disegreg/
   regions.py      exclusive region codes from definitions/D1.yaml (versioned separately from the code)
   composition.py  concentrations by region, radial bins, Gamma(R) (under r_DXA and the mixed distance), partial separation
   order.py        solute clusters, Warren-Cowley alpha1/alpha2 (vs x_ref and vs local c), 2nd-neighbour ratio R2
+  stage2.py       Stage 2 driver for one cached snapshot: distances -> z_gp check -> regions -> counts/Gamma -> order -> records
   alongline.py    (v0.2) core composition along the line + Fourier spectrum
   timeseries.py   Stage 3: drift test, block averaging (Flyvbjerg-Petersen), averaging window
   across.py       Stage 4: x_ref hierarchy, uptake exponent, McLean prediction, bottom-up vs top-down
   results.py      tidy long table (run, quantity, region, value, error, definition set, tool version) + provenance
   plotting.py     Erik's house style: fonts >= 13 pt at slide size, colour-blind-safe, SYMMETRIC colour scales for signed maps
   cli.py          disegreg manifest | stage1 | slurm | analyse | table | plot | version
+                  (done: manifest template/check, stage1, analyse, version; `manifest draft` deferred: project-specific)
   definitions/D1.yaml all numerical definition parameters (R_far = 60 A, core 5 A, shell 10 A, fault 4 A, surface 15 A, ...);
                   inside the package so a pip-installed release carries its definitions (versioned separately from the code)
 docs/DEFINITIONS.md   (the paper's Methods section quotes it)   docs/DESIGN.md (this file)
@@ -48,6 +50,7 @@ tests/  regression/  examples/manifests/  CITATION.cff  LICENSE  CHANGELOG.md  p
   Distances and regions are deliberately NOT cached: they are cheap (KD-tree, ~1 s) and definitions may still change, so a definition change
   never forces OVITO to run again. Cost ~1 core-minute per snapshot (~250 core-h for 100 runs x 150 snapshots).
 - Stage 2 (cheap, per snapshot, from the cache): r_DXA, line coverage, fallback axis, r_axis, regions, compositions, Gamma(R), order, clusters.
+  Stores COUNTS (Gamma for any x_ref later). Measured: 1.1 s per 568k-atom snapshot on the M5 (incl. 1st+2nd-shell neighbour search).
 - Stage 3 (per run): time series, drift test, averaging window, block-averaged means and errors.
 - Stage 4 (across runs): x_ref, uptake exponent, McLean, hysteresis, the paper's results table.
 

@@ -21,5 +21,16 @@ the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
   the dump's SHA-256, atomic writes), `disegreg stage1` command, `disegreg.frame` (Burgers-vector families),
   `disegreg.provenance`. DXA parameters recorded in D1.yaml.
 - Verified on Ni-Cu d60: DXA ignores a preceding PTM / a-CNA; the old Ni-Cu "PTM" labels were DXA's internal ones.
-- Synthetic tests against brute-force references (incl. the tilted-cell y-boundary case), OVITO smoke test,
+- Stage 0: `disegreg.manifest` (schema 1: every field with its meaning; validation of frame orthogonality / handedness / <111>
+  normal, Delta = (dmu - dmu_coex)/kT, dmu sign conversion, x_ref source, bulk-control reason), `disegreg manifest template|check`,
+  demo manifest examples/manifests/Ni-Cu_d60_LeeShim2004-MEAM_0.25kT-below-coex.yaml.
+- Stage 2: `disegreg.regions` (codes X C F S T B O, far_slab40 column, z_gp check against the Shockley lines / axes),
+  `disegreg.composition` (counts per region / radial bin / inside R under r and r_DXA, c, E, Gamma(R), region excesses,
+  partial separation with merging of split DXA pieces), `disegreg.order` (1st/2nd shells, Warren-Cowley vs x_ref and local c,
+  R2, 1st-shell solute clusters), `disegreg.stage2` driver, `disegreg.results` (tidy CSV + provenance JSON),
+  `disegreg analyse <manifest>`.
+- D1 rev. 3 (23 Nov): Erik confirmed min_slab_fraction and active_below_dxa_coverage 0.5; new [CONFIRM] items: region precedence
+  F before O, partial_merge_distance 2 A.
+- Synthetic tests against brute-force references (incl. the tilted-cell y-boundary case), exact L1_2 / D0_22 order parameters
+  (alpha1 = -1/3, R2 = 4 and 8/3), cluster sizes across the periodic boundary, end-to-end Stage 2 and `disegreg analyse`, OVITO smoke test,
   GitHub Actions: synthetic tests on Python 3.11-3.13, OVITO tests on Linux, conda environment + all tests on macOS arm64.

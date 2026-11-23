@@ -93,3 +93,42 @@ def test_get_snapshot_cache_hit_and_stale(tilted_fcc_dump, tmp_path, monkeypatch
     assert calls == [1] and s3.meta["timestep"] == 1001
     assert isinstance(Snapshot.load(files[0]), Snapshot)
     assert cache_mod.CACHE_FORMAT == 1
+
+
+def test_cli_analyse_end_to_end(tmp_path):
+    """manifest -> Stage 1 (OVITO) -> Stage 2 -> tidy CSV + provenance, through the command-line entry point."""
+    import json
+
+    import yaml
+
+    from disegreg.cli import main
+    from disegreg.results import read_table
+
+    cell, pos, (y0, z0) = screw_dislocation_cell()
+    run = tmp_path / "PROJ" / "THREAD" / "RUN"
+    run.mkdir(parents=True)
+    rng = np.random.default_rng(5)
+    types = np.where(rng.random(len(pos)) < 0.05, 2, 1)
+    for step in (2000, 1000):
+        write_lammps_dump(run / f"screw_quenched_step{step}.dump", cell, np.arange(1, len(pos) + 1), types, pos,
+                          timestep=step, pbc=("pp", "ss", "ss"))
+    m = {"schema_version": 1, "project": "PROJ", "run_id": "RUN", "potential": "none", "host_element": "Ni",
+         "solute_element": "Cu", "character": "d0", "frame": {"X": [1, -1, 0], "Y": [1, 1, -2], "Z": [1, 1, 1]},
+         "frame_source": "test", "a_cell": A, "a_cell_source": "test", "temperature": 300, "dmu": 0.5,
+         "dmu_lammps": 0.5, "dmu_lammps_sign": 1, "dmu_coex": 0.5, "coex_line": "incoherent", "dmu_coex_source": "test",
+         "delta": 0.0, "dumps": "PROJ/THREAD/RUN/*_quenched_step*.dump", "quenched": True, "z_boundary": "free",
+         "z_gp": float(z0), "z_gp_source": "test", "bulk_control": None, "bulk_control_reason": "test",
+         "x_ref_source": "isotherm", "x_iso": 0.05, "x_iso_source": "test", "start_type": "bottom-up"}
+    mf = tmp_path / "manifest.yaml"
+    mf.write_text(yaml.safe_dump(m))
+    out = tmp_path / "out"
+    assert main(["manifest", "check", str(mf)]) == 0
+    assert main(["analyse", str(mf), "--out", str(out), "--cache", str(tmp_path / "cache")]) == 0
+    rows = read_table(out / "RUN_stage2_D1.csv")
+    assert [r["timestep"] for r in rows if r["quantity"] == "f_cov"] == [1000, 2000]  # sorted by step
+    n = {r["region"]: r["value"] for r in rows if r["quantity"] == "N" and r["timestep"] == 1000}
+    assert sum(n[c] for c in "XCFSTBO") == len(pos)
+    assert all(r["definition_set"] == "D1" for r in rows)
+    prov = json.loads((out / "RUN_stage2_D1.csv.provenance.json").read_text())
+    assert prov["x_ref"] == 0.05 and prov["x_ref_source"] == "x_iso (manifest)" and len(prov["snapshots"]) == 2
+    assert prov["snapshots"][0]["ovito"] == io_ovito.ovito_version()

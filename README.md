@@ -23,6 +23,15 @@ Reproducible conda environment (macOS arm64 and Linux x86_64):
 
 Only `disegreg/io_ovito.py` needs OVITO (pinned to 3.17.2); everything else needs numpy, scipy and pyyaml.
 
+## Use
+
+    disegreg manifest template > my-run.yaml        # Stage 0: one manifest per run (written by the project)
+    disegreg manifest check my-run.yaml
+    disegreg stage1 /path/to/*_quenched_step*.dump   # Stage 1: OVITO once per snapshot, cached
+    disegreg analyse my-run.yaml --out results/      # Stage 2: regions, Gamma(R), order -> tidy CSV + provenance
+
+A demo manifest: [examples/manifests/](examples/manifests/).
+
 ## Tests
 
     pytest
