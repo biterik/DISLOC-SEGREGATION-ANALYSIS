@@ -1,0 +1,48 @@
+# in.relax_testcell -- 0 K FIRE relaxation of the disegreg test cell (make_test_cell.py): Ni d60, 2 % Cu,
+# EAM Fischer, Schmitz & Eich 2018 (Cu_Ni_Fischer_2018.eam.alloy, file order Cu Ni; type 1 = Ni, 2 = Cu).
+# Same protocol as Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE thread 03: box NOT relaxed (period vector encodes the dislocation),
+# 3 outermost (111) layers per z face Fz = 0, stop at fnorm/sqrt(3N) < 1e-8 eV/A.
+# Output: testcell_relaxed.dump (id type x y z c_PE_ATOM, sorted by id) -- gzipped by the job script.
+# Needs: -var POTDIR <folder with Cu_Ni_Fischer_2018.eam.alloy>
+
+variable        A0              equal 3.52
+variable        FTOL_PER_DOF    equal 1.0e-8
+
+units           metal
+dimension       3
+boundary        p p s
+atom_style      atomic
+atom_modify     map array
+read_data       testcell_unrelaxed.lmp
+
+pair_style      eam/alloy
+pair_coeff      * * ${POTDIR}/Cu_Ni_Fischer_2018.eam.alloy Ni Cu
+neighbor        2.0 bin
+neigh_modify    every 1 delay 0 check yes
+
+variable        dz_bnd    equal 2.5*v_A0/sqrt(3.0)
+variable        zmin_atom equal bound(all,zmin)
+variable        zmax_atom equal bound(all,zmax)
+variable        zlo_cut   equal v_zmin_atom+v_dz_bnd
+variable        zhi_cut   equal v_zmax_atom-v_dz_bnd
+region          BOT block INF INF INF INF INF ${zlo_cut} units box
+region          TOP block INF INF INF INF ${zhi_cut} INF units box
+group           BOUNDARY region BOT
+group           BOUNDARY region TOP
+fix             FREEZE_Z BOUNDARY setforce NULL NULL 0.0
+
+variable        n_atoms     equal count(all)
+variable        ftol_global equal v_FTOL_PER_DOF*sqrt(3.0*v_n_atoms)
+thermo          50
+thermo_style    custom step pe fnorm fmax pxx pyy pzz pxy
+
+print           "SETUP: n_atoms = ${n_atoms}, boundary atoms = $(count(BOUNDARY)), ftol_global = ${ftol_global}"
+min_style       fire
+minimize        0.0 ${ftol_global} 50000 100000
+print           "PHASE marker: MINIMIZE COMPLETE  pe = $(pe:%.6f) eV  fnorm/sqrt(3N) = $(fnorm/sqrt(3.0*v_n_atoms):%.3e) eV/A"
+
+compute         PE_ATOM all pe/atom
+dump            FINAL all custom 1 testcell_relaxed.dump id type x y z c_PE_ATOM
+dump_modify     FINAL sort id format line "%d %d %.6f %.6f %.6f %.8f"
+run             0
+print           "RUN marker: ALL PHASES COMPLETE"
