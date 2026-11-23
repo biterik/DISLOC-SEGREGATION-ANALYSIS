@@ -18,7 +18,7 @@ EXAMPLES = Path(__file__).resolve().parents[1] / "examples" / "manifests"
 
 
 def demo():
-    with open(next(EXAMPLES.glob("*.yaml"))) as f:
+    with open(EXAMPLES / "Ni-Cu_d60_LeeShim2004-MEAM_0.25kT-below-coex.yaml") as f:
         return yaml.safe_load(f)
 
 
