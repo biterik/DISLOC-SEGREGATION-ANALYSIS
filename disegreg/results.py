@@ -57,3 +57,37 @@ def read_table(path) -> list[dict]:
             elif k in _BOOL:
                 r[k] = r[k] == "True"
     return rows
+
+
+# --------------------------------------------------------------------------------------------- across runs (Stage 4 input)
+RESULTS_COLUMNS = ("project", "run_id", "potential", "host", "solute", "character", "temperature", "delta", "start_type",
+                   "quantity", "region", "basis", "value", "error", "n_samples", "flat", "run_converged",
+                   "window_fraction", "x_ref", "x_ref_source", "definition_set", "tool_version")
+RUN_FIELDS = {"project": "project", "potential": "potential", "host": "host_element", "solute": "solute_element",
+              "character": "character", "temperature": "temperature", "delta": "delta", "start_type": "start_type"}
+
+
+def collect_runs(stage3_files) -> tuple[list[dict], dict]:
+    """Merge Stage-3 tables of many runs into one tidy long table (DEFINITIONS 9): value = window mean, error =
+    block-averaging SEM. Run metadata come from the manifest copy in each table's provenance file. Refuses to mix
+    definition sets."""
+    rows, sources, labels = [], [], set()
+    for f in stage3_files:
+        f = Path(f)
+        prov = json.loads(f.with_name(f.name + ".provenance.json").read_text())
+        man = prov.get("manifest_data", {})
+        s3 = prov.get("stage3", {})
+        labels.add(prov.get("definition_set"))
+        meta = {k: man.get(v, "") for k, v in RUN_FIELDS.items()}
+        for r in read_table(f):
+            rows.append({**meta, "run_id": r["run_id"], "quantity": r["quantity"], "region": r["region"],
+                         "basis": r["basis"], "value": r["mean"], "error": r["sem"], "n_samples": r["n_samples"],
+                         "flat": r["flat"], "run_converged": s3.get("converged", ""),
+                         "window_fraction": s3.get("window_fraction", ""), "x_ref": prov.get("x_ref", ""),
+                         "x_ref_source": prov.get("x_ref_source", ""), "definition_set": r["definition_set"],
+                         "tool_version": r["tool_version"]})
+        sources.append({"file": str(f), "run_id": man.get("run_id"), "tool_version": prov.get("tool_version"),
+                        "manifest": prov.get("manifest")})
+    if len(labels) > 1:
+        raise ValueError(f"tables from different definition sets {sorted(map(str, labels))} must not be merged")
+    return rows, {"definition_set": labels.pop() if labels else None, "inputs": sources}

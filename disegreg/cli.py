@@ -141,6 +141,25 @@ def _cmd_analyse(args) -> int:
     return status
 
 
+def _cmd_table(args) -> int:
+    from pathlib import Path
+
+    from .provenance import environment
+    from .results import RESULTS_COLUMNS, collect_runs, tool_version, write_table
+
+    files = sorted({str(p) for f in args.stage3 for p in (Path(f).glob("*_stage3_*.csv") if Path(f).is_dir() else [f])})
+    if not files:
+        print("no Stage-3 tables (*_stage3_*.csv) found")
+        return 1
+    rows, prov = collect_runs(files)
+    env = environment()
+    prov.update(environment=env, written_by=tool_version(env))
+    write_table(args.out, rows, prov, columns=RESULTS_COLUMNS)
+    runs = sorted({r["run_id"] for r in rows})
+    print(f"{len(runs)} runs, {len(rows)} rows, definition set {prov['definition_set']} -> {args.out}")
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="disegreg", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -166,6 +185,10 @@ def main(argv=None) -> int:
                     help="d1: |change| < 2 SEM (DEFINITIONS 8 as written); change_se: |change| < 2 SE(change) (proposal)")
     pa.add_argument("--verbose", action="store_true")
     pa.set_defaults(func=_cmd_analyse)
+    pt = sub.add_parser("table", help="merge the Stage-3 tables of many runs into one tidy results table")
+    pt.add_argument("stage3", nargs="+", help="*_stage3_<D>.csv files or folders containing them")
+    pt.add_argument("--out", required=True, help="output CSV (a .provenance.json is written next to it)")
+    pt.set_defaults(func=_cmd_table)
     args = parser.parse_args(argv)
     return args.func(args)
 

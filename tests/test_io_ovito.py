@@ -132,3 +132,9 @@ def test_cli_analyse_end_to_end(tmp_path):
     prov = json.loads((out / "RUN_stage2_D1.csv.provenance.json").read_text())
     assert prov["x_ref"] == 0.05 and prov["x_ref_source"] == "x_iso (manifest)" and len(prov["snapshots"]) == 2
     assert prov["snapshots"][0]["ovito"] == io_ovito.ovito_version()
+    # Stage 3 was written next to Stage 2, and `table` merges it with the manifest metadata
+    assert (out / "RUN_stage3_D1.csv").is_file()
+    assert main(["table", str(out), "--out", str(tmp_path / "all.csv")]) == 0
+    allrows = read_table(tmp_path / "all.csv")
+    assert {r["run_id"] for r in allrows} == {"RUN"} and {r["character"] for r in allrows} == {"d0"}
+    assert any(r["quantity"] == "Gamma" and r["region"] == "20" for r in allrows)

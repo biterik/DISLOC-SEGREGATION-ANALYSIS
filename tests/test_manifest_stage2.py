@@ -157,3 +157,24 @@ def test_stage2_flags_wrong_z_gp():
     snap, *_, z0 = synthetic_snapshot()
     res = analyse_snapshot(snap, load_definitions(), A, z_gp=z0 + 3.0)
     assert res.info["z_gp_flag"] and res.value("z_gp_difference") == pytest.approx(3.0)
+
+
+def test_results_table_refuses_mixed_definition_sets(tmp_path):
+    import json
+
+    from disegreg.results import STAGE3_COLUMNS, collect_runs, write_table
+
+    files = []
+    for label in ("D1", "D2"):
+        row = {"run_id": f"run{label}", "quantity": "c", "region": "C", "basis": "", "mean": 0.1, "sem": 0.01,
+               "n_samples": 3, "sem_plateau": False, "change": 0.0, "change_se": 0.01, "flat": True,
+               "flat_change_se": True, "t_first": 0.0, "t_last": 1.0, "definition_set": label, "tool_version": "x"}
+        f = tmp_path / f"run{label}_stage3_{label}.csv"
+        write_table(f, [row], {"definition_set": label, "manifest_data": demo(), "stage3": {"converged": True}},
+                    columns=STAGE3_COLUMNS)
+        files.append(f)
+    rows, prov = collect_runs(files[:1])
+    assert rows[0]["value"] == 0.1 and rows[0]["error"] == 0.01 and rows[0]["solute"] == "Cu"
+    assert json.dumps(prov)
+    with pytest.raises(ValueError, match="different definition sets"):
+        collect_runs(files)
