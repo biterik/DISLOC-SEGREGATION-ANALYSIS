@@ -143,6 +143,12 @@ Order of preference, chosen per run in the manifest and always reported with its
 - Block averaging (Flyvbjerg-Petersen): consecutive samples are grouped into ever longer blocks until the block means are uncorrelated;
   the SEM is taken from the scatter of those block means.
 - Averaging window: the longest final stretch that passes the drift test, at least 30 % of the run; window start/end are reported.
+- [PROPOSAL, found while implementing, 23 Nov; D1 unchanged] The change across a window has its own standard error,
+  SE(change) = sqrt(12) x SEM for evenly spaced samples, so "|change| < 2 SEM" passes a truly flat series only ~44 % of the time
+  (measured on synthetic correlated series: tests/test_timeseries.py). Proposed: flat if |change| < 2 SE(change), with SE(change)
+  from the block-averaging SEM of the detrended series (passes 95 % of flat series; the Ni-Cu script did the equivalent with 6
+  block means). Both verdicts are computed and stored; `disegreg analyse --drift-criterion change_se` uses the proposal.
+- A block-averaging estimate without a plateau (correlation time comparable to the window) is flagged: its SEM is a lower bound.
 
 ## 9. Across runs
 - Uptake exponent between neighbouring offsets: n_up = Delta ln c_C / Delta ln x_ref, errors propagated.
@@ -189,3 +195,4 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
   23 Nov: Erik confirmed min_slab_fraction 0.5 and active_below_dxa_coverage 0.5 (values unchanged). Written down while implementing
   sections 4, 6, 7 (no value changed): region precedence (F before O) [CONFIRM]; merging of Shockley pieces for the partial
   separation, new parameter partial_merge_distance 2 A [CONFIRM]; counts stored per snapshot; alpha = NaN for a region with c = 0 or 1.
+  23 Nov, section 8: drift-test criterion found statistically too strict -> PROPOSAL (not yet adopted; would be D2 or D1 rev. 4).
