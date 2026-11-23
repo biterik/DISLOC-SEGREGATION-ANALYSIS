@@ -1,4 +1,4 @@
-# disegreg -- definitions (set D1, DRAFT 2026-11-22 rev. 3, for Erik's review)
+# disegreg -- definitions (set D1, DRAFT 2026-11-23 rev. 3, for Erik's review)
 
 Every number produced by `disegreg` carries the tool version (git hash) AND the definition-set label (D1, D2, ...).
 A change to anything in this file creates a new label; the paper's Methods section quotes the label it used.
@@ -52,7 +52,7 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
 ### 3.3 Fallback core axes from the structure [rev. 3]
 - Line defect clusters: connected clusters of interior non-fcc atoms (a-CNA hcp + other + any other non-fcc label, 1st-shell
   connectivity, excluded layers of section 4 removed first -- otherwise free surfaces would be picked up).
-  EVERY cluster that runs along the line counts: its core-type atoms ("other") occupy at least 50 % of the X slabs below. [CONFIRM 50 %]
+  EVERY cluster that runs along the line counts: its core-type atoms ("other") occupy at least 50 % of the X slabs below (Erik 23 Nov).
   This keeps vacancies, isolated distorted solute sites and compact precipitates away from the line out, and gives a cell with two
   dislocations (dipole, e.g. TURLO t50 R1) two axes.
 - One axis per such cluster: in X slabs of 5 A, the centroid (Y, Z) of the cluster's "other" atoms (core atoms, not the hcp ribbon);
@@ -65,7 +65,7 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
 - Assignment of DXA to the axes: every DXA line point belongs to the cluster of its nearest interior non-fcc atom, if that atom is closer
   than the 1st-shell cut-off 0.854 a (else to none). Per cluster m and slab k: DXA coverage f_km = covered fraction of the slab (projected,
   as in 3.2, using only cluster m's DXA points).
-- The axis of cluster m is ACTIVE only in the slabs where DXA covers less than half of the slab for that cluster, f_km < 0.5 [CONFIRM 0.5].
+- The axis of cluster m is ACTIVE only in the slabs where DXA covers less than half of the slab for that cluster, f_km < 0.5 (Erik 23 Nov).
   Where DXA has found the line, the axis is not used -- in a still-dissociated line the axis lies in the middle of the stacking fault, and
   using it there would turn fault atoms into core atoms.
 - r, slab-wise: an atom whose X lies in an active slab of cluster m gets r = min(r_DXA, distance to axis m); every other atom r = r_DXA.
@@ -89,7 +89,9 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
 | T | transition | 10 A <= r < R_far, not F |
 | B | far field | r >= R_far, a-CNA fcc |
 | O | far, other | r >= R_far, not fcc (reported; should be ~0) |
-- R_far = 60 A (decided 22 Nov). Keeps ~75 % of the interior of the ~250 x 250 A cells.
+- R_far = 60 A (decided 22 Nov). Keeps ~75 % of the interior of the ~250 x 250 A cells (measured on Ni-Cu d60: 75.1 %).
+- Precedence where two rows overlap: X > C > F > S, T > B, O. The table leaves open whether an hcp atom near the glide plane at
+  r >= R_far is F or O; it is F (as for S and T). [CONFIRM; affects ~0 atoms, the fault ribbon ends well inside R_far]
 - Optional extra column (not default): far_slab40 = a-CNA fcc, |z - z_gp| > 40 A, not X (the definition of the 21 Nov decks).
 - Radial profile bins (A): 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 80-100, >= 100 -- the outer bins are the plateau check of the far field.
 
@@ -113,6 +115,10 @@ Order of preference, chosen per run in the manifest and always reported with its
   Proposed headline numbers: Gamma(20 A) and Gamma(40 A). They contain the whole core state even if the axis is off by a few A, so they
   are far less sensitive to the distance definition (3.4) than the core/shell split. [PROPOSAL]
 - Partial separation: with exactly two Shockley partials, the Y distance between them in X bins of 5 A; mean and standard deviation along the line.
+  In each bin, Shockley polylines closer than 2 A to each other (Y-Z plane) are pieces of the same partial (a partial split into
+  several DXA segments) and are merged; a bin counts if exactly two partials remain. The number of valid bins is reported. [CONFIRM 2 A]
+- Stored per snapshot: the COUNTS N_k, N_sol,k (regions, radial bins, inside R; under r and r_DXA). x_ref is usually a time average from
+  another run, known only later; c_k, E_k and Gamma follow from the counts for any x_ref.
 
 ## 7. Chemical order (per snapshot, per region of the central solute atom)
 - Neighbour shells: 1st r < 0.854 a (midway between a/sqrt(2) and a; 12 neighbours), 2nd 0.854 a <= r < 1.112 a (midway between a and
@@ -123,6 +129,8 @@ Order of preference, chosen per run in the manifest and always reported with its
   Ordered reference values (every solute without solute 1st neighbours, at c = 0.25):
   L1_2 (fcc with the solute on the cube corners and Ni on the face centres, as Ni3Al): all 6 2nd neighbours solute, R2 = 4.
   D0_22 (the same arrangement with every second cube layer shifted, as Ni3V): 4 of 6, R2 = 2.7.
+- alpha is undefined (reported as NaN) for c_ref = 0 or 1, e.g. a core that is entirely solute.
+- Central solute atoms: interior atoms (not X); their neighbours: all atoms, including those of region X.
 - Clusters: solute atoms connected by 1st-shell bonds. Reported per solute atom as the size of the cluster it belongs to, aggregated by that
   atom's region (no cluster-to-region assignment needed).
 - Planned for v0.2: ordered-domain sizes (for Ni-Al, against the 2.7 nm L1_2 domains of Howard et al. 2025); along-line core composition in
@@ -178,3 +186,6 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
   slab-wise (atoms in active slabs only), so it cannot reach into slabs where DXA found the line. Y centroid made exact
   (minimum image around the circular mean). Still label D1: no number has been produced with D1 yet.
   Same day: DXA parameters recorded (OVITO 3.17.2 defaults); the DXA-internal-labels question of section 2 verified (no change).
+  23 Nov: Erik confirmed min_slab_fraction 0.5 and active_below_dxa_coverage 0.5 (values unchanged). Written down while implementing
+  sections 4, 6, 7 (no value changed): region precedence (F before O) [CONFIRM]; merging of Shockley pieces for the partial
+  separation, new parameter partial_merge_distance 2 A [CONFIRM]; counts stored per snapshot; alpha = NaN for a region with c = 0 or 1.

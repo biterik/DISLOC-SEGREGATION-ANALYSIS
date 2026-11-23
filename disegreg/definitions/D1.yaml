@@ -2,7 +2,7 @@
 # Section numbers refer to docs/DEFINITIONS.md. Lengths in Angstrom unless stated otherwise.
 # Changing ANY value here creates a new definition set (D2, ...) with a line in the revision log of docs/DEFINITIONS.md.
 label: D1
-status: "draft rev. 3 (2026-11-22), under review"
+status: "draft rev. 3 (2026-11-23), under review"
 
 input:                                   # section 1
   snapshots: quenched                    # energy-minimised snapshots only
@@ -30,9 +30,9 @@ distance:                                # section 3
     slab_width: 5.0                      # X slabs (actual width = L_x / round(L_x / 5))
     smoothing_slabs: 3                   # running mean, periodic in X
     connectivity_cutoff_a: 0.854         # 1st-shell connectivity, in units of a_cell
-    min_slab_fraction: 0.5               # a cluster counts as a line if its core atoms fill >= 50 % of the slabs [CONFIRM]
+    min_slab_fraction: 0.5               # a cluster counts as a line if its core atoms fill >= 50 % of the slabs (Erik 23 Nov)
     dxa_assign_cutoff_a: 0.854           # DXA point -> cluster of nearest non-fcc atom if closer than this (units of a_cell)
-    active_below_dxa_coverage: 0.5       # axis used in slab k of cluster m only if DXA covers < 50 % of it [CONFIRM]
+    active_below_dxa_coverage: 0.5       # axis used in slab k of cluster m only if DXA covers < 50 % of it (Erik 23 Nov)
   z_gp_tolerance_planes: 1.0             # 3.4: flag if |z_gp(metadata) - z_gp(lines)| > 1 (111) spacing = a/sqrt(3)
 
 regions:                                 # section 4
@@ -51,6 +51,7 @@ reference:                               # section 5
 composition:                             # section 6
   headline_radii: [20.0, 40.0]           # Gamma(20 A), Gamma(40 A) [PROPOSAL]
   partial_separation_bin: 5.0            # X bins for the Y distance between two Shockley partials
+  partial_merge_distance: 2.0            # Shockley pieces closer than this (Y-Z plane, within a bin) = same partial [CONFIRM]
 
 order:                                   # section 7
   shell1_cutoff_a: 0.854                 # 1st shell: r < 0.854 a
