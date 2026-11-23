@@ -160,6 +160,33 @@ def _cmd_table(args) -> int:
     return 0
 
 
+def _cmd_slurm(args) -> int:
+    import glob
+
+    from .manifest import load_manifest
+    from .slurm import CORE_H_LIMIT, stage1_array
+
+    dumps = []
+    for g in args.dumps or []:
+        dumps += sorted(glob.glob(g))
+    for mf in args.manifest or []:
+        dumps += [str(p) for p in load_manifest(mf).dump_files()]
+    dumps = list(dict.fromkeys(dumps))  # keep order, drop duplicates
+    if not dumps:
+        print("no dumps found")
+        return 1
+    script, lst, n_tasks, core_h = stage1_array(dumps, args.out, args.env, args.cache, chunk=args.chunk,
+                                                partition=args.partition, cpus=args.cpus, mem=args.mem, time=args.time,
+                                                max_parallel=args.max_parallel, definitions=args.definitions,
+                                                version=__version__)
+    print(f"{len(dumps)} dumps -> {n_tasks} array tasks; estimated {core_h:.1f} core-h")
+    print(f"  script {script}\n  list   {lst}")
+    if core_h > CORE_H_LIMIT:
+        print(f"  WARNING: more than {CORE_H_LIMIT:.0f} core-h -- needs Erik's explicit OK before submitting")
+    print(f"submit with:  sbatch {script}")
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="disegreg", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -185,6 +212,20 @@ def main(argv=None) -> int:
                     help="d1: |change| < 2 SEM (DEFINITIONS 8 as written); change_se: |change| < 2 SE(change) (proposal)")
     pa.add_argument("--verbose", action="store_true")
     pa.set_defaults(func=_cmd_analyse)
+    ps = sub.add_parser("slurm", help="write a Slurm job array for Stage 1 (cmmg); prints the sbatch command")
+    ps.add_argument("--dumps", nargs="*", help="glob(s) of dump files (quote them)")
+    ps.add_argument("--manifest", nargs="*", help="manifest(s) whose dump glob to use")
+    ps.add_argument("--out", required=True, help="sbatch script to write (the dump list goes next to it)")
+    ps.add_argument("--env", default="/cmmc/ptmp/$USER/conda-envs/disegreg", help="conda env prefix with disegreg")
+    ps.add_argument("--cache", default="/u/$USER/PTMP/DISEGREG-CACHE", help="Stage-1 cache folder")
+    ps.add_argument("--chunk", type=int, default=20, help="dumps per array task (default 20)")
+    ps.add_argument("--partition", default="s.cmmg")
+    ps.add_argument("--cpus", type=int, default=4)
+    ps.add_argument("--mem", default="16G")
+    ps.add_argument("--time", default="02:00:00")
+    ps.add_argument("--max-parallel", type=int, default=20, help="array tasks running at once")
+    ps.add_argument("--definitions", default="D1")
+    ps.set_defaults(func=_cmd_slurm)
     pt = sub.add_parser("table", help="merge the Stage-3 tables of many runs into one tidy results table")
     pt.add_argument("stage3", nargs="+", help="*_stage3_<D>.csv files or folders containing them")
     pt.add_argument("--out", required=True, help="output CSV (a .provenance.json is written next to it)")
