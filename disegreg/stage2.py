@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from . import composition, order, regions
+from . import composition, frame, order, regions
 from .cache import STRUCTURE_CODES, Snapshot
 from .frame import SHOCKLEY
 from .geometry import line_coverage, line_distances
@@ -41,13 +41,14 @@ class Stage2Result:
         raise KeyError((quantity, region, basis))
 
 
-def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_ref=None, workers: int = -1,
-                     keep_arrays: bool = False) -> Stage2Result:
+def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_ref=None, frame_matrix=None,
+                     workers: int = -1, keep_arrays: bool = False) -> Stage2Result:
     """All Stage-2 quantities of one snapshot.
 
     a_cell : lattice parameter the cell was built with (manifest), for the neighbour-shell cut-offs.
     z_gp   : glide-plane height from the manifest; None -> taken from the lines (and flagged).
     x_ref  : reference solute fraction; None -> counts and local quantities only.
+    frame_matrix : rows = crystal directions of X, Y, Z (Manifest.frame_matrix()); None -> no crystal-frame segment table.
     """
     t0 = time.perf_counter()
     res = Stage2Result()
@@ -83,6 +84,16 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
     res.add("n_active_slabs", sum(res.info["n_active_slabs"]))
     for f, length in res.info["length_per_family"].items():
         res.add("dxa_length", length, region=f)
+    if frame_matrix is not None:
+        table = frame.segment_table(snap, frame_matrix, a_cell)
+        F = np.asarray(frame_matrix, float)
+        b_tot = frame.total_burgers(table, x_axis=F[0])
+        res.info.update(segment_table=table, b_total_crystal_a=[round(float(x), 5) for x in b_tot],
+                        b_total_label=frame.burgers_label(b_tot),
+                        b_total_character_angle=frame.character_angle(b_tot, F[0]) if np.any(b_tot) else float("nan"))
+        for r in table:
+            res.add("segment_character_angle", r["character_angle"], region=f"{r['segment']}:{r['b_label'] or r['family']}")
+        res.add("b_total_character_angle", res.info["b_total_character_angle"])
 
     # ---- glide plane (3.4) and regions (4)
     z_lines, src = regions.z_gp_from_lines(cell, shockley, [ax.polyline(cell) for ax in ld.axes],

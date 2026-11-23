@@ -52,6 +52,16 @@ def _cmd_manifest(args) -> int:
     return 1 if bad else 0
 
 
+def _md_step(dump, fallback) -> int:
+    """MD/MC step of a snapshot: the number after 'step' in the file name (the state that was quenched); the dump's own
+    TIMESTEP is larger by the minimisation steps."""
+    import re
+    from pathlib import Path
+
+    m = re.search(r"step(\d+)", Path(dump).name)
+    return int(m.group(1)) if m else int(fallback)
+
+
 def _cmd_analyse(args) -> int:
     import time
     from pathlib import Path
@@ -59,8 +69,9 @@ def _cmd_analyse(args) -> int:
     from .cache import default_cache_root, get_snapshot
     from .manifest import load_manifest
     from .provenance import environment
-    from .results import tool_version, write_table
+    from .results import STAGE3_COLUMNS, tool_version, write_table
     from .stage2 import analyse_snapshot
+    from .timeseries import read_mc_stream, run_stage3
 
     d = load_definitions(args.definitions)
     root = args.cache or default_cache_root()
@@ -83,15 +94,19 @@ def _cmd_analyse(args) -> int:
         for dump in dumps:
             t0 = time.perf_counter()
             snap = get_snapshot(dump, d, cache_root=root, verbose=args.verbose)
-            res = analyse_snapshot(snap, d, float(m["a_cell"]), z_gp=float(m["z_gp"]), x_ref=x_ref)
-            ts = int(snap.meta.get("timestep", -1))
+            res = analyse_snapshot(snap, d, float(m["a_cell"]), z_gp=float(m["z_gp"]), x_ref=x_ref,
+                                   frame_matrix=m.frame_matrix())
+            ts = _md_step(dump, snap.meta.get("timestep", -1))
             for r in res.records:
                 rows.append({"run_id": m["run_id"], "snapshot": Path(dump).name, "timestep": ts, **r,
                              "definition_set": d.label, "tool_version": tv})
             info = {k: v for k, v in res.info.items()}
-            snaps.append({"dump": str(dump), "source_sha256": snap.meta.get("source_sha256"), "timestep": ts,
+            snaps.append({"dump": str(dump), "source_sha256": snap.meta.get("source_sha256"), "md_step": ts,
+                          "dump_timestep": snap.meta.get("timestep"),
                           "ovito": snap.meta.get("provenance", {}).get("ovito"), "info": info})
             flag = "  z_gp FLAG" if res.info["z_gp_flag"] else ""
+            flag += f"  b_total {res.info['b_total_label'] or res.info['b_total_crystal_a']}" \
+                    f" ({res.info['b_total_character_angle']:.0f} deg)"
             print(f"{m['run_id']} step {ts}: mode {res.info['mode']}, f_cov {res.info['f_cov']:.3f}, "
                   f"c_C {res.value('c', region='C'):.4f}, c_B {res.value('c', region='B'):.5f}"
                   f"{flag}  ({time.perf_counter() - t0:.1f} s)")
@@ -101,6 +116,28 @@ def _cmd_analyse(args) -> int:
                 "x_ref": x_ref, "x_ref_source": x_src, "snapshots": snaps}
         write_table(out, rows, prov)
         print(f"  -> {out} ({len(rows)} rows)")
+        # ---- Stage 3: averaging window (from the MC stream if there is one), window means, drift tests
+        stream = None
+        if m.get("mc_stream") and m.resolve(m["mc_stream"]).is_file():
+            stream = read_mc_stream(m.resolve(m["mc_stream"]))
+        elif m.get("mc_stream"):
+            print(f"  MC stream not found: {m.resolve(m['mc_stream'])} -> window from the snapshots")
+        try:
+            info3, rows3 = run_stage3(rows, d["timeseries"], stream=stream, stream_column=m.get("mc_stream_column"),
+                                      md_timestep_ps=m.get("md_timestep_ps"), criterion=args.drift_criterion)
+        except ValueError as e:
+            print(f"  Stage 3 skipped: {e}")
+            continue
+        for r in rows3:
+            r.update(run_id=m["run_id"], definition_set=d.label, tool_version=tv)
+        out3 = Path(args.out).expanduser() / f"{m['run_id']}_stage3_{d.label}.csv"
+        write_table(out3, rows3, {**prov, "stage3": info3}, columns=STAGE3_COLUMNS)
+        verdict = "converged" if info3["converged"] else "NOT converged"
+        if not info3["signal_plateau"]:
+            verdict += " (block averaging without plateau: error bar is a lower bound, verdict uncertain)"
+        print(f"  Stage 3: window {info3['window_t_start']:.0f}-{info3['window_t_end']:.0f} {info3['time_unit']} "
+              f"({info3['window_fraction']:.0%} of the run, {info3['window_source']}), {verdict}"
+              f" [criterion {info3['criterion']}]  -> {out3}")
     return status
 
 
@@ -125,6 +162,8 @@ def main(argv=None) -> int:
     pa.add_argument("--last", type=int, help="only the last N dumps of each run")
     pa.add_argument("--cache", help="cache folder (default: $DISEGREG_CACHE or the agreed location for this machine)")
     pa.add_argument("--definitions", default="D1", help="definition set label or YAML path (default D1)")
+    pa.add_argument("--drift-criterion", choices=("d1", "change_se"), default="d1",
+                    help="d1: |change| < 2 SEM (DEFINITIONS 8 as written); change_se: |change| < 2 SE(change) (proposal)")
     pa.add_argument("--verbose", action="store_true")
     pa.set_defaults(func=_cmd_analyse)
     args = parser.parse_args(argv)
