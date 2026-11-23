@@ -31,6 +31,17 @@ the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
   `disegreg analyse <manifest>`.
 - D1 rev. 3 (23 Nov): Erik confirmed min_slab_fraction and active_below_dxa_coverage 0.5; new [CONFIRM] items: region precedence
   F before O, partial_merge_distance 2 A.
+- Stage 3: `disegreg.timeseries` (Flyvbjerg-Petersen block averaging with plateau flag, drift test with the D1 criterion and
+  the proposed SE(change) criterion side by side, averaging window, MC-stream reader with restart de-duplication); `analyse`
+  writes `<run>_stage3_<D>.csv`; snapshot times from the MD/MC step in the file name.
+- Crystal frame: b and xi of every DXA segment in crystal axes with Miller labels, character angle, total b of the line.
+- `disegreg table` (tidy results table across runs, refuses mixed definition sets), `disegreg slurm` (Stage-1 job array
+  for cmmg), env-lock/disegreg-linux-64.txt (solved on the M5 for glibc 2.38), docs/CMMG.md, docs/HOWTO_PROJECTS.md.
+- Test cell: tests/data-generation/ (periodic Ni d60 cell, production construction scaled down; LAMMPS relaxation input and
+  job script for cmmg); tests/test_testcell.py runs once the relaxed dump is in tests/data/.
+- Regression against the project analyses: regression/run_regression.py (old value / old recipe on disegreg data / D1),
+  regression/make_figures.py, results in regression/results/.
+- Demo manifests for Nb-Au (d60 Mendelev) and TURLO (t50 R3).
 - Synthetic tests against brute-force references (incl. the tilted-cell y-boundary case), exact L1_2 / D0_22 order parameters
   (alpha1 = -1/3, R2 = 4 and 8/3), cluster sizes across the periodic boundary, end-to-end Stage 2 and `disegreg analyse`, OVITO smoke test,
   GitHub Actions: synthetic tests on Python 3.11-3.13, OVITO tests on Linux, conda environment + all tests on macOS arm64.

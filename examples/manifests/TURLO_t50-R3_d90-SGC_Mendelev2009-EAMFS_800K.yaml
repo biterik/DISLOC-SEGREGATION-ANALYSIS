@@ -1,0 +1,41 @@
+# DEMO manifest (written by the analysis-tool instance from the project files, 2026-11-23) -- the project instance owns
+# the real manifests. Values from the run's .in (SIGN CONVENTION block), TURLO-REDO/32 isotherm_Mendelev2009-EAMFS_fromCu.dat
+# and DESIGN data facts (frame, dmu_coex, kT).
+schema_version: 1
+project: TURLO-REDO
+thread: 50_TURLO-METHOD-VS-OURS-CU-ZR
+run_id: t50_R3_d90-SGC-dmu-3.4736_Mendelev2009-EAMFS_800K
+potential: Mendelev2009-EAMFS
+host_element: Cu
+solute_element: Zr
+character: d90
+frame:
+  X: [1, -2, 1]
+  Y: [1, 0, -1]
+  Z: [1, 1, 1]
+frame_source: docs/DESIGN.md data facts (TURLO d90 Cu-Zr) -- project to point to the cell-builder file
+a_cell: 3.68424
+a_cell_source: derived, L_x / (24 x a sqrt(6)/2 repeat) of the final R3 dump -- project to replace by the builder value
+temperature: 800
+dmu: -3.4736
+dmu_lammps: 3.4736
+dmu_lammps_sign: -1
+dmu_coex: -3.6977
+coex_line: incoherent
+dmu_coex_source: DESIGN data facts, dmu_coex(800 K) = -3.6977 eV vs C15 Cu2Zr
+delta: 3.25
+dumps: ~/Desktop/SIMULATIONS/TURLO-REDO/50_TURLO-METHOD-VS-OURS-CU-ZR/t50_R3_d90-SGC-dmu-3.4736_Mendelev2009-EAMFS_800K/*_quenched_step*.dump
+quenched: true
+md_timestep_ps: 0.001
+z_boundary: free
+z_gp: 129.32
+z_gp_source: median Z of the Shockley lines of t50 R4 final (same cell, polyline mode); builder metadata not located
+bulk_control: null
+bulk_control_reason: R1b is a VC-SGC bulk box at fixed c = 0.012, not an SGC run at this dmu
+x_ref_source: isotherm
+x_iso: 0.012
+x_iso_source: TURLO-REDO/32 isotherm_Mendelev2009-EAMFS_fromCu.dat, Turlo point (x_Zr = 0.012 at dmu_turlo = -3.4736 eV)
+start_type: bottom-up
+mc_stream: ~/Desktop/SIMULATIONS/TURLO-REDO/50_TURLO-METHOD-VS-OURS-CU-ZR/t50_R3_d90-SGC-dmu-3.4736_Mendelev2009-EAMFS_800K/t50_R3_d90-SGC-dmu-3.4736_Mendelev2009-EAMFS_800K_mc-stream.dat
+mc_stream_column: NZr_mcgroup
+notes: start_type assumed for the demo. Delta > 0 (supersaturated) without a bulk control -> diagnostic (iv) "not tested".

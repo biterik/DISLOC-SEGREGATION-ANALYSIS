@@ -28,9 +28,12 @@ Only `disegreg/io_ovito.py` needs OVITO (pinned to 3.17.2); everything else need
     disegreg manifest template > my-run.yaml        # Stage 0: one manifest per run (written by the project)
     disegreg manifest check my-run.yaml
     disegreg stage1 /path/to/*_quenched_step*.dump   # Stage 1: OVITO once per snapshot, cached
-    disegreg analyse my-run.yaml --out results/      # Stage 2: regions, Gamma(R), order -> tidy CSV + provenance
+    disegreg analyse my-run.yaml --out results/      # Stages 2+3: regions, Gamma(R), order; time averages -> CSV
+    disegreg table results/ --out all_D1.csv         # one tidy table across runs
+    disegreg slurm --dumps "<glob>" --out job.slurm  # Stage-1 job array for cmmg (docs/CMMG.md)
 
-A demo manifest: [examples/manifests/](examples/manifests/).
+Demo manifests: [examples/manifests/](examples/manifests/). Project instances: [docs/HOWTO_PROJECTS.md](docs/HOWTO_PROJECTS.md).
+cmmg: [docs/CMMG.md](docs/CMMG.md).
 
 ## Tests
 

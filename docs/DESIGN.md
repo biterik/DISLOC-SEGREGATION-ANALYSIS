@@ -25,6 +25,7 @@ disegreg/
   regions.py      exclusive region codes from definitions/D1.yaml (versioned separately from the code)
   composition.py  concentrations by region, radial bins, Gamma(R) (under r_DXA and the mixed distance), partial separation
   order.py        solute clusters, Warren-Cowley alpha1/alpha2 (vs x_ref and vs local c), 2nd-neighbour ratio R2
+  slurm.py        Stage-1 job array script for cmmg (written, never submitted by disegreg)
   stage2.py       Stage 2 driver for one cached snapshot: distances -> z_gp check -> regions -> counts/Gamma -> order -> records
   alongline.py    (v0.2) core composition along the line + Fourier spectrum
   timeseries.py   Stage 3: drift test, block averaging (Flyvbjerg-Petersen), averaging window
@@ -32,7 +33,10 @@ disegreg/
   results.py      tidy long table (run, quantity, region, value, error, definition set, tool version) + provenance
   plotting.py     Erik's house style: fonts >= 13 pt at slide size, colour-blind-safe, SYMMETRIC colour scales for signed maps
   cli.py          disegreg manifest | stage1 | slurm | analyse | table | plot | version
-                  (done: manifest template/check, stage1, analyse, version; `manifest draft` deferred: project-specific)
+                  (done: manifest template/check, stage1, slurm, analyse (Stages 2+3), table, version; `manifest draft` deferred:
+                  project-specific; `plot` with v0.2)
+regression/run_regression.py, make_figures.py  regression against the project analyses (M5; results/ and the SIM-REPORTS deck)
+docs/CMMG.md (cmmg recipe), docs/HOWTO_PROJECTS.md (how project instances call disegreg)
   definitions/D1.yaml all numerical definition parameters (R_far = 60 A, core 5 A, shell 10 A, fault 4 A, surface 15 A, ...);
                   inside the package so a pip-installed release carries its definitions (versioned separately from the code)
 docs/DEFINITIONS.md   (the paper's Methods section quotes it)   docs/DESIGN.md (this file)
