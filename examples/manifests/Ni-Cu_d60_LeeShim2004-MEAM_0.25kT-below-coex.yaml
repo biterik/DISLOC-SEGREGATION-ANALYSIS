@@ -1,0 +1,40 @@
+# DEMO manifest (written by the analysis-tool instance from the project files, 2026-11-23) -- the project instance
+# owns the real manifests of its runs. Values from:
+#   07_MDMC-CU-SEGREGATION-T300-COEX-OFFSETS/mdmc-parameters.dat (dmu, a(x,T), x, dmu_coex)
+#   00_CORRECTED-CELLS-A0-3.52/cells/gate-report_Ni_60deg_x-211_y0-11_z111.txt (glide gap z = 124.9847 A at a = 3.52 A)
+schema_version: 1
+project: Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE
+thread: 07_MDMC-CU-SEGREGATION-T300-COEX-OFFSETS
+run_id: mdmc300K_d60_LeeShim2004-MEAM_0.25kT-below-coex_dmu0.8817
+potential: LeeShim2004-MEAM
+host_element: Ni
+solute_element: Cu
+character: d60
+frame:
+  X: [0, -1, 1]
+  Y: [2, -1, -1]
+  Z: [1, 1, 1]
+frame_source: 00_CORRECTED-CELLS-A0-3.52/cells/build-log_Ni_60deg_x-211_y0-11_z111.txt (LAMMPS frame X = line)
+a_cell: 3.53481
+a_cell_source: mdmc-parameters.dat, a(x,T) from the thread-02 up-scan at dmu_run
+temperature: 300
+dmu: 0.8817
+dmu_lammps: 0.8817
+dmu_lammps_sign: 1
+dmu_coex: 0.8882
+coex_line: incoherent
+dmu_coex_source: mdmc-parameters.dat, dmu_coex(300 K) = 0.8882 +- 0.03 meV vs fcc_Cu
+delta: -0.25
+dumps: ~/Desktop/SIMULATIONS/Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE/07_MDMC-CU-SEGREGATION-T300-COEX-OFFSETS/mdmc300K_d60_LeeShim2004-MEAM_0.25kT-below-coex_dmu0.8817/*_quenched_step*.dump
+quenched: true
+z_boundary: fixed
+z_gp: 125.5106
+z_gp_source: gate report glide gap 124.9847 A (cell built at a = 3.52 A) x 3.53481 / 3.52
+bulk_control: null
+bulk_control_reason: not looked up for this demo (project instance to fill in)
+x_ref_source: isotherm
+x_iso: 6.8526e-3
+x_iso_source: mdmc-parameters.dat, xCu_overall from the thread-02 up-scan at dmu_run
+start_type: bottom-up
+mc_stream: ~/Desktop/SIMULATIONS/Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE/07_MDMC-CU-SEGREGATION-T300-COEX-OFFSETS/mdmc300K_d60_LeeShim2004-MEAM_0.25kT-below-coex_dmu0.8817/mdmc300K_d60_LeeShim2004-MEAM_0.25kT-below-coex_dmu0.8817_mc-stream.dat
+notes: z_boundary and start_type assumed for the demo (fixed boundary layers per DESIGN data facts; bottom-up not checked)
