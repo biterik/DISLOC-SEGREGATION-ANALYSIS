@@ -24,3 +24,6 @@ regression/output/
 .DS_Store
 .claude/settings.local.json
 .env
+
+# run logs (contain absolute local paths)
+*.log
