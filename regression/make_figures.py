@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import matplotlib
+import matplotlib.ticker
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
@@ -15,12 +16,12 @@ import numpy as np  # noqa: E402
 RES = Path(__file__).parent / "results"
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else RES / "fig"
 OUT.mkdir(parents=True, exist_ok=True)
-plt.rcParams.update({"font.size": 15, "axes.labelsize": 15, "axes.titlesize": 15, "xtick.labelsize": 14,
-                     "ytick.labelsize": 14, "legend.fontsize": 13, "axes.spines.top": False, "axes.spines.right": False,
+plt.rcParams.update({"font.size": 14, "axes.labelsize": 14, "axes.titlesize": 14, "xtick.labelsize": 13,
+                     "ytick.labelsize": 13, "legend.fontsize": 13, "axes.spines.top": False, "axes.spines.right": False,
                      "axes.grid": True, "grid.color": "#e6e6e6", "legend.frameon": False, "savefig.dpi": 200})
 C = {"blue": "#0072B2", "orange": "#E69F00", "green": "#009E73", "red": "#D55E00", "ink": "#333333"}
-POT = {"LeeShim2004-MEAM": (C["blue"], "o", "Lee-Shim MEAM"), "CuNi-ACE": (C["orange"], "s", "CuNi ACE"),
-       "EAMX-DawChandross2023": (C["green"], "D", "EAM-X (Au)"), "Mendelev2022-EAMFS": (C["red"], "^", "Mendelev 2022 (Nb)")}
+POT = {"LeeShim2004-MEAM": (C["blue"], "o", "Lee-Shim"), "CuNi-ACE": (C["orange"], "s", "ACE"),
+       "EAMX-DawChandross2023": (C["green"], "D", "Au"), "Mendelev2022-EAMFS": (C["red"], "^", "Nb")}
 
 
 def rows(name):
@@ -67,12 +68,12 @@ def scatter_panel(ax, data, xk, yk, rk=None, log=True, title="", xlabel="old pro
 
 def fig_nicu():
     d = rows("nicu_comparison.csv")
-    fig, ax = plt.subplots(1, 2, figsize=(10.6, 5.2), constrained_layout=True)
-    scatter_panel(ax[0], d, "c0_5_old", "c0_5_D1", rk="c0_5_old_recipe", title="Cu fraction within 5 Å of a partial")
+    fig, ax = plt.subplots(1, 2, figsize=(7.4, 5.3), constrained_layout=True)  # = size on the slide
+    scatter_panel(ax[0], d, "c0_5_old", "c0_5_D1", rk="c0_5_old_recipe", title="c(r < 5 Å)")
     scatter_panel(ax[1], d, "enrich_old", "enrich_C_vs_cB_D1", rk="enrich_old_recipe",
-                  title="core enrichment c(0-5 Å) / c_far")
+                  title="c(r < 5 Å) / c_far")
     ax[0].legend(loc="upper left")
-    ax[1].text(0.97, 0.04, "open symbols: old recipe re-run\non disegreg data", transform=ax[1].transAxes,
+    ax[1].text(0.97, 0.04, "open: old recipe\non disegreg data", transform=ax[1].transAxes,
                ha="right", va="bottom", fontsize=13, color=C["ink"])
     fig.savefig(OUT / "F1_nicu_old-vs-D1.png")
     plt.close(fig)
@@ -80,33 +81,36 @@ def fig_nicu():
 
 def fig_nbau():
     d = rows("nbau_comparison.csv")
-    fig, ax = plt.subplots(2, 3, figsize=(10.8, 5.5), constrained_layout=True)
-    panels = [("c_core", True, "c core (r < 5 Å)"), ("c_SF", True, "c fault ribbon"), ("c_far", True, "c far (fcc, >40 Å)"),
-              ("sep", False, "partial separation (Å)"), ("a1_core", False, "α₁ core (vs c_far)"),
+    fig, ax = plt.subplots(2, 3, figsize=(8.0, 5.5), constrained_layout=True)
+    panels = [("c_core", True, "c core"), ("c_SF", True, "c fault"), ("c_far", True, "c far"),
+              ("sep", False, "separation (Å)"), ("a1_core", False, "α₁ core"),
               ("r2_core", False, "R2 core")]
     for a, (k, log, t) in zip(ax.flat, panels):
         sub = [r for r in d if np.isfinite(fl(r, f"{k}_old")) and (fl(r, f"{k}_old") > 0 or not log)]
         scatter_panel(a, sub, f"{k}_old", f"{k}_D1", rk=f"{k}_old_recipe", log=log, title=t, xlabel="old", ylabel="D1")
-    ax[0, 0].legend(loc="upper left", fontsize=12)
+        if not log:
+            a.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(3))
+            a.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(4))
+    ax[0, 0].legend(loc="lower right", fontsize=13, handletextpad=0.1, borderaxespad=0.1)
     fig.savefig(OUT / "F2_nbau_old-vs-D1.png")
     plt.close(fig)
 
 
 def fig_turlo():
     d = {r["run"]: r for r in rows("turlo_comparison.csv")}
-    fig, ax = plt.subplots(1, 2, figsize=(10.6, 4.8), constrained_layout=True)
-    labels = ["old analysis", "D1, r (used)", "D1, r_DXA only"]
+    fig, ax = plt.subplots(1, 2, figsize=(7.6, 5.0), constrained_layout=True)
+    labels = ["old", "D1, r", "D1, r_DXA"]
     keys = ["NZr_excess_r<20_old", "NZr_excess_r<20_D1", "NZr_excess_r<20_D1_rdxa"]
     cols = [C["ink"], C["blue"], C["orange"]]
     hatches = ["", "", "//"]
-    for a, run, title in ((ax[0], "R3", "R3: complexion (mixed mode)"), (ax[1], "R4", "R4: two Shockley partials")):
+    for a, run, title in ((ax[0], "R3", "R3 (mixed mode)"), (ax[1], "R4", "R4 (polyline)")):
         v = [fl(d[run], k) for k in keys]
         a.bar(range(3), v, color=cols, hatch=hatches, edgecolor="white", width=0.7)
         for i, x in enumerate(v):
             a.text(i, x, f"{x:.0f}" if x > 20 else f"{x:.1f}", ha="center", va="bottom", fontsize=14)
-        a.set_xticks(range(3), labels, fontsize=13)
+        a.set_xticks(range(3), labels)
         a.set_title(title, loc="left")
-        a.set_ylabel("Zr excess within 20 Å (atoms)")
+        a.set_ylabel("Zr excess, r < 20 Å (atoms)")
         a.grid(axis="x", visible=False)
         a.set_axisbelow(True)
     fig.savefig(OUT / "F3_turlo_R3-R4.png")
@@ -131,14 +135,14 @@ def fig_gamma_xref():
     R = [5, 10, 20, 40, 60, 80, 100]
     n = np.array([res.value("N_inside", f"{r}", "r") for r in R])
     ns = np.array([res.value("N_sol_inside", f"{r}", "r") for r in R])
-    fig, ax = plt.subplots(figsize=(10.6, 4.8), constrained_layout=True)
-    for x, col, mk, lab in ((6.8526e-3, C["orange"], "s", f"x_ref = x_iso = {6.8526e-3:.5f} (isotherm)"),
-                            (cB, C["blue"], "o", f"x_ref = c_B = {cB:.5f} (far field of this cell)")):
+    fig, ax = plt.subplots(figsize=(8.2, 5.0), constrained_layout=True)
+    for x, col, mk, lab in ((6.8526e-3, C["orange"], "s", f"x_ref = x_iso = {6.8526e-3:.5f}"),
+                            (cB, C["blue"], "o", f"x_ref = c_B = {cB:.5f}")):
         ax.plot(R, (ns - x * n) / L, color=col, marker=mk, ms=9, lw=2, label=lab, mec="white", mew=1.5)
     ax.axhline(0, color="#999999", lw=1.2, zorder=0)
     ax.set_xlabel("R (Å)")
     ax.set_ylabel("Γ(R) (Cu atoms per Å of line)")
-    ax.set_title("Ni-Cu d60, Lee-Shim MEAM, Δ = −0.25 (step 830000)", loc="left")
+    ax.set_title("Ni-Cu d60, Lee-Shim, Δ = −0.25", loc="left")
     ax.legend(loc="lower left")
     fig.savefig(OUT / "F4_nicu_gamma-vs-xref.png")
     plt.close(fig)

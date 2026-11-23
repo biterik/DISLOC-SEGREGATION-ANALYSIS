@@ -1,0 +1,128 @@
+# Regression report deck (susmat-deck). Build from regression/report/ (figure paths are relative to it):
+#   python3 <susmat-deck>/scripts/build_deck.py deck.yaml -o <SIM-REPORTS>/2026-11-23_disegreg-D1-regression.pptx
+meta:
+  date: 23 November 2026
+  occasion: Dislocation Defect Phases -- analysis tool (disegreg)
+
+slides:
+  - layout: title
+    title: "disegreg D1 against the project analyses"
+
+  - layout: agenda
+    title: What was compared, and how
+    bullets:
+      - Three projects, the same snapshots as the old tables
+      - "  Ni-Cu: v6.2 summary, latest snapshot of 19 runs (Lee-Shim MEAM, CuNi ACE)"
+      - "  Nb-Au: time-avg_07_2026-11-21.dat, 24 runs, 157 snapshots (EAM-X Au, Mendelev 2022 Nb)"
+      - "  TURLO-REDO: t50 R4 (two partials) and R3 (complexion), final snapshots"
+      - Three values per number
+      - "  old: the project's table, as written"
+      - "  old recipe: the old definition re-implemented on disegreg's data -- tests the inputs"
+      - "  D1: disegreg with definition set D1 (draft rev. 3)"
+      - Old recipe = old  =>  any D1 difference is a definition change, not a bug
+
+  - layout: content
+    title: "Ni-Cu: old numbers reproduced; D1 changes c_far"
+    images:
+      - path: ../results/fig/F1_nicu_old-vs-D1.png
+        left: 1.06
+        top: 1.40
+        width: 7.4
+    text_boxes:
+      - bullets:
+          - Old recipe = old for 16 of 19 runs
+          - "  3 CuNi-ACE runs: one partial 0.1-0.2 Å off; not the OVITO version (3.14.1 = 3.17.2 on the M5); check on cmmg"
+          - "D1 core c: -8 to +11 %"
+          - "  distance to the polyline, not to the mean line"
+          - "Enrichment -9 to +29 %, largest for ACE -0.1 kT"
+          - "  D1 far field = fcc only; bulk Cu clusters (H9) no longer counted"
+        left: 8.6
+        top: 1.5
+        width: 4.2
+        size: 15
+
+  - layout: content
+    title: "Γ(R) needs the right x_ref: c_B / x_iso = 0.93"
+    images:
+      - path: ../results/fig/F4_nicu_gamma-vs-xref.png
+        left: 1.06
+        top: 1.40
+        width: 8.2
+    text_boxes:
+      - bullets:
+          - With c_B the excess is flat from 20 Å on
+          - With x_iso it falls and turns negative
+          - "Γ(20 Å): -10 %, Γ(40 Å): -30 % between the two"
+          - "Single snapshot: +-0.09 at 20 Å, +-0.17 at 40 Å (counting)"
+          - x_ref choice matters more than r_DXA vs r
+        left: 9.4
+        top: 1.6
+        width: 3.5
+        size: 15
+
+  - layout: content
+    title: "Nb-Au: reproduced to 0.4 %; D1 moves shell and R2"
+    images:
+      - path: ../results/fig/F2_nbau_old-vs-D1.png
+        left: 1.06
+        top: 1.40
+        width: 8.0
+    text_boxes:
+      - bullets:
+          - "Old recipe = old within 0.4 % (EAM-X: 1 snapshot fewer on the M5)"
+          - "Core c: +-0.5 % (exact triclinic images)"
+          - "Nb shell c: -3 to -7 % (fault atoms now only in F)"
+          - "R2 core: up to +10 % (2nd shell 1.112 a, was 1.10 a)"
+          - Far field, alpha_1, separation unchanged
+          - "Separations up to 124 Å ~ L_y / 2: cell-limited?"
+        left: 9.2
+        top: 1.5
+        width: 3.8
+        size: 15
+
+  - layout: content
+    title: "TURLO pair: the fallback axis recovers 10 % of R3"
+    images:
+      - path: ../results/fig/F3_turlo_R3-R4.png
+        left: 1.06
+        top: 1.40
+        width: 7.6
+    text_boxes:
+      - bullets:
+          - "R4: polyline mode, 2 Shockleys, b = 1/2[1 0 -1]"
+          - "R3: mixed mode, DXA covers 60 %; axis active in 9 of 22 slabs"
+          - "R3 Zr excess (r < 20 Å): 411 old = 411 D1; 370 with r_DXA only"
+          - "Γ(40 Å): 4.73 (r) vs 4.77 (r_DXA): insensitive"
+          - "R3 Shockley piece 3.2 Å above R4's glide plane: z_gp flag"
+        left: 8.8
+        top: 1.5
+        width: 4.1
+        size: 15
+
+  - layout: content
+    title: New checks the old scripts did not have
+    bullets:
+      - "Total Burgers vector from the crystal frame: correct in 44 of 45 runs (R3: line in pieces, no total)"
+      - "Character of the partials: d60 -> 30 deg + 90 deg (edge), as expected"
+      - "Glide plane: Ni-Cu d60 builder value 125.51 Å vs lines 125.47 Å (passes)"
+      - "Line coverage f_cov and mode per snapshot (all Ni-Cu / Nb-Au snapshots: polyline, f_cov = 1)"
+      - "Drift test: old Ni-Cu window means and drifts reproduced exactly (111.2 / 370.6 / 3575.9)"
+      - "  but D1's criterion |change| < 2 SEM passes a flat series only 44 % of the time (proposal: 2 SE(change), 95 %)"
+
+  - layout: content
+    title: Decisions needed from Erik
+    bullets:
+      - "Drift test: adopt |change| < 2 SE(change) (DEFINITIONS 8 proposal)?"
+      - "x_ref for Ni-Cu: c_B is 7 % below x_iso -- isotherm or bulk control?"
+      - "Headline: Γ(20 Å) (smaller noise, less x_ref-sensitive) or Γ(40 Å) (insensitive to r_DXA vs r)?"
+      - "[CONFIRM] region precedence F before O; partial merge distance 2 Å"
+      - "TURLO R3: Shockley piece off the glide plane -- for the TURLO instance"
+
+  - layout: content
+    title: "Next: on cmmg (Erik runs, recipe docs/CMMG.md)"
+    bullets:
+      - "Environment from env-lock/disegreg-linux-64.txt (solved on the M5 for cmmg)"
+      - Test cell (35 584 atoms, < 1 core-h) -> tests/data/, enables 2 more tests
+      - "One Ni-Cu ACE snapshot through disegreg on cmmg: settles the 0.2 Å DXA difference"
+      - Then Stage 1 job arrays for the full time series (core-h printed before submitting)
+      - Then v0.1.0, after your review of DEFINITIONS rev. 3

@@ -1,0 +1,40 @@
+# DEMO manifest (written by the analysis-tool instance from the project files, 2026-11-23) -- the project instance owns
+# the real manifests of its runs. Values from 07_MDMC-SOLUTE-SEGREGATION-T300-WHOLE-INTERIOR/mdmc-parameters.dat and the
+# run's _chunk.in (DMU = mu_Nb - mu_Ni, fix atom/swap semi-grand: same sign as this manifest).
+schema_version: 1
+project: Nb-Au-AT-DISLOCS-Ni-ACE-EAM
+thread: 07_MDMC-SOLUTE-SEGREGATION-T300-WHOLE-INTERIOR
+run_id: mdmc300K_d60_Mendelev2022-EAMFS_0.25kT-below-coex_dmu-3.0170
+potential: Mendelev2022-EAMFS
+host_element: Ni
+solute_element: Nb
+character: d60
+frame:
+  X: [0, -1, 1]
+  Y: [2, -1, -1]
+  Z: [1, 1, 1]
+frame_source: Ni cells of Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE/00_CORRECTED-CELLS-A0-3.52 (d60, LAMMPS frame X = line) -- CHECK (project)
+a_cell: 3.56905
+a_cell_source: mdmc-parameters.dat a_xT (thread-02 up-scan at dmu); A_XT in the run's _chunk.in
+temperature: 300
+dmu: -3.0170
+dmu_lammps: -3.0170
+dmu_lammps_sign: 1
+dmu_coex: -3.0105
+coex_line: incoherent
+dmu_coex_source: mdmc-parameters.dat, dmu_coex(300 K) = -3.0105 +- 0.3 meV vs aflow_0252_Nb1Ni5
+delta: -0.25
+dumps: ~/Desktop/SIMULATIONS/Nb-Au-AT-DISLOCS-Ni-ACE-EAM/07_MDMC-SOLUTE-SEGREGATION-T300-WHOLE-INTERIOR/mdmc300K_d60_Mendelev2022-EAMFS_0.25kT-below-coex_dmu-3.0170/*_quenched_step*.dump
+quenched: true
+md_timestep_ps: 0.001
+z_boundary: fixed
+z_gp: 126.51
+z_gp_source: median Z of the DXA Shockley lines, mean of the 5 window snapshots (126.46-126.54, disegreg regression 2026-11-23); builder metadata not located -- project to replace
+bulk_control: null
+bulk_control_reason: not looked up for this demo (project instance to fill in)
+x_ref_source: isotherm
+x_iso: 6.8084e-2
+x_iso_source: mdmc-parameters.dat xSol_overall from the thread-02 up-scan at dmu
+start_type: bottom-up
+mc_stream: ~/Desktop/SIMULATIONS/Nb-Au-AT-DISLOCS-Ni-ACE-EAM/07_MDMC-SOLUTE-SEGREGATION-T300-WHOLE-INTERIOR/mdmc300K_d60_Mendelev2022-EAMFS_0.25kT-below-coex_dmu-3.0170/mdmc300K_d60_Mendelev2022-EAMFS_0.25kT-below-coex_dmu-3.0170_mc-stream.dat
+notes: z_boundary, start_type and frame source assumed for the demo; z_gp to be replaced by the builder value

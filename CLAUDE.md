@@ -59,6 +59,14 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   83 tests. Ni-Cu d60 demo (examples/manifests/): z_gp builder 125.51 vs lines 125.47 A; partial separation 18.8 +- 1.0 A;
   Stage 2 1.1 s/snapshot; c_B / x_iso = 0.93 (so Gamma(R) falls beyond ~20 A with x_ref = x_iso -- point for the regression report).
 
+- 23 Nov (Erik: "please do 1-7"): Stage 3 (timeseries.py), crystal frame, `disegreg table`, `disegreg slurm`, linux-64 lock
+  (solved on the M5), docs/CMMG.md, test cell (tests/data-generation/, waits for Erik's cmmg run), regression (regression/,
+  deck SIM-REPORTS/2026-11-23_disegreg-D1-regression.pptx), demo manifests Ni-Cu / Nb-Au / TURLO, docs/HOWTO_PROJECTS.md.
+  Regression: old recipe reproduces Ni-Cu 16/19 exactly (3 ACE runs: one partial 0.1-0.2 A off; NOT the OVITO version --
+  3.14.1 = 3.17.2 on the M5; check one snapshot on cmmg), Nb-Au within 0.4 %; TURLO R3 mixed mode, axis recovers 10 %.
+  Open for Erik: drift criterion proposal (DEFINITIONS 8), x_ref choice (Ni-Cu c_B/x_iso = 0.93), headline Gamma(20) vs
+  Gamma(40), [CONFIRM]s (F before O, merge distance 2 A), DEFINITIONS rev. 3 review before tagging v0.1.0.
+
 ## Next steps
-5. Regression report against Nb-Au time-avg_07_2026-11-21.dat and Ni-Cu v6.2; TURLO pair t50 R4 / R3.
-6. Recipe for the cmmg environment (conda env under PTMP) + env-lock/disegreg-linux-64.txt; Slurm array for Stage 1.
+5. Erik on cmmg: docs/CMMG.md parts A (env), C (test cell) -> tests/data/; one Ni-Cu ACE snapshot through disegreg on cmmg.
+6. After Erik's decisions: DEFINITIONS final (D1 or D2), tag v0.1.0, Zenodo.
