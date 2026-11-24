@@ -4,6 +4,18 @@ All notable changes to `disegreg` are listed here. Versions follow semantic vers
 the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-11-24
+First release. Definition set **D1, rev. 4 (final)**: every number quoted with this version carries the label D1.
+Stages 0-3: run manifest (Stage 0), OVITO a-CNA / PTM / DXA with a cache (Stage 1), distances to the lines with exact
+triclinic periodic images and the structural fallback axis, regions, concentrations, line excess Gamma(R) with
+Gamma(20 A) as headline, Warren-Cowley order, solute clusters (Stage 2), block-averaged time averages with the
+SE(change) drift test (Stage 3), the tidy results table across runs, and full provenance. Reference compositions:
+until a run has its bulk control, against both the in-cell far field c_B and the isotherm x_iso. Tested on macOS arm64
+(M5) and Linux x86_64 (cmmg, GitHub Actions); regression against the Ni-Cu, Nb-Au and TURLO-REDO project analyses
+in regression/. Requires OVITO 3.17.2 exactly (environment.yml). Planned for v0.2: Stage 4 (uptake exponent, McLean,
+hysteresis), along-line Fourier analysis, ordered-domain sizes, plotting.
+
 ### Added
 - Design (docs/DESIGN.md), definition set D1 draft rev. 2 (docs/DEFINITIONS.md), TURLO-REDO feedback, LICENSE (BSD-3-Clause), CITATION.cff.
 - Reproducible conda environment (environment.yml): Python 3.12, OVITO 3.17.2 pinned exactly (from conda.ovito.org), numpy 2.5,

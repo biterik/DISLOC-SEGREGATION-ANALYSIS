@@ -26,6 +26,8 @@ authors:
 repository-code: "https://github.com/biterik/DISLOC-SEGREGATION-ANALYSIS"
 url: "https://github.com/biterik/DISLOC-SEGREGATION-ANALYSIS"
 license: BSD-3-Clause
+version: "0.1.0"
+date-released: "2026-11-24"
 keywords:
   - materials science
   - atomistic simulation

@@ -90,9 +90,11 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   regression/check_tolerance.py: Ni-Cu 16 exact + 3 ACE within tolerance; Nb-Au 24 within tolerance; closest calls ~90 % of the
   tolerance (Ni-Cu d60 ACE -0.50 core c; Nb-Au EAM-X d0 -0.25 separation).
 
+- 24 Nov: pushed; GitHub Actions green incl. the test cell on Linux x86_64. Released v0.1.0 (tag, GitHub release; Zenodo webhook
+  active on the repo, so Zenodo mints the DOI from the release).
+
 ## Next steps
-1. Erik reviews the changes of 24 Nov (CHANGELOG [Unreleased], last entries); then `git push`.
-2. Test cell committed (24 Nov, .gitignore exception); check after the push that the test-cell tests pass in GitHub Actions
-   (first run of them on x86_64 Linux).
-3. Then tag v0.1.0, CHANGELOG, Zenodo DOI (as for openbis-mcp-server), and hand each project instance its "how to call disegreg" note
-   (docs/HOWTO_PROJECTS.md).
+1. Put the Zenodo DOI (concept DOI + v0.1.0 DOI) into README.md and CITATION.cff once Zenodo shows it.
+2. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing
+   (DESIGN: one demo run per project).
+3. v0.2 as in docs/DESIGN.md (Stage 4, Fourier analysis, ordered domains, plotting); update setup-micromamba in CI (Node.js 20 warning).

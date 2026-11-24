@@ -1,4 +1,4 @@
-# disegreg -- definitions (set D1, rev. 4 of 2026-11-24: all open points decided by Erik; becomes final with the v0.1.0 tag)
+# disegreg -- definitions (set D1, rev. 4 of 2026-11-24: final, released with disegreg v0.1.0)
 
 Every number produced by `disegreg` carries the tool version (git hash) AND the definition-set label (D1, D2, ...).
 A change to anything in this file creates a new label; the paper's Methods section quotes the label it used.
@@ -223,3 +223,4 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
   reproducibility (sections 1, 2). Label stays D1: no number for the paper has been produced with D1 yet.
   Same day: c_B as reference is taken per snapshot, not as a window mean (section 5); DXA deterministic on one machine
   (section 2). No value changed.
+- final (24 Nov): D1 rev. 4 released with disegreg v0.1.0. Any further change creates D2.

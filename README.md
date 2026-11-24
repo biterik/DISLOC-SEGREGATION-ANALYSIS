@@ -4,8 +4,8 @@ Shared analysis of solute segregation at dislocations in atomistic MD/MC simulat
 Carlo), written for the paper *"Dislocation Defect Phases and how to find them"*. One code and one versioned
 definition set for all simulation projects, so that every number is computed the same way.
 
-**Status: under development (v0.1.0 not yet released).** Definitions: [docs/DEFINITIONS.md](docs/DEFINITIONS.md)
-(set D1, draft). Design: [docs/DESIGN.md](docs/DESIGN.md).
+**Status: v0.1.0 (24 Nov 2026), Stages 0-3.** Definitions: [docs/DEFINITIONS.md](docs/DEFINITIONS.md)
+(set D1, rev. 4, final). Design: [docs/DESIGN.md](docs/DESIGN.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
 ## What it computes
 From quenched LAMMPS snapshots with one dissociated dislocation: the distance of every atom to the dislocation line

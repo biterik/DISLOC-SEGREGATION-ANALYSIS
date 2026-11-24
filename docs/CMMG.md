@@ -39,7 +39,7 @@ cd $P/DISLOC-SEGREGATION-ANALYSIS && $P/conda-envs/disegreg/bin/python -m pytest
 What you should see:
 - A3 prints a version (2.5.0 on 24 Nov 2026).
 - A4 downloads ~295 packages (4 of them from conda.ovito.org) and ends without an error.
-- A6: `disegreg 0.1.0.dev0  definition set D1 (...)`, then `OVITO 3.17.2`, then pytest ends with a line like
+- A6: `disegreg 0.1.0  definition set D1 (...)`, then `OVITO 3.17.2`, then pytest ends with a line like
   `NN passed, 2 skipped in 20s` (the 2 skipped tests need the relaxed test cell, part C).
 
 If A4 fails (e.g. "package not found"), use the general file instead and save the result as the new lock file:

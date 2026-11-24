@@ -2,7 +2,7 @@
 # Section numbers refer to docs/DEFINITIONS.md. Lengths in Angstrom unless stated otherwise.
 # Changing ANY value here creates a new definition set (D2, ...) with a line in the revision log of docs/DEFINITIONS.md.
 label: D1
-status: "rev. 4 (2026-11-24), all points decided by Erik"
+status: "rev. 4 (2026-11-24), final with v0.1.0"
 
 input:                                   # section 1
   snapshots: quenched                    # energy-minimised snapshots only
