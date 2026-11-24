@@ -33,7 +33,7 @@ Two robustness points, fixed on the branch only (no v0.1.0 number affected):
 | B. plotting | `disegreg plot` gamma, timeseries, delta, uptake, regions, alongline; checked by eye on real Nb-Au data | see git log |
 | C. along-line Fourier | code + tests done (proposal P4); demo numbers with the demo run | see git log |
 | D. ordered domains Ni-Al | code + tests done (proposal P5); synthetic only -- no Ni-Al data on the Mac | see git log |
-| E. project feedback | (open) | |
+| E. project feedback | no FEEDBACK file after 24 Nov; the projects' first manifests reviewed (E1-E3 below) | see git log |
 
 ### A. Stage 4 (`disegreg across`)
 - `disegreg across <Stage-3 tables or folders> --out stage4.csv [--sites sites.yaml]` -> one tidy table, every row with
@@ -117,6 +117,23 @@ The same sphere in a random Ni-13Al matrix: d / D within 10 %, no spurious domai
 "ordered", no domain of >= 4). Options: k = 4 (recommended; counts D0_22-type order too) or k = 5 / 6 (L1_2 only, smaller
 domains); with or without the surface atoms (recommended: with -- otherwise a 2 nm domain is reported as 1.7 nm).
 Blocked: no Ni-Al MD/MC snapshot exists yet (the Ni-Al project folder on the Mac is empty).
+
+### E. Project feedback (item E)
+No docs/FEEDBACK_from-*.md and no feedback file in the project folders after 24 Nov. What the projects did on 24 Nov: each wrote
+its first manifest (Ni-Cu d60 Lee-Shim -0.10 kT, Nb-Au d60 Mendelev -0.25 kT, TURLO t51 D20) -- all three pass
+`disegreg manifest check` with the v0.2 code; TURLO-REDO has a manifest generator (52_.../DISEGREG/make-manifests.py) that
+the v0.2 demo reuses read-only (our copy of D20 is identical to theirs). No bug report. Points that need you:
+- **E1. Is a SMALL bulk control a bulk control?** Ni-Cu thread 11 (Lee-Shim, prepared 24 Nov) and thread 10 (ACE) are 32 000-atom
+  periodic cells; D1 section 5 defines the bulk control as "same size, same dmu, same run length" as the ~570 000-atom dislocation
+  cell. Its manifest notes "switch x_ref_source to bulk_control when thread 11 is harvested". Options: (a) accept a smaller cell
+  for x_bc if it has the same per-atom swap rate and run length and >= 100 solute atoms in its interior (Lee-Shim at -0.10 kT:
+  32 000 x 7.9e-3 = 250 Cu, enough), and record the size in the manifest -- recommended for x_bc; (b) keep "same size" strictly:
+  thread 11 then counts as an isotherm point, not as x_bc. Note: diagnostic (iv) (does the dislocation-free crystal precipitate?)
+  is weaker in a 32 000-atom cell (fewer nucleation sites, smaller clusters fit), so (a) should not be used for (iv).
+- E2. TURLO-REDO's convergence item (thread 52, SI) used the rev. 3 drift rule (|trend| < 2 SEM); D1 rev. 4 uses 2 SE(change).
+  Their own note says "recompute with disegreg when released" -- nothing for you, a reminder for the TURLO instance.
+- E3. The Mac copies of the Nb-Au MC streams are older than the dumps (section 0.1): ask the Nb-Au instance to rsync streams and
+  dumps together.
 
 ## 3. Demo numbers
 (filled in when the demo run of 52 runs is finished)
