@@ -117,7 +117,10 @@ Order of preference, chosen per run in the manifest and always reported with its
 3. c_B, the in-cell far field: diagnostic only. The ratio c_B / x_ref is reported for every run; a ratio clearly different from 1 is a result
    (e.g. long-range elastic enrichment by the dislocation's pressure field, or a cell-size effect).
 Reporting rule (Erik, 24 Nov): until a run has its bulk control, enrichments and Gamma are reported against BOTH c_B and x_iso,
-and no ACE Ni-Cu enrichment is quoted in the paper before its bulk control has decided between the two. Reason (regression 23 Nov):
+and no ACE Ni-Cu enrichment is quoted in the paper before its bulk control has decided between the two. With c_B as the reference,
+each snapshot uses its OWN c_B (same cell, same snapshot); E and Gamma are then averaged over the window like every other
+quantity (Erik, 24 Nov; Gamma is linear in x_ref, so this differs from using the window mean of c_B only by a small covariance
+term, and the error bar includes the scatter of c_B). Reason (regression 23 Nov):
 c_B / x_iso = 0.91-0.98 for Lee-Shim MEAM, but 1.6-2.6 for ACE at -0.10 kT (core enrichment 213-590 depending on the reference)
 and 0.5-0.85 for ACE at -0.50 kT. If the bulk control also shows the ACE bulk clustering, c_B is the right reference.
 
@@ -218,3 +221,5 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
   Gamma(40 A) as check where the fallback axis is active (section 6); region precedence F before O and partial_merge_distance 2 A
   confirmed (sections 4, 6). Documented: Burgers-vector sign relation between the cell builders and DXA, and the cross-machine DXA
   reproducibility (sections 1, 2). Label stays D1: no number for the paper has been produced with D1 yet.
+  Same day: c_B as reference is taken per snapshot, not as a window mean (section 5); DXA deterministic on one machine
+  (section 2). No value changed.
