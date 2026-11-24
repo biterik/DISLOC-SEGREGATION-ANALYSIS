@@ -37,8 +37,7 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - Scope: v0.1.0 and v0.2 as in docs/DESIGN.md.
 
 ## Open (waiting for Erik)
-- Review of docs/DEFINITIONS.md rev. 3 (incl. the TURLO-REDO additions: line coverage, fallback core axis, x_iso without bulk control,
-  PTM icosahedral label; proposal Gamma(20 A), Gamma(40 A) as headline numbers).
+- Nothing for v0.1.0. All definition decisions were taken on 24 Nov (docs/DEFINITIONS.md rev. 4, revision log).
 
 ## State (22 Nov 2026, evening)
 - Done: steps 1 and 2. M5 conda env `disegreg` (Python 3.12, OVITO 3.17.2 from conda.ovito.org, created with
@@ -67,6 +66,35 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   Open for Erik: drift criterion proposal (DEFINITIONS 8), x_ref choice (Ni-Cu c_B/x_iso = 0.93), headline Gamma(20) vs
   Gamma(40), [CONFIRM]s (F before O, merge distance 2 A), DEFINITIONS rev. 3 review before tagging v0.1.0.
 
+- 24 Nov (in the claude.ai design session, with Erik):
+  - cmmg parts A and C done: env via Erik's own micromamba (/cmmc/u/$USER/.local/bin/micromamba, 2.5.0; NO conda module needed;
+    the newest cluster conda module would be anaconda/3/2023.03, not used), OVITO 3.17.2, pytest on cmmg 98 passed / 2 skipped.
+    docs/CMMG.md rewritten to the micromamba route (uncommitted).
+  - Test cell relaxed on cmmg (22 s); copied to tests/data/testcell_relaxed.dump.gz (sha256 c7ab1858...f413, gitignored).
+    On the M5: 99 passed, 1 FAILED: tests/test_testcell.py expects b_total_label "1/2[1 -1 0]", DXA gives "1/2[-1 1 0]".
+    Cause: the cell builders' nominal b is the NEGATIVE of the DXA b with xi = +X (OVITO: LH/SF, same b as RH/FS) -- the
+    production d60 cells show the same relation (nominal 1/2[-1 1 0] -> DXA 1/2[1 -1 0]). Not an analysis error.
+  - Ni-Cu ACE d90 -0.10 kT snapshot (step 790000) through Stage 1 on cmmg (job array via `disegreg slurm`; ~19 s on 4 cores),
+    compared with the M5 cache entry (same key fc0d2769): positions, a-CNA, PTM bit-identical; DXA: same segments and b, one partial
+    identical, the other off by 0.09 A mean / 0.5 A max (mean y 0.22 A, length 0.13 A). So the 3 ACE regression mismatches are DXA's
+    cross-machine non-reproducibility, not disegreg and not the OVITO version.
+  - Erik's decisions (now in DEFINITIONS rev. 4): drift test |change| < 2 SE(change); x_ref: report vs both c_B and x_iso until a bulk
+    control exists, no ACE Ni-Cu enrichment in the paper before it; headline Gamma(20 A), Gamma(R) 5-60 A in the supplement, Gamma(40 A)
+    as check where the fallback axis is active; F before O and partial_merge_distance 2 A confirmed.
+  - Files changed by that session (uncommitted, please review and commit): docs/DEFINITIONS.md, docs/CMMG.md, CLAUDE.md.
+
 ## Next steps
-5. Erik on cmmg: docs/CMMG.md parts A (env), C (test cell) -> tests/data/; one Ni-Cu ACE snapshot through disegreg on cmmg.
-6. After Erik's decisions: DEFINITIONS final (D1 or D2), tag v0.1.0, Zenodo.
+1. Commit the three edited files above (one commit: "Definitions D1 rev. 4: Erik's decisions of 24 Nov; cmmg recipe via micromamba").
+2. Code to match DEFINITIONS rev. 4:
+   a. drift criterion change_se becomes the default (`--drift-criterion` default, D1.yaml drift parameters + status
+      "rev. 4 (2026-11-24)"); the old verdict stays as an extra column.
+   b. results/tables: enrichments and Gamma against BOTH c_B and x_iso when no bulk control exists (columns with the reference named);
+      a flag for ACE Ni-Cu runs ("no paper number before bulk control").
+   c. Gamma(20 A) as the headline column; Gamma(R) curve 5-60 A in the per-run output; Gamma(40 A) flagged as the check in mixed mode.
+3. tests/test_testcell.py: expect "1/2[-1 1 0]" for the test cell, with a comment on the builder/DXA sign relation (DEFINITIONS 1).
+4. Regression: compare DXA-derived quantities with a tolerance (positions ~0.5 A, single-snapshot core concentrations ~2 %), not exactly.
+   Quick check whether DXA is also non-deterministic on ONE machine: run the ACE d90 790000 snapshot twice on the M5 with --recompute
+   and compare seg_points (if it differs, it is thread order; say so once in the paper's Methods).
+5. Decide whether to commit the 0.7 MB test cell (force-add past the *.dump.gz rule) so the test-cell tests run in GitHub CI.
+6. Then tag v0.1.0, CHANGELOG, Zenodo DOI (as for openbis-mcp-server), and hand each project instance its "how to call disegreg" note
+   (docs/HOWTO_PROJECTS.md).

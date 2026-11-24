@@ -1,8 +1,8 @@
-# disegreg -- definitions (set D1, DRAFT 2026-11-23 rev. 3, for Erik's review)
+# disegreg -- definitions (set D1, rev. 4 of 2026-11-24: all open points decided by Erik; becomes final with the v0.1.0 tag)
 
 Every number produced by `disegreg` carries the tool version (git hash) AND the definition-set label (D1, D2, ...).
 A change to anything in this file creates a new label; the paper's Methods section quotes the label it used.
-Values marked **[CONFIRM]** still need Erik's OK.
+No [CONFIRM] or [PROPOSAL] items are left (24 Nov 2026).
 
 Abbreviations: DXA = dislocation extraction algorithm (OVITO); a-CNA = adaptive common-neighbour analysis (OVITO);
 CNA = common-neighbour analysis; PTM = polyhedral template matching; MD/MC = molecular dynamics / Monte Carlo;
@@ -16,7 +16,11 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
   The crystal directions of X, Y, Z are read from the cell-builder metadata via the run manifest, never typed in.
 - Characters: d0 = screw, d30, d60, d90 = edge (angle between Burgers vector and line).
 - Burgers vector b and line direction xi: taken from DXA in the simulation frame, rotated into the crystal frame; b and xi from the same segment;
-  OVITO convention (Burgers circuit FS/RH = finish-to-start, right-handed).
+  OVITO convention: left-hand start-finish (LH/SF, as stated in the OVITO manual), which gives the same b as the textbook
+  right-hand finish-start (RH/FS, Hirth & Lothe) convention. b is reported with the line direction xi oriented along +X.
+  The cell builders' nominal b (LEGO-TOOLS build_single_dislocation_cell.py; tests/data-generation/make_test_cell.py) is the
+  NEGATIVE of the DXA b with xi = +X (checked 24 Nov: production d60 nominal 1/2[-1 1 0] -> DXA 1/2[1 -1 0]; test cell nominal
+  1/2[1 -1 0] -> DXA 1/2[-1 1 0]). Concentrations do not depend on this sign; the paper states b and xi in the DXA convention.
 - Lattice parameter a = the value the cell was built/scaled with, a_cell (manifest), used for all neighbour-shell cut-offs.
 - Chemical-potential difference: dmu = mu_solute - mu_host (eV), stored in the manifest in THIS convention whatever sign the LAMMPS
   input uses (fix sgcmc in TURLO-REDO uses the opposite sign; the manifest records the conversion).
@@ -31,6 +35,10 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
   -0.25 kT, quenched step 830000, 568 280 atoms): the DXA lines are bit-identical with DXA alone, PTM -> DXA and a-CNA -> DXA, and the
   "Structure Type" read after PTM -> DXA equals DXA's own labels, not PTM's (it differs from a-CNA for 67 atoms, 0.012 %). The a-CNA
   labels are computed in a separate pipeline and are the only ones used for regions.
+- Reproducibility (checked 24 Nov on one Ni-Cu ACE d90 snapshot, cmmg x86_64 vs M5 arm64, same OVITO 3.17.2 and parameters):
+  positions, a-CNA and PTM labels bit-identical; DXA finds the same segments and Burgers vectors, one partial identical, the other
+  displaced by 0.09 A on average (max 0.5 A, mean position 0.22 A, length 0.13 A). Line positions are therefore reproducible to a few
+  tenths of an A; core concentrations of a single snapshot to ~1-2 %. Regression tests compare DXA-derived numbers with a tolerance.
 - Extra per-atom label, stored for every snapshot but NOT used for regions: PTM with the fcc, hcp, bcc and icosahedral templates,
   RMSD (root-mean-square deviation from the ideal template) cut-off 0.12. It distinguishes a core state with a definite local structure
   (e.g. the icosahedral Cu layer of the Cu-Zr complexion, which a-CNA calls "other") from a disordered core. [from TURLO-REDO feedback]
@@ -91,7 +99,7 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
 | O | far, other | r >= R_far, not fcc (reported; should be ~0) |
 - R_far = 60 A (decided 22 Nov). Keeps ~75 % of the interior of the ~250 x 250 A cells (measured on Ni-Cu d60: 75.1 %).
 - Precedence where two rows overlap: X > C > F > S, T > B, O. The table leaves open whether an hcp atom near the glide plane at
-  r >= R_far is F or O; it is F (as for S and T). [CONFIRM; affects ~0 atoms, the fault ribbon ends well inside R_far]
+  r >= R_far is F or O; it is F (as for S and T). [confirmed by Erik 24 Nov; affects ~0 atoms, the fault ribbon ends well inside R_far]
 - Optional extra column (not default): far_slab40 = a-CNA fcc, |z - z_gp| > 40 A, not X (the definition of the 21 Nov decks).
 - Radial profile bins (A): 0-5, 5-10, 10-20, 20-40, 40-60, 60-80, 80-100, >= 100 -- the outer bins are the plateau check of the far field.
 
@@ -106,17 +114,23 @@ Order of preference, chosen per run in the manifest and always reported with its
    TURLO-REDO feedback]
 3. c_B, the in-cell far field: diagnostic only. The ratio c_B / x_ref is reported for every run; a ratio clearly different from 1 is a result
    (e.g. long-range elastic enrichment by the dislocation's pressure field, or a cell-size effect).
+Reporting rule (Erik, 24 Nov): until a run has its bulk control, enrichments and Gamma are reported against BOTH c_B and x_iso,
+and no ACE Ni-Cu enrichment is quoted in the paper before its bulk control has decided between the two. Reason (regression 23 Nov):
+c_B / x_iso = 0.91-0.98 for Lee-Shim MEAM, but 1.6-2.6 for ACE at -0.10 kT (core enrichment 213-590 depending on the reference)
+and 0.5-0.85 for ACE at -0.50 kT. If the bulk control also shows the ACE bulk clustering, c_B is the right reference.
 
 ## 6. Composition quantities (per snapshot)
 - c_k = N_sol,k / N_k for each region k and each radial bin; enrichment E_k = c_k / x_ref.
 - Line excess Gamma(R) = [ N_sol(r < R) - x_ref N(r < R) ] / L_x, atoms per A of dislocation, with L_x = length of the periodic cell vector along
   the line (the whole dissociated dislocation, both partials together); interior atoms only, all structure labels.
   Decomposition: Gamma = Gamma_C + Gamma_F + Gamma_S + Gamma_T (same formula restricted to each region).
-  Proposed headline numbers: Gamma(20 A) and Gamma(40 A). They contain the whole core state even if the axis is off by a few A, so they
-  are far less sensitive to the distance definition (3.4) than the core/shell split. [PROPOSAL]
+  Headline number (Erik, 24 Nov): Gamma(20 A) -- the core, fault ribbon and near shell (~180 atoms per A of line in the Ni cells);
+  less noise and ~3x less sensitive to an error in x_ref than Gamma(40 A). The full curve Gamma(R), R = 5-60 A, goes into the
+  supplement. For snapshots in which the fallback axis is active (DXA misses part of the line, e.g. core complexions), Gamma(40 A) is
+  quoted as the robust check: it hardly depends on the distance definition (TURLO t50 R3: Gamma(40) 4.73 vs 4.77, Gamma(20) 3.80 vs 3.42).
 - Partial separation: with exactly two Shockley partials, the Y distance between them in X bins of 5 A; mean and standard deviation along the line.
   In each bin, Shockley polylines closer than 2 A to each other (Y-Z plane) are pieces of the same partial (a partial split into
-  several DXA segments) and are merged; a bin counts if exactly two partials remain. The number of valid bins is reported. [CONFIRM 2 A]
+  several DXA segments) and are merged; a bin counts if exactly two partials remain. The number of valid bins is reported. [2 A confirmed by Erik 24 Nov]
 - Stored per snapshot: the COUNTS N_k, N_sol,k (regions, radial bins, inside R; under r and r_DXA). x_ref is usually a time average from
   another run, known only later; c_k, E_k and Gamma follow from the counts for any x_ref.
 
@@ -138,16 +152,17 @@ Order of preference, chosen per run in the manifest and always reported with its
 
 ## 8. Time series, convergence, averages (per run)
 - Primary drift signal: total solute count from the MC stream file (high time resolution); secondary: the Stage-2 quantities per snapshot.
-- Drift test (as in the Ni-Cu / Nb-Au scripts): over the last 30 % of the run, linear trend x window length compared with 2 x the
-  block-averaging SEM; "flat" if smaller.
+- Drift test (rev. 4, Erik 24 Nov): over the last 30 % of the run, fit a straight line; the change across the window
+  (slope x window length) is compared with its own standard error SE(change), taken from the block-averaging SEM of the detrended
+  series (SE(change) = sqrt(12) x SEM for evenly spaced samples). "Flat" if |change| < 2 SE(change): a truly flat series passes 95 %
+  of the time. A passed test means "no drift detected", not proof of convergence; diagnostic (v) (bottom-up vs top-down) is the
+  stronger check.
 - Block averaging (Flyvbjerg-Petersen): consecutive samples are grouped into ever longer blocks until the block means are uncorrelated;
   the SEM is taken from the scatter of those block means.
 - Averaging window: the longest final stretch that passes the drift test, at least 30 % of the run; window start/end are reported.
-- [PROPOSAL, found while implementing, 23 Nov; D1 unchanged] The change across a window has its own standard error,
-  SE(change) = sqrt(12) x SEM for evenly spaced samples, so "|change| < 2 SEM" passes a truly flat series only ~44 % of the time
-  (measured on synthetic correlated series: tests/test_timeseries.py). Proposed: flat if |change| < 2 SE(change), with SE(change)
-  from the block-averaging SEM of the detrended series (passes 95 % of flat series; the Ni-Cu script did the equivalent with 6
-  block means). Both verdicts are computed and stored; `disegreg analyse --drift-criterion change_se` uses the proposal.
+- History: rev. 3 used the rule of the old Ni-Cu / Nb-Au scripts, "|change| < 2 x SEM". That passes a truly flat series only ~44 %
+  of the time (tests/test_timeseries.py), because the change has its own, ~3.5x larger standard error. The old verdict is still
+  computed and stored next to the new one, for comparison with the 21 Nov decks.
 - A block-averaging estimate without a plateau (correlation time comparable to the window) is flagged: its SEM is a lower bound.
 
 ## 9. Across runs
@@ -196,3 +211,8 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
   sections 4, 6, 7 (no value changed): region precedence (F before O) [CONFIRM]; merging of Shockley pieces for the partial
   separation, new parameter partial_merge_distance 2 A [CONFIRM]; counts stored per snapshot; alpha = NaN for a region with c = 0 or 1.
   23 Nov, section 8: drift-test criterion found statistically too strict -> PROPOSAL (not yet adopted; would be D2 or D1 rev. 4).
+- rev. 4 (24 Nov, Erik): drift test |change| < 2 SE(change) adopted (section 8); x_ref reporting rule: both c_B and x_iso until the bulk
+  control exists, no ACE Ni-Cu enrichment in the paper before it (section 5); headline Gamma(20 A), full Gamma(R) in the supplement,
+  Gamma(40 A) as check where the fallback axis is active (section 6); region precedence F before O and partial_merge_distance 2 A
+  confirmed (sections 4, 6). Documented: Burgers-vector sign relation between the cell builders and DXA, and the cross-machine DXA
+  reproducibility (sections 1, 2). Label stays D1: no number for the paper has been produced with D1 yet.
