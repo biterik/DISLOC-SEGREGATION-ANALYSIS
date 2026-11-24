@@ -29,7 +29,7 @@ Two robustness points, fixed on the branch only (no v0.1.0 number affected):
 ## 1. What was done (short)
 | item | state | commit |
 |---|---|---|
-| A. Stage 4 across runs | code + tests done; demo on 52 runs (Nb-Au, Ni-Cu) running | see git log |
+| A. Stage 4 across runs | code + tests done; demo on 59 runs (section 3) | see git log |
 | B. plotting | `disegreg plot` gamma, timeseries, delta, uptake, regions, alongline; checked by eye on real Nb-Au data | see git log |
 | C. along-line Fourier | code + tests done (proposal P4); demo numbers with the demo run | see git log |
 | D. ordered domains Ni-Al | code + tests done (proposal P5); synthetic only -- no Ni-Al data on the Mac | see git log |
@@ -81,7 +81,7 @@ Options:
 2. Same, but missing core sites counted as bulk-like (E = 0, "bulk") -- lowers c_C(McLean) where coverage is poor.
 3. The projects' own site sets (all tabulated sites, kind "core"/"core-p1/p2", up to r = 15-54 A) -- mixes core and shell sites,
    not comparable with the measured c_C (r < 5 A).
-Demo numbers (measured / McLean per run): see section 3 when the demo run is done.
+Demo numbers (measured / McLean per run): section 3.
 
 ### P2. Hysteresis: when are bottom-up and top-down "different"?  (P2)
 Proposal: |difference| > 2 x sqrt(SEM_up^2 + SEM_down^2), for Gamma(20 A) (every reference) and c_C. Recommended. Alternative:
@@ -135,8 +135,58 @@ the v0.2 demo reuses read-only (our copy of D20 is identical to theirs). No bug 
 - E3. The Mac copies of the Nb-Au MC streams are older than the dumps (section 0.1): ask the Nb-Au instance to rsync streams and
   dumps together.
 
-## 3. Demo numbers
-(filled in when the demo run of 52 runs is finished)
+## 3. Demo numbers (24 Nov, M5; 59 runs; regression/results/v0.2-demo/, figures in fig/)
+Input: DEMO manifests (examples/stage4/) for the Nb-Au thread-07 runs (Mendelev 2022 Nb, EAM-X Au; 4 characters x 3 offsets),
+the Ni-Cu thread-07 runs with snapshots on the Mac (Lee-Shim MEAM, ACE), and the TURLO-REDO t51 bottom-up / top-down runs
+(their own manifest generator, read-only). Snapshots: what is on the Mac (Ni-Cu: mostly 1-2 per run, so most Ni-Cu errors are
+UNKNOWN; Nb-Au 15-18 per run, but see 0.1: in all 24 Nb-Au runs 7-8 snapshots lie after the end of the stream copy and are not
+used; TURLO 20). 35 of 59 windows fail the drift test (mostly "last 30 % not flat" on the short Mac series) -- demo numbers,
+not paper numbers. Reproduce: `python regression/v02_demo_summary.py` after the `disegreg analyse` call in its docstring.
+
+**Uptake exponent n_up (vs x_iso; vs c_B in brackets), Lee-Shim MEAM Ni-Cu, bottom-up/seeded series** (fig/uptake_LeeShim2004-MEAM.png):
+
+| offsets (kT) | screw d0 | 30 deg | 60 deg | edge d90 |
+|---|---|---|---|---|
+| -2.00 -> -1.00 | 1.21 (0.97) | 1.53 (1.16) | 1.60 +- 0.42 (1.16) | 2.41 +- 0.33 (1.75) |
+| -1.00 -> -0.50 | 1.23 (1.58) | 0.89 (1.06) | 1.12 +- 0.25 (1.48) | 0.96 +- 0.31 (1.21) |
+| -0.50 -> -0.25 | 0.18 (0.19) | 0.99 (1.16) | 1.17 +- 0.60 (1.17) | 1.06 +- 0.48 (1.15) |
+| -0.25 -> -0.10 | 2.47 (2.36) | 3.22 (3.13) | **5.55 (4.17)** | **4.78 (4.09)** |
+
+No error = one of the runs has a single snapshot on the Mac. The cooperative uptake near coexistence (60 deg and edge, "exponent 3-4"
+in the paper plan) is reproduced with D1 definitions; between -2 and -0.25 kT n_up ~ 1 (independent sites). Mendelev Nb:
+n_up 0.0-2.1, mostly < 1 (Nb near-saturated core, x ~ 0.07); EAM-X Au vs x_iso 0.3-1.4; EAM-X vs c_B is noise (far field
+holds a handful of Au atoms: errors up to +-2900) -- shown, not interpreted. ACE (paper hold): 4.2-6.0 vs the NOMINAL x_iso of
+the -0.10 kT row (marked "not used" by the project), 1.1-2.0 vs c_B -- an example of why D1 holds ACE until its bulk control.
+
+**McLean (P1), measured c_C / predicted, vs x_iso** (summary_mclean.csv): Lee-Shim 0.2-0.9 far from coexistence, rising to
+1.04-1.52 at -0.10 kT (d30 1.04, d0 1.32, d60 1.38, d90 1.52): the measured core overtakes the independent-site prediction
+exactly where n_up > 1. Mendelev Nb 0.09-0.14 and EAM-X Au 0.06-0.32: McLean OVERpredicts (degenerate sites carry the deepest E;
+Nb at x ~ 0.07 is not dilute) -- with the degenerate-site caveat P1 is an upper bound, so ratio < 1 is uninformative and ratio > 1
+is the signal. ACE -0.10 kT 2.5-15 (paper hold, nominal x_iso).
+
+**Hysteresis (P2), TURLO-REDO Cu-Zr d90, 800 K, bottom-up (from Cu) vs top-down (from the R3 complexion)** (summary_hysteresis.csv):
+
+| Delta (kT) | Gamma(20 A) up - down (atoms/A), vs x_iso | |d| / s | c_C up - down | verdict (2 s) |
+|---|---|---|---|---|
+| 0.00 | -0.007 +- 0.009 | 0.8 | -0.0005 +- 0.0004 | not different |
+| +1.00 | -0.046 +- 0.038 | 1.2 | -0.0022 +- 0.0018 | not different |
+| +2.00 | **-1.40 +- 0.04** | 38 | **-0.124 +- 0.004** | **different** |
+
+This is TURLO-REDO's own thread-51 finding (top-down: the complexion dissolves at 0 / +1 kT and persists at +2 kT), now with D1
+definitions and an error criterion. The verdict does not depend on the factor 2 vs 3.
+
+**Along-line spectrum (P4)** (summary_alongline_domains.csv, fig/alongline_*): ACE Ni-Cu: dispersion D = 4.5-9.4 and spectrum peaks
+far above noise (p < 1e-5; d60 -0.10 kT: S = 36 at q = 2, i.e. two Cu-rich stretches 50 A apart) -> particles along the line
+(single snapshots). Lee-Shim: D = 0.8-2.2, at -0.10 kT no significant peak (d0-d90: p = 0.09-0.58) -> an evenly filled
+core, the continuous line state. Mendelev Nb: D = 0.24-0.57 -> MORE even than random (Nb-Nb avoidance along the core). EAM-X Au:
+D ~ 1 (random). TURLO D20 complexion: D = 0.65, no peak -> continuous. Two TURLO runs with an empty core in some snapshots give
+D = NaN (window mean over NaN); a note, not a bug.
+
+**Ordered domains (P5)**: negative control only -- 0 domains in every run (Ni-Cu, Nb-Au, Cu-Zr), ordered-solute fraction 0 except
+Mendelev Nb core 0.3-0.4 %. Ni-Al data needed.
+
+**Site tables (P1)**: summary_site_tables.csv -- as in the P1 table above (now with the line period from the 0 K cell's own lattice
+parameter: Mendelev cells were first given 39 instead of 40 periods because the MD a_cell is 1.4 % larger -- fixed).
 
 ## 4. Blocked / waiting
 - Hysteresis demo: needs a top-down run (Lee-Shim A2) on the Mac.

@@ -102,7 +102,9 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   (item B) drafted. disegreg-dev now has the editable install of the worktree (it had none).
 - 24 Nov: items C (alongline.py, P4) and D (domains.py, P5) done with synthetic tests; item B plots checked by eye on the Nb-Au
   demo (titles wrapped, legend rows, uptake y range from well-determined values, regions as dots on log axis).
-- Demo outputs (not in git): regression/output/v0.2-demo/ (Stage 2/3 of 52 Nb-Au/Ni-Cu runs + 7 TURLO t51 runs).
+- Demo outputs: Stage 2/3 (not in git) regression/output/v0.2-final/ (59 runs); summaries + figures (in git)
+  regression/results/v0.2-demo/ (regression/v02_demo_summary.py). Findings in docs/OPEN-DECISIONS_v0.2.md section 3:
+  Lee-Shim n_up 5.6 (60 deg) / 4.8 (edge) at -0.25 -> -0.10 kT; TURLO hysteresis different only at +2 kT; ACE core = particles.
 
 ## Next steps
 1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing

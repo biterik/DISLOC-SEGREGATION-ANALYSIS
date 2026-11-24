@@ -25,6 +25,9 @@ def test_symmetric_limits_and_signed_map(tmp_path):
     assert np.allclose(mid, np.array([0xf0, 0xef, 0xec]) / 255, atol=0.02)  # grey, not a hue, at zero
     assert plotting.check_fonts(fig) == []
     assert plotting.save(fig, tmp_path / "map", ("png", "pdf"))[1].is_file()
+    fig = plotting.signed_map([0, 1, 2], [0, 1, 2], v, "Y (Å)", "Z (Å)", "excess")
+    p = plotting.save(fig, tmp_path / "run_0.10kT_map")                  # run ids contain dots
+    assert [x.name for x in p] == ["run_0.10kT_map.png"]
 
 
 def test_fixed_colour_per_character_and_font_rule(tmp_path):

@@ -337,14 +337,17 @@ def load_site_cores(config_path, runs, definitions, proposals, cache_root=None, 
                 flags = []
                 if cs.coverage < 0.9:
                     flags.append(f"site table covers {cs.coverage:.0%} of the core sites")
-                if cs.x_extent > cs.info["period"] + 0.5:
-                    flags.append(f"sites span {cs.x_extent:.1f} A along X > one period {cs.info['period']:.2f} A")
+                if cs.info["x_extent_distinct"] > cs.info["period"] + 0.5:
+                    flags.append(f"distinct sites span {cs.info['x_extent_distinct']:.1f} A along X > one period "
+                                 f"{cs.info['period']:.2f} A")
                 n_deg = table.degenerate_sites()
                 info = {"project": key[0], "potential": pot, "character": ch, "table": str(tpath), "table_sha256": table.sha256,
                         "format": table.format, "cell_0K": str(cpath), "cell_0K_sha256": snap0.meta.get("source_sha256"),
                         "n_sites": len(table), "n_core_tabulated": cs.n_core_tabulated,
                         "n_core_expected_per_period": round(cs.n_core_expected, 2), "coverage": round(cs.coverage, 3),
                         "n_periods": cs.n_periods, "period_A": round(cs.info["period"], 4), "x_extent_A": round(cs.x_extent, 3),
+                        "x_extent_distinct_A": round(cs.info["x_extent_distinct"], 3),
+                        "n_periodic_copies": cs.info["n_periodic_copies"],
                         "n_degenerate_sites": n_deg, "E_min_core": float(e_core.min()) if len(e_core) else float("nan"),
                         "E_mean_core": float(e_core.mean()) if len(e_core) else float("nan"),
                         "r_max_tabulated": float(cs.r.max()), "missing_sites": mc["missing_sites"], "n_missing": n_missing,

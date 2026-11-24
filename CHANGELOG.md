@@ -32,7 +32,12 @@ Open decisions: docs/OPEN-DECISIONS_v0.2.md.
 - `disegreg analyse` adds the proposal quantities by default (`--no-proposals`: D1 only).
 - Stage 3 warns and counts snapshots later than the end of the window signal (MC stream), which v0.1.0 drops silently.
 - examples/stage4/: demo manifests for 52 Nb-Au and Ni-Cu thread-07 runs (make_demo_manifests.py), site configuration.
+- regression/v02_demo_summary.py and regression/results/v0.2-demo/: Stage 4 + summaries + figures of the 59 demo runs.
 ### Fixed (v0.2 branch; no v0.1.0 number affected)
+- Uptake exponent: an unknown SEM of c_C (single snapshot) gives an unknown error (was treated as 0).
+- McLean sites: line period from the 0 K cell's own lattice parameter (the run's a_cell gave 39 instead of 40 periods for
+  Mendelev); periodic copies merged; the "more than one period" flag looks at the distinct sites.
+- `plotting.save` keeps names with dots (run ids such as ..._0.10kT...); `with_suffix` cut them and files overwrote each other.
 - `results.write_table` writes numpy numbers as plain numbers (numpy >= 2 repr was "np.float64(...)").
 - `paper_flag` is dropped only when x_bc is actually used, not as soon as a bulk control is named.
 ### Added (docs, on main before v0.2)

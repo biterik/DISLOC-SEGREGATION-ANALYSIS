@@ -85,6 +85,8 @@ def test_uptake_error_propagation_matches_monte_carlo():
     assert e == pytest.approx(ns.std(), rel=0.03)
     assert np.isnan(across.uptake_exponent(0.0, 0, 0.1, 0, 1e-3, 0, 2e-3, 0)[0])   # c = 0: undefined
     assert np.isnan(across.uptake_exponent(0.1, 0, 0.2, 0, 1e-3, 0, 1e-3, 0)[0])   # same x: undefined
+    n, e = across.uptake_exponent(0.1, np.nan, 0.2, 0.01, 1e-3, 0, 2e-3, 0)          # one run: single snapshot
+    assert n == pytest.approx(1.0) and np.isnan(e)                                   # error unknown, not 0
 
 
 def test_run_sets_families_flags_and_paper_flag(tmp_path):
@@ -233,7 +235,9 @@ def test_core_sites_on_a_straight_line():
     E = np.where(r[in_period] < 5, -0.1, -0.01)
     t = sites.SiteTable("t", "csv", "", "P", "d0", ids, E, np.array([""] * len(ids)))
     cs = sites.core_sites(t, snap, 5.0, [1, 0, 0], a, surface_exclusion=15.0)
-    assert cs.n_periods == 6 and cs.info["period"] == pytest.approx(a)
+    assert cs.n_periods == 6 and cs.info["period"] == pytest.approx(a) and cs.info["a_0K"] == pytest.approx(a, rel=1e-5)
+    # the period comes from the cell, not from the run's a_cell (an MD cell scaled by a few % must not change it)
+    assert sites.core_sites(t, snap, 5.0, [1, 0, 0], 1.08 * a).n_periods == 6
     assert cs.r == pytest.approx(r[in_period], abs=0.02)
     assert cs.n_core_tabulated == int((r[in_period] < 5).sum())
     z = pos[:, 2]
@@ -339,3 +343,4 @@ def test_core_sites_merge_periodic_copies():
     one = (pos[:, 0] < a - 1e-6) & (r < 8.0)
     assert cs.duplicate.sum() == in_15.sum() - one.sum() > 0
     assert cs.coverage == pytest.approx(1.0) and cs.info["max_dE_periodic_copies"] == 0.0
+    assert cs.x_extent == pytest.approx(a, abs=1e-3) and cs.info["x_extent_distinct"] < a

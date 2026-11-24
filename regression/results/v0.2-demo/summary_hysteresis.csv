@@ -1,0 +1,19 @@
+potential,character,delta,quantity,region,ref,value,error,status,runs,flags
+Mendelev2009-EAMFS,d90,0,Gamma_up_minus_down,20,c_B,-0.007992,0.008408,definition,t51_U00_d90-SGC-dmu-3.6977-fromCu_Mendelev2009-EAMFS_800K|t51_D00_d90-SGC-dmu-3.6977-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0,Gamma_hysteresis,20,c_B,0,0.9506,proposal,t51_U00_d90-SGC-dmu-3.6977-fromCu_Mendelev2009-EAMFS_800K|t51_D00_d90-SGC-dmu-3.6977-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0,Gamma_up_minus_down,20,x_iso,-0.007161,0.008766,definition,t51_U00_d90-SGC-dmu-3.6977-fromCu_Mendelev2009-EAMFS_800K|t51_D00_d90-SGC-dmu-3.6977-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0,Gamma_hysteresis,20,x_iso,0,0.817,proposal,t51_U00_d90-SGC-dmu-3.6977-fromCu_Mendelev2009-EAMFS_800K|t51_D00_d90-SGC-dmu-3.6977-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0,c_up_minus_down,C,,-0.000487,0.0004345,definition,t51_U00_d90-SGC-dmu-3.6977-fromCu_Mendelev2009-EAMFS_800K|t51_D00_d90-SGC-dmu-3.6977-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0,c_hysteresis,C,,0,1.121,proposal,t51_U00_d90-SGC-dmu-3.6977-fromCu_Mendelev2009-EAMFS_800K|t51_D00_d90-SGC-dmu-3.6977-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0.9994,Gamma_up_minus_down,20,c_B,-0.0497,0.03833,definition,t51_U10_d90-SGC-dmu-3.6288-fromCu_Mendelev2009-EAMFS_800K|t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0.9994,Gamma_hysteresis,20,c_B,0,1.296,proposal,t51_U10_d90-SGC-dmu-3.6288-fromCu_Mendelev2009-EAMFS_800K|t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0.9994,Gamma_up_minus_down,20,x_iso,-0.04621,0.03807,definition,t51_U10_d90-SGC-dmu-3.6288-fromCu_Mendelev2009-EAMFS_800K|t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0.9994,Gamma_hysteresis,20,x_iso,0,1.214,proposal,t51_U10_d90-SGC-dmu-3.6288-fromCu_Mendelev2009-EAMFS_800K|t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0.9994,c_up_minus_down,C,,-0.002231,0.001814,definition,t51_U10_d90-SGC-dmu-3.6288-fromCu_Mendelev2009-EAMFS_800K|t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,0.9994,c_hysteresis,C,,0,1.229,proposal,t51_U10_d90-SGC-dmu-3.6288-fromCu_Mendelev2009-EAMFS_800K|t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K,
+Mendelev2009-EAMFS,d90,2,Gamma_up_minus_down,20,c_B,-1.409,0.03586,definition,t51_U20_d90-SGC-dmu-3.5598-fromCu_Mendelev2009-EAMFS_800K|t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K,not converged: t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K
+Mendelev2009-EAMFS,d90,2,Gamma_hysteresis,20,c_B,1,39.29,proposal,t51_U20_d90-SGC-dmu-3.5598-fromCu_Mendelev2009-EAMFS_800K|t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K,not converged: t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K
+Mendelev2009-EAMFS,d90,2,Gamma_up_minus_down,20,x_iso,-1.395,0.03695,definition,t51_U20_d90-SGC-dmu-3.5598-fromCu_Mendelev2009-EAMFS_800K|t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K,not converged: t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K
+Mendelev2009-EAMFS,d90,2,Gamma_hysteresis,20,x_iso,1,37.75,proposal,t51_U20_d90-SGC-dmu-3.5598-fromCu_Mendelev2009-EAMFS_800K|t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K,not converged: t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K
+Mendelev2009-EAMFS,d90,2,c_up_minus_down,C,,-0.1237,0.004451,definition,t51_U20_d90-SGC-dmu-3.5598-fromCu_Mendelev2009-EAMFS_800K|t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K,not converged: t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K
+Mendelev2009-EAMFS,d90,2,c_hysteresis,C,,1,27.78,proposal,t51_U20_d90-SGC-dmu-3.5598-fromCu_Mendelev2009-EAMFS_800K|t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K,not converged: t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K

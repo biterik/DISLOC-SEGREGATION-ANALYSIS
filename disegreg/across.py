@@ -140,12 +140,15 @@ def _paper(*runs) -> str:
 
 # ---------------------------------------------------------------------------------------------------------- uptake
 def uptake_exponent(c1, s1, c2, s2, x1, sx1, x2, sx2):
-    """n = (ln c2 - ln c1) / (ln x2 - ln x1) and its first-order propagated error (errors NaN -> treated as 0)."""
+    """n = (ln c2 - ln c1) / (ln x2 - ln x1) and its first-order propagated error. An unknown SEM of c_C (e.g. a run with
+    a single snapshot) makes the error unknown (NaN); an unknown x_ref error is taken as 0 (the caller flags it)."""
     if not (c1 > 0 and c2 > 0 and x1 > 0 and x2 > 0) or x1 == x2:
         return float("nan"), float("nan")
     D = np.log(x2) - np.log(x1)
     n = (np.log(c2) - np.log(c1)) / D
-    rel = [(s / v) ** 2 if np.isfinite(s) else 0.0 for s, v in ((s1, c1), (s2, c2))]
+    if not (np.isfinite(s1) and np.isfinite(s2)):
+        return float(n), float("nan")
+    rel = [(s / v) ** 2 for s, v in ((s1, c1), (s2, c2))]
     relx = [(s / v) ** 2 if np.isfinite(s) else 0.0 for s, v in ((sx1, x1), (sx2, x2))]
     return float(n), float(np.sqrt(sum(rel) + n * n * sum(relx)) / abs(D))
 
@@ -170,6 +173,8 @@ def uptake_rows(set_key, runs) -> list[dict]:
                 x2, sx2 = b.x_ref(ref)
                 n, e = uptake_exponent(c1, s1, c2, s2, x1, sx1, x2, sx2)
                 flags = _flags(a, b)
+                if not (np.isfinite(s1) and np.isfinite(s2)):
+                    flags = "; ".join(x for x in (flags, "c_C error unknown (single snapshot?): error NaN") if x)
                 if not np.isfinite(sx1) or not np.isfinite(sx2):
                     flags = "; ".join(x for x in (flags, "x_ref error unknown (taken as 0)") if x)
                 if several:

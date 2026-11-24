@@ -82,10 +82,13 @@ def save(fig, out, formats=("png",)) -> list[Path]:
     small = check_fonts(fig)
     if small:
         raise ValueError(f"fonts below {MIN_FONT} pt: {small[:5]}")
-    out = Path(out)
+    out = str(out)
+    for fmt in formats:  # a name given WITH its extension: drop it (run ids contain dots, so no with_suffix)
+        if out.endswith(f".{fmt}"):
+            out = out[: -len(fmt) - 1]
     paths = []
     for fmt in formats:
-        p = out.with_suffix(f".{fmt}")
+        p = Path(f"{out}.{fmt}")
         p.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(p)
         paths.append(p)
@@ -262,6 +265,7 @@ def uptake(stage4_rows, title: str = "Core uptake exponent between neighbouring 
             ax.tick_params(labelleft=False)
         leg_ax = ax_d["legend"]
         leg_ax.axis("off")
+        n_unknown = [0]
         for ax, ref in zip(axes[0], refs):
             for ch in ("d0", "d30", "d60", "d90"):
                 for k, pot in enumerate(pots):
@@ -275,23 +279,30 @@ def uptake(stage4_rows, title: str = "Core uptake exponent between neighbouring 
                     ax.errorbar(x, v, yerr=np.where(np.isfinite(e), e, 0), color=CHARACTER_COLOUR[ch],
                                 marker=MARKERS[k % len(MARKERS)], ls="-" if k == 0 else "--", capsize=3,
                                 label=f"{CHARACTER_NAME[ch]}, {pot}" if len(pots) > 1 else CHARACTER_NAME[ch])
+                    unk = ~np.isfinite(e)
+                    if unk.any():  # error unknown (e.g. a single snapshot): open symbol, not a seemingly exact point
+                        ax.plot(x[unk], v[unk], ls="none", marker=MARKERS[k % len(MARKERS)], mfc="white",
+                                mec=CHARACTER_COLOUR[ch], mew=2, ms=9, zorder=5)
+                        n_unknown[0] += int(unk.sum())
             ax.axhline(1.0, color=TEXT_2, lw=1.5, ls=":")
             ax.annotate("independent sites: n ≤ 1", (0, 1.0), xycoords=("axes fraction", "data"), xytext=(4, 4),
                         textcoords="offset points", fontsize=13, color=TEXT_2)
             ax.set_title(_ref_label(ref))
             ax.set_xlabel("mid offset Δ")
-        # y range from the well-determined exponents only (error < max(1, |n| / 2)); the others are noise-dominated
+        # y range without the noise-dominated exponents (known error > max(1, |n| / 2)); those are
         # (e.g. a far field with a handful of solute atoms) and would flatten every other point
         up = [r for r in rows if r["family"] == "up" and np.isfinite(float(r["value"]))]
+        # an UNKNOWN error (single snapshot) does not make a value noisy -- only a known large error does
         good = [float(r["value"]) for r in up
-                if np.isfinite(float(r["error"])) and float(r["error"]) < max(1.0, 0.5 * abs(float(r["value"])))]
+                if not np.isfinite(float(r["error"])) or float(r["error"]) < max(1.0, 0.5 * abs(float(r["value"])))]
         _value_limits(axes[0][0], good or [float(r["value"]) for r in up], include=(0.0, 1.0))
         lo, hi = axes[0][0].get_ylim()
         off = sum(1 for r in up if not lo <= float(r["value"]) <= hi)
         clipped = sum(1 for r in up if lo <= float(r["value"]) <= hi and np.isfinite(float(r["error"]))
                       and (float(r["value"]) - float(r["error"]) < lo or float(r["value"]) + float(r["error"]) > hi))
-        note = "; ".join(x for x in (f"{off} poorly determined value{'s' if off != 1 else ''} off the plot" if off else "",
-                                     f"{clipped} error bar{'s' if clipped != 1 else ''} clipped" if clipped else "") if x)
+        notes = ["open symbols: error unknown (single snapshot)"] if n_unknown[0] else []
+        note = "; ".join(x for x in notes + [f"{off} poorly determined value{'s' if off != 1 else ''} off the plot" if off else "",
+                                     f"{clipped} error bar{'s' if clipped != 1 else ''} clipped" if clipped else ""] if x)
         if note:
             axes[0][0].annotate(_wrap(note, 34), (0.02, 0.02), xycoords="axes fraction", ha="left", va="bottom", fontsize=13,
                                 color=TEXT_2, bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.85, "pad": 2})
@@ -383,6 +394,8 @@ def alongline_spectrum(q, S_mean, S_sem, line_length: float, n_snapshots: int, t
         ax.set_ylabel("S(q) / binomial noise")
         sec = ax.secondary_xaxis("top", functions=(lambda x: line_length / np.maximum(x, 1e-9),
                                                    lambda w: line_length / np.maximum(w, 1e-9)))
+        qs = [k for k in (1, 2, 3, 5, 10, 20) if len(q) and k <= q.max()]
+        sec.set_xticks([line_length / k for k in qs], [f"{line_length / k:.0f}" for k in qs])
         sec.set_xlabel("wavelength (Å)")
         sec.tick_params(labelsize=14)
         ax.set_title(_wrap(title or "Along-line core composition: spectrum"), fontsize=14)

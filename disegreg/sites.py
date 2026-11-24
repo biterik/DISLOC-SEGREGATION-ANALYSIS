@@ -109,6 +109,20 @@ def lattice_period(miller_x, a: float) -> float:
     return a * n / 2.0 if v.sum() % 2 == 0 else a * n
 
 
+def lattice_parameter_from_cell(snap0, sample: int = 4000) -> float:
+    """Lattice parameter of a relaxed cell: median 1st-neighbour distance of its a-CNA fcc atoms x sqrt(2). (A 0 K cell
+    has its own a, which can differ by > 1 % from the a_cell of the MD run; the line period must come from the cell.)"""
+    from scipy.spatial import cKDTree
+
+    fcc = np.nonzero(np.asarray(snap0.acna) == 1)[0]
+    if len(fcc) < 2:
+        return float("nan")
+    pos = snap0.positions.astype(float)
+    pick = fcc[np.linspace(0, len(fcc) - 1, min(sample, len(fcc))).astype(int)]
+    d, _ = cKDTree(pos[fcc]).query(pos[pick], k=2)   # non-periodic: an fcc atom has neighbours on all sides anyway
+    return float(np.median(d[:, 1]) * np.sqrt(2.0))
+
+
 @dataclass
 class CoreSites:
     r: np.ndarray                 # distance of every tabulated site to the 0 K DXA lines (A)
@@ -133,7 +147,8 @@ class CoreSites:
 
 def core_sites(table: SiteTable, snap0, radius: float, miller_x, a_cell: float, spacing: float = 0.25,
                n_images: int = 1, surface_exclusion: float = 15.0) -> CoreSites:
-    """Which tabulated sites are core sites of the relaxed 0 K cell ``snap0`` (a Stage-1 Snapshot) [PROPOSAL v0.2 P1]."""
+    """Which tabulated sites are core sites of the relaxed 0 K cell ``snap0`` (a Stage-1 Snapshot) [PROPOSAL v0.2 P1].
+    The line period comes from the cell's own lattice parameter; ``a_cell`` only if the cell has no fcc atom."""
     cell = snap0.cell()
     ids0 = snap0.ids if snap0.ids is not None else np.arange(1, snap0.n_atoms + 1)
     k = np.searchsorted(ids0, table.ids)
@@ -149,7 +164,9 @@ def core_sites(table: SiteTable, snap0, radius: float, miller_x, a_cell: float, 
     excl, _, _ = excluded_mask(pos, surface_exclusion)
     r_all = ld.query(pos[~excl])[0]
     L = cell.line_length
-    n_per = max(1, int(round(L / lattice_period(miller_x, a_cell))))
+    a0 = lattice_parameter_from_cell(snap0)
+    a_used = a0 if np.isfinite(a0) else a_cell
+    n_per = max(1, int(round(L / lattice_period(miller_x, a_used))))
     n_core = int((r_all < radius).sum())
     s = cell.wrap_fractional(cell.to_fractional(pos[k]))[:, 0]
     # extent along X on the circle (the sites may straddle the periodic boundary)
@@ -157,9 +174,13 @@ def core_sites(table: SiteTable, snap0, radius: float, miller_x, a_cell: float, 
     gaps = np.diff(np.concatenate([ss, ss[:1] + 1.0]))
     extent = (1.0 - gaps.max()) * L if len(ss) > 1 else 0.0
     dup, dE = periodic_copies(cell, pos[k], table.energy, cell.a / n_per)
+    su = np.sort(s[~dup])  # extent of the distinct sites (after merging the periodic copies)
+    gu = np.diff(np.concatenate([su, su[:1] + 1.0]))
+    extent_unique = (1.0 - gu.max()) * L if len(su) > 1 else 0.0
     return CoreSites(r=r_sites, is_core=(r_sites < radius) & ~dup, radius=float(radius), n_periods=n_per,
                      n_core_cell=n_core, n_core_expected=n_core / n_per, x_extent=float(extent), duplicate=dup,
-                     info={"line_length": L, "period": L / n_per, "dxa_segments": len(lines),
+                     info={"line_length": L, "period": L / n_per, "dxa_segments": len(lines), "a_0K": a0,
+                           "x_extent_distinct": float(extent_unique),
                            "n_periodic_copies": int(dup.sum()), "max_dE_periodic_copies": dE})
 
 
