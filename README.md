@@ -1,5 +1,7 @@
 # disegreg
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24513776.svg)](https://doi.org/10.5281/zenodo.24513776)
+
 Shared analysis of solute segregation at dislocations in atomistic MD/MC simulations (molecular dynamics / Monte
 Carlo), written for the paper *"Dislocation Defect Phases and how to find them"*. One code and one versioned
 definition set for all simulation projects, so that every number is computed the same way.
@@ -40,4 +42,9 @@ cmmg: [docs/CMMG.md](docs/CMMG.md).
     pytest
 
 ## Licence and citation
-BSD-3-Clause, see [LICENSE](LICENSE). How to cite: [CITATION.cff](CITATION.cff).
+BSD-3-Clause, see [LICENSE](LICENSE). How to cite: [CITATION.cff](CITATION.cff). Archived on Zenodo:
+- all versions (concept DOI, resolves to the latest release): [10.5281/zenodo.24513776](https://doi.org/10.5281/zenodo.24513776)
+- v0.1.0 (definition set D1 rev. 4): [10.5281/zenodo.24513777](https://doi.org/10.5281/zenodo.24513777)
+
+Cite the DOI of the version you used, together with the definition set label (D1), so a number can be traced to its code
+and definitions.

@@ -92,9 +92,10 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 
 - 24 Nov: pushed; GitHub Actions green incl. the test cell on Linux x86_64. Released v0.1.0 (tag, GitHub release; Zenodo webhook
   active on the repo, so Zenodo mints the DOI from the release).
+- Zenodo DOIs: concept 10.5281/zenodo.24513776 (all versions), v0.1.0 10.5281/zenodo.24513777 (cite this one in the paper,
+  with D1); both in README.md and CITATION.cff.
 
 ## Next steps
-1. Put the Zenodo DOI (concept DOI + v0.1.0 DOI) into README.md and CITATION.cff once Zenodo shows it.
-2. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing
+1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing
    (DESIGN: one demo run per project).
-3. v0.2 as in docs/DESIGN.md (Stage 4, Fourier analysis, ordered domains, plotting); update setup-micromamba in CI (Node.js 20 warning).
+2. v0.2 as in docs/DESIGN.md (Stage 4, Fourier analysis, ordered domains, plotting); update setup-micromamba in CI (Node.js 20 warning).
