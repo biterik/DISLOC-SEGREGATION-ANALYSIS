@@ -105,6 +105,56 @@ def _ctx():
     return matplotlib.rc_context(style)
 
 
+def _wrap(text: str, width: int = 62) -> str:
+    """Break a long title (run ids are ~60 characters) at '_' / ' ' so it fits the slide width at >= 13 pt."""
+    import textwrap
+
+    out = []
+    for line in text.split("\n"):
+        if len(line) <= width:
+            out.append(line)
+            continue
+        out += textwrap.wrap(line.replace("_", "_\u200b"), width=width, break_on_hyphens=False)
+    return "\n".join(x.replace("\u200b", "") for x in out)
+
+
+def _value_limits(ax, values, include=(), pad: float = 0.15):
+    """y range from the VALUES (and ``include``), not from the error bars: one noisy pair must not flatten the others.
+    Returns True if some error bar is clipped (then say so in the plot)."""
+    v = np.asarray([x for x in list(values) + list(include) if np.isfinite(x)], float)
+    if not v.size:
+        return False
+    lo, hi = float(v.min()), float(v.max())
+    span = hi - lo if hi > lo else max(abs(hi), 1.0)
+    ax.set_ylim(lo - pad * span, hi + pad * span)
+    return True
+
+
+QUANTITY_LABEL = {"c:C": "core solute fraction $c_C$", "c:B": "far-field solute fraction $c_B$",
+                  "Gamma:20:r": "line excess Γ(20 Å) (atoms / Å)", "Gamma:40:r": "line excess Γ(40 Å) (atoms / Å)",
+                  "E:C": "core enrichment $E_C$", "N_sol_inside:20:r": "solute atoms within 20 Å",
+                  "partial_separation_mean": "partial separation (Å)", "alongline_dispersion:C": "along-line dispersion D"}
+
+
+def quantity_label(key: str) -> str:
+    """'quantity:region:basis:ref' -> readable axis label (the key itself if unknown)."""
+    k = key.rstrip(":")
+    parts = k.split(":")
+    ref = parts[3] if len(parts) > 3 else ""
+    base = QUANTITY_LABEL.get(":".join(parts[:3]).rstrip(":"), k)
+    return base + (f", {_ref_label(ref)}" if ref else "")
+
+
+def _legend_row(fig_axes_names, ncols=1, height=(5, 1.1), size=None):
+    """Figure with the plot panels on top and a row reserved for the legend (it never covers data or axis labels)."""
+    _, plt, _ = _mpl()
+    names = list(fig_axes_names)
+    fig, ax_d = plt.subplot_mosaic([names, ["legend"] * len(names)], figsize=size or (SLIDE[0], SLIDE[1] + 1.4),
+                                   height_ratios=list(height), constrained_layout=True)
+    ax_d["legend"].axis("off")
+    return fig, [ax_d[n] for n in names], ax_d["legend"]
+
+
 def _ref_label(ref: str) -> str:
     return {"c_B": "vs far field $c_B$", "x_iso": "vs isotherm $x_{iso}$", "x_bc": "vs bulk control $x_{bc}$",
             "given": "vs given $x_{ref}$"}.get(ref, ref)
@@ -134,7 +184,7 @@ def gamma_curve(curve_rows, title: str = "", headline_radius: float = 20.0, chec
         ax.axvline(check_radius, color=GRID, lw=1, ls=":")
         ax.set_xlabel("radius R from the line (Å)")
         ax.set_ylabel("line excess Γ(R) (solute atoms / Å)")
-        ax.set_title(title or "Line excess Γ(R)")
+        ax.set_title(_wrap(title or "Line excess Γ(R)"), fontsize=14)
         ax.legend(loc="best")
     return fig
 
@@ -160,7 +210,7 @@ def timeseries(t, y, window=None, mean=None, sem=None, flat=None, ylabel="", tit
                 ax.plot(window, [mean + slope * (window[0] - tc), mean + slope * (window[1] - tc)], color=PALETTE[2],
                         ls="--", lw=2, label="linear trend")
         verdict = "" if flat is None else ("  —  flat (no drift detected)" if flat else "  —  DRIFT")
-        ax.set_title((title or ylabel) + verdict)
+        ax.set_title(_wrap((title or ylabel) + verdict), fontsize=14)
         ax.set_xlabel(time_label)
         ax.set_ylabel(ylabel)
         ax.legend(loc="best")
@@ -172,7 +222,7 @@ def vs_delta(rows, ylabel: str, title: str = "", log: bool = False):
     """rows: dicts with character, potential, delta, value, error (e.g. results-table rows of one quantity)."""
     pots = sorted({r["potential"] for r in rows})
     with _ctx():
-        fig, ax, _ = _figure()
+        fig, (ax,), leg = _legend_row(["main"])
         for ch in ("d0", "d30", "d60", "d90"):
             for k, pot in enumerate(pots):
                 rs = sorted((r for r in rows if r["character"] == ch and r["potential"] == pot),
@@ -189,8 +239,9 @@ def vs_delta(rows, ylabel: str, title: str = "", log: bool = False):
             ax.set_yscale("log")
         ax.set_xlabel("offset Δ = (Δμ − Δμ$_{coex}$) / kT")
         ax.set_ylabel(ylabel)
-        ax.set_title(title or ylabel)
-        ax.legend(loc="best", ncol=2 if len(pots) > 1 else 1)
+        ax.set_title(_wrap(title or ylabel), fontsize=14)
+        h, lab = ax.get_legend_handles_labels()
+        leg.legend(h, lab, loc="center", ncol=2 if len(lab) > 4 else max(1, len(lab)), frameon=False)
     return fig
 
 
@@ -201,7 +252,16 @@ def uptake(stage4_rows, title: str = "Core uptake exponent between neighbouring 
     refs = [x for x in ("c_B", "x_iso", "x_bc") if any(r["ref"] == x for r in rows)] or sorted({r["ref"] for r in rows})
     pots = sorted({r["potential"] for r in rows})
     with _ctx():
-        fig, axes, _ = _figure(1, max(1, len(refs)), size=(SLIDE[0], SLIDE[1]), sharey=True, squeeze=False)
+        _, plt, _ = _mpl()
+        names = [f"p{k}" for k in range(max(1, len(refs)))]
+        fig, ax_d = plt.subplot_mosaic([names, ["legend"] * len(names)], figsize=(SLIDE[0], SLIDE[1] + 1.4),
+                                       height_ratios=[5, 1.1], constrained_layout=True)
+        axes = [[ax_d[n] for n in names]]
+        for ax in axes[0][1:]:
+            ax.sharey(axes[0][0])
+            ax.tick_params(labelleft=False)
+        leg_ax = ax_d["legend"]
+        leg_ax.axis("off")
         for ax, ref in zip(axes[0], refs):
             for ch in ("d0", "d30", "d60", "d90"):
                 for k, pot in enumerate(pots):
@@ -220,16 +280,42 @@ def uptake(stage4_rows, title: str = "Core uptake exponent between neighbouring 
                         textcoords="offset points", fontsize=13, color=TEXT_2)
             ax.set_title(_ref_label(ref))
             ax.set_xlabel("mid offset Δ")
+        # y range from the well-determined exponents only (error < max(1, |n| / 2)); the others are noise-dominated
+        # (e.g. a far field with a handful of solute atoms) and would flatten every other point
+        up = [r for r in rows if r["family"] == "up" and np.isfinite(float(r["value"]))]
+        good = [float(r["value"]) for r in up
+                if np.isfinite(float(r["error"])) and float(r["error"]) < max(1.0, 0.5 * abs(float(r["value"])))]
+        _value_limits(axes[0][0], good or [float(r["value"]) for r in up], include=(0.0, 1.0))
+        lo, hi = axes[0][0].get_ylim()
+        off = sum(1 for r in up if not lo <= float(r["value"]) <= hi)
+        clipped = sum(1 for r in up if lo <= float(r["value"]) <= hi and np.isfinite(float(r["error"]))
+                      and (float(r["value"]) - float(r["error"]) < lo or float(r["value"]) + float(r["error"]) > hi))
+        note = "; ".join(x for x in (f"{off} poorly determined value{'s' if off != 1 else ''} off the plot" if off else "",
+                                     f"{clipped} error bar{'s' if clipped != 1 else ''} clipped" if clipped else "") if x)
+        if note:
+            axes[0][0].annotate(_wrap(note, 34), (0.02, 0.02), xycoords="axes fraction", ha="left", va="bottom", fontsize=13,
+                                color=TEXT_2, bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.85, "pad": 2})
+        from matplotlib.ticker import MaxNLocator
+        for ax in axes[0]:
+            ax.xaxis.set_major_locator(MaxNLocator(4))
         axes[0][0].set_ylabel("uptake exponent $n_{up}$ = Δ ln $c_C$ / Δ ln $x_{ref}$")
-        axes[0][-1].legend(loc="best", ncol=1)
+        handles, labels = axes[0][0].get_legend_handles_labels()
+        for ax in axes[0][1:]:
+            for h, lab in zip(*ax.get_legend_handles_labels()):
+                if lab not in labels:
+                    handles.append(h)
+                    labels.append(lab)
+        leg_ax.legend(handles, labels, loc="center", ncol=min(2, max(1, len(labels))), frameon=False)
         fig.suptitle(title)
     return fig
 
 
 # -------------------------------------------------------------------------------------------------------- regions
 def regions(rows, run_id: str, refs: dict | None = None, title: str = ""):
-    """Concentration c per region of one run (results-table rows, quantity c), log scale; reference compositions as
-    horizontal lines."""
+    """Solute fraction c per region of one run (results-table rows, quantity c) as dots with error bars on a log axis (bars
+    would have no meaningful baseline on a log scale); reference compositions as horizontal lines."""
+    from matplotlib.ticker import FuncFormatter
+
     order = ["C", "F", "S", "T", "B", "O", "interior"]
     rs = {r["region"]: r for r in rows if r["run_id"] == run_id and r["quantity"] == "c" and r["region"] in order}
     regs = [g for g in order if g in rs and float(rs[g]["value"]) > 0]
@@ -238,18 +324,24 @@ def regions(rows, run_id: str, refs: dict | None = None, title: str = ""):
         x = np.arange(len(regs))
         v = np.array([float(rs[g]["value"]) for g in regs])
         e = np.array([float(rs[g]["error"]) if rs[g]["error"] != "" else np.nan for g in regs])
-        ax.bar(x, v, width=0.7, color=PALETTE[0], edgecolor="white", linewidth=2)
-        ax.errorbar(x, v, yerr=np.where(np.isfinite(e), e, 0), color=TEXT, ls="none", capsize=4)
+        ax.errorbar(x, v, yerr=np.where(np.isfinite(e), e, 0), color=PALETTE[0], marker="o", ms=10, ls="none", capsize=5,
+                    label="window mean ± SEM")
         for k, (name, val) in enumerate((refs or {}).items()):
             ax.axhline(val, color=PALETTE[1 + k % 5], ls=("--", ":", "-.")[k % 3], lw=2, label=f"{name} = {val:.3g}")
         for xi, vi in zip(x, v):
-            ax.annotate(f"{vi:.3g}", (xi, vi), xytext=(0, 4), textcoords="offset points", ha="center", fontsize=13)
+            ax.annotate(f"{vi:.3g}", (xi, vi), xytext=(10, 0), textcoords="offset points", va="center", fontsize=13)
         ax.set_xticks(x, [REGION_LABEL[g] for g in regs])
+        ax.set_xlim(-0.5, len(regs) - 0.3)
         ax.set_yscale("log")
+        fmt = FuncFormatter(lambda y, _: f"{y:.3g}")
+        ax.yaxis.set_major_formatter(fmt)
+        lo, hi = ax.get_ylim()
+        # less than a decade on the axis: label the minor ticks too, else only one number would be shown
+        ax.yaxis.set_minor_formatter(fmt if hi / lo < 10 else FuncFormatter(lambda y, _: ""))
+        ax.tick_params(axis="y", which="minor", labelsize=14)
         ax.set_ylabel("solute fraction c")
-        ax.set_title(title or f"Solute fraction per region — {run_id}")
-        if refs:
-            ax.legend(loc="best")
+        ax.set_title(_wrap(title or f"Solute fraction per region\n{run_id}"), fontsize=14)
+        ax.legend(loc="best")
     return fig
 
 
@@ -270,7 +362,7 @@ def signed_map(x_edges, y_edges, values, xlabel: str, ylabel: str, cbar_label: s
         cb.ax.tick_params(labelsize=14)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
-        ax.set_title(title or cbar_label)
+        ax.set_title(_wrap(title or cbar_label), fontsize=14)
     return fig
 
 
@@ -293,6 +385,6 @@ def alongline_spectrum(q, S_mean, S_sem, line_length: float, n_snapshots: int, t
                                                    lambda w: line_length / np.maximum(w, 1e-9)))
         sec.set_xlabel("wavelength (Å)")
         sec.tick_params(labelsize=14)
-        ax.set_title(title or "Along-line core composition: spectrum")
+        ax.set_title(_wrap(title or "Along-line core composition: spectrum"), fontsize=14)
         ax.legend(loc="best")
     return fig

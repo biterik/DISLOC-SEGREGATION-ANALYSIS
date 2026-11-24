@@ -100,6 +100,9 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   docs/DEFINITIONS.md "[PROPOSAL v0.2]" + disegreg/definitions/proposals_v0.2.yaml, outputs carry status = proposal.
 - 24 Nov: item A (Stage 4: across.py, sites.py, bulk-control manifests + automatic x_bc) done with tests; plotting module
   (item B) drafted. disegreg-dev now has the editable install of the worktree (it had none).
+- 24 Nov: items C (alongline.py, P4) and D (domains.py, P5) done with synthetic tests; item B plots checked by eye on the Nb-Au
+  demo (titles wrapped, legend rows, uptake y range from well-determined values, regions as dots on log axis).
+- Demo outputs (not in git): regression/output/v0.2-demo/ (Stage 2/3 of 52 Nb-Au/Ni-Cu runs + 7 TURLO t51 runs).
 
 ## Next steps
 1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing

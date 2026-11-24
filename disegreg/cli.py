@@ -444,8 +444,8 @@ def _cmd_plot(args) -> int:
                 mean, sem, flat = r3["mean"], r3["sem"], r3["flat"]
                 span = (r3["t_last"] - r3["t_first"]) * (k if dt else 1.0)
                 slope = r3["change"] / span if span > 0 else None
-        fig = plotting.timeseries(t, y, window, mean, sem, flat, ylabel=args.quantity.rstrip(":"),
-                                  title=f"{prov.get('manifest_data', {}).get('run_id', f.stem)}: {args.quantity.rstrip(':')}",
+        fig = plotting.timeseries(t, y, window, mean, sem, flat, ylabel=plotting.quantity_label(args.quantity),
+                                  title=f"{prov.get('manifest_data', {}).get('run_id', f.stem)}\n{args.quantity.rstrip(':')}",
                                   time_label=unit, slope=slope)
         out = args.out or f.with_name(f.stem + "_" + args.quantity.replace(":", "-").rstrip("-"))
     elif kind == "delta":
@@ -454,7 +454,7 @@ def _cmd_plot(args) -> int:
         rows = [r for r in read_table(f) if (r["quantity"], r["region"], r["basis"], r["ref"]) == (q, region, basis, ref)]
         for r in rows:
             r["delta"] = float(r["delta"])
-        fig = plotting.vs_delta(rows, ylabel=args.quantity.rstrip(":"), log=args.log)
+        fig = plotting.vs_delta(rows, ylabel=plotting.quantity_label(args.quantity), log=args.log)
         out = args.out or f.with_name(f.stem + "_vs-delta_" + args.quantity.replace(":", "-").rstrip("-"))
     elif kind == "uptake":
         f = Path(args.input)  # Stage-4 table of `disegreg across`

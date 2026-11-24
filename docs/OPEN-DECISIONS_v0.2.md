@@ -30,7 +30,7 @@ Two robustness points, fixed on the branch only (no v0.1.0 number affected):
 | item | state | commit |
 |---|---|---|
 | A. Stage 4 across runs | code + tests done; demo on 52 runs (Nb-Au, Ni-Cu) running | see git log |
-| B. plotting | `disegreg plot` 6 kinds, tests; demo figures with the demo numbers | see git log |
+| B. plotting | `disegreg plot` gamma, timeseries, delta, uptake, regions, alongline; checked by eye on real Nb-Au data | see git log |
 | C. along-line Fourier | code + tests done (proposal P4); demo numbers with the demo run | see git log |
 | D. ordered domains Ni-Al | code + tests done (proposal P5); synthetic only -- no Ni-Al data on the Mac | see git log |
 | E. project feedback | (open) | |
