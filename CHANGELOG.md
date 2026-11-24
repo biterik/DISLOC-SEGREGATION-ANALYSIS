@@ -57,6 +57,8 @@ the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
     is true when the fallback axis was active in the window (per-snapshot quantity `fallback_active`). New per-run file
     `<run>_gammaR_<D>.csv` with the Gamma(R) curve, R = 5-60 A in 5 A steps (plus 80, 100), under r and r_DXA, per reference.
 - tests/test_testcell.py expects the DXA Burgers vector 1/2[-1 1 0] (the builder's nominal b with opposite sign, DEFINITIONS 1).
+- The relaxed test cell tests/data/testcell_relaxed.dump.gz (0.7 MB, relaxed on cmmg 24 Nov) is in the repository, so the
+  test-cell tests run in GitHub Actions too.
 - Regression with tolerances (regression/check_tolerance.py): positions 0.5 A, concentrations max(2 %, one solute atom),
   order parameters max(2 %, 0.01). Ni-Cu: 16 runs exact, the 3 ACE runs within tolerance; Nb-Au: 24 within tolerance.
   DXA is deterministic on one machine (four Stage-1 runs of the ACE d90 snapshot on the M5 bit-identical).

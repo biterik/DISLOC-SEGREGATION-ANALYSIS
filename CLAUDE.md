@@ -92,6 +92,7 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 
 ## Next steps
 1. Erik reviews the changes of 24 Nov (CHANGELOG [Unreleased], last entries); then `git push`.
-2. Decide whether to commit the 0.7 MB test cell (force-add past the *.dump.gz rule) so the test-cell tests run in GitHub CI.
+2. Test cell committed (24 Nov, .gitignore exception); check after the push that the test-cell tests pass in GitHub Actions
+   (first run of them on x86_64 Linux).
 3. Then tag v0.1.0, CHANGELOG, Zenodo DOI (as for openbis-mcp-server), and hand each project instance its "how to call disegreg" note
    (docs/HOWTO_PROJECTS.md).

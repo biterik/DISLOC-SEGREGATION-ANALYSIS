@@ -13,6 +13,8 @@ DISEGREG-CACHE/
 *.npz
 *.dump
 *.dump.gz
+# exception: the relaxed test cell (35 584 atoms, 0.7 MB; tests/test_testcell.py, sha256 c7ab1858...f413), so CI runs it
+!tests/data/testcell_relaxed.dump.gz
 *.lammpstrj
 *.lammpstrj.gz
 *.data
