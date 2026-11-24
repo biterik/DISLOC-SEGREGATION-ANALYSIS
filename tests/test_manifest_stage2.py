@@ -166,9 +166,9 @@ def test_results_table_refuses_mixed_definition_sets(tmp_path):
 
     files = []
     for label in ("D1", "D2"):
-        row = {"run_id": f"run{label}", "quantity": "c", "region": "C", "basis": "", "mean": 0.1, "sem": 0.01,
+        row = {"run_id": f"run{label}", "quantity": "c", "region": "C", "basis": "", "ref": "", "mean": 0.1, "sem": 0.01,
                "n_samples": 3, "sem_plateau": False, "change": 0.0, "change_se": 0.01, "flat": True,
-               "flat_change_se": True, "t_first": 0.0, "t_last": 1.0, "definition_set": label, "tool_version": "x"}
+               "flat_rev3_sem": True, "t_first": 0.0, "t_last": 1.0, "definition_set": label, "tool_version": "x"}
         f = tmp_path / f"run{label}_stage3_{label}.csv"
         write_table(f, [row], {"definition_set": label, "manifest_data": demo(), "stage3": {"converged": True}},
                     columns=STAGE3_COLUMNS)
@@ -178,3 +178,50 @@ def test_results_table_refuses_mixed_definition_sets(tmp_path):
     assert json.dumps(prov)
     with pytest.raises(ValueError, match="different definition sets"):
         collect_runs(files)
+
+
+def test_stage2_both_references():
+    """DEFINITIONS 5, rev. 4: E, Gamma, alpha vs x_ref once per reference, the reference named in ``ref``."""
+    import dataclasses
+
+    snap, cell, pos, r_true, solute, z0 = synthetic_snapshot()
+    d0 = load_definitions()
+    params = copy.deepcopy(d0.params)
+    params["regions"]["far_field_radius"] = 12.0  # the synthetic cell is too small for R_far = 60 A: test copy only
+    d = dataclasses.replace(d0, params=params)
+    res = analyse_snapshot(snap, d, A, z_gp=z0, x_ref={"x_iso": 0.008}, c_B_ref=True)
+    c_B = res.value("c", region="B")
+    assert 0 < c_B < 0.05 and res.info["refs"] == {"x_iso": 0.008, "c_B": c_B}
+    assert res.value("x_ref", ref="c_B") == c_B and res.value("c_B_over_x_ref", ref="x_iso") == pytest.approx(c_B / 0.008)
+    assert res.value("E", region="B", ref="c_B") == pytest.approx(1.0)
+    L = res.value("L_x")
+    for ref, xr in (("x_iso", 0.008), ("c_B", c_B)):
+        g = (res.value("N_sol_inside", "20", "r") - xr * res.value("N_inside", "20", "r")) / L
+        assert res.value("Gamma", "20", "r", ref=ref) == pytest.approx(g)
+        p1 = res.value("p1", region="T")
+        assert res.value("alpha1_xref", region="T", ref=ref) == pytest.approx((p1 - xr) / (1 - xr))
+    with pytest.raises(KeyError, match="several references"):
+        res.value("Gamma", "20", "r")
+    # Gamma(R) curve radii 5-60 A, headline 20 and check 40 among them; the axis was not needed here
+    radii = {float(r["region"]) for r in res.records if r["quantity"] == "Gamma" and r["basis"] == "r"}
+    assert {5.0 * k for k in range(1, 13)} <= radii
+    assert res.value("fallback_active") == 0.0
+
+
+def test_gamma_roles_and_paper_hold():
+    from disegreg.results import PAPER_HOLD, gamma_role, paper_hold
+
+    assert gamma_role("Gamma", "20", "r", 20.0, 40.0) == "headline"
+    assert gamma_role("Gamma", "40", "r", 20.0, 40.0) == "check"
+    assert gamma_role("Gamma", "15", "r", 20.0, 40.0) == "curve"
+    assert gamma_role("Gamma", "20", "r_dxa", 20.0, 40.0) == "" and gamma_role("c", "C", "", 20.0, 40.0) == ""
+    rules = load_definitions()["reference"]["paper_hold_without_bulk_control"]
+    m = demo()                                    # Lee-Shim MEAM Ni-Cu without bulk control: not held back
+    assert paper_hold(m, rules) == ""
+    m["potential"] = "CuNi-ACE"                   # ACE Ni-Cu without bulk control: held back (Erik 24 Nov)
+    assert paper_hold(m, rules) == PAPER_HOLD
+    m["bulk_control"] = "bulk_d60_ACE_0.10kT"     # ... until the bulk control exists
+    assert paper_hold(m, rules) == ""
+    m = demo()
+    m.update(potential="Mendelev2022-ACE", host_element="Ni", solute_element="Au")
+    assert paper_hold(m, rules) == ""             # the rule is for Ni-Cu only

@@ -2,7 +2,7 @@
 # Section numbers refer to docs/DEFINITIONS.md. Lengths in Angstrom unless stated otherwise.
 # Changing ANY value here creates a new definition set (D2, ...) with a line in the revision log of docs/DEFINITIONS.md.
 label: D1
-status: "draft rev. 3 (2026-11-23), under review"
+status: "rev. 4 (2026-11-24), all points decided by Erik"
 
 input:                                   # section 1
   snapshots: quenched                    # energy-minimised snapshots only
@@ -47,11 +47,18 @@ regions:                                 # section 4
 reference:                               # section 5
   preference: [bulk_control, isotherm, far_field_diagnostic]
   min_solute_in_bulk_control: 100        # expected solute count in the control interior below this -> isotherm
+  # rev. 4 (Erik 24 Nov): until a run has its bulk control, E, Gamma and alpha vs x_ref are reported against BOTH the
+  # in-cell far field c_B (of the same snapshot) and the isotherm x_iso; the table names the reference in column "ref".
+  without_bulk_control_report_against: [c_B, x_iso]
+  paper_hold_without_bulk_control:       # runs whose enrichments must not be quoted in the paper before the bulk control
+    - {potential_contains: ACE, host: Ni, solute: Cu}   # ACE Ni-Cu: c_B / x_iso = 0.5-2.6 (regression 23 Nov)
 
 composition:                             # section 6
-  headline_radii: [20.0, 40.0]           # Gamma(20 A), Gamma(40 A) [PROPOSAL]
+  headline_radius: 20.0                  # Gamma(20 A): the headline number (Erik 24 Nov)
+  check_radius: 40.0                     # Gamma(40 A): the robust check, quoted where the fallback axis is active
+  gamma_curve_radii: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]   # Gamma(R) curve for the supplement
   partial_separation_bin: 5.0            # X bins for the Y distance between two Shockley partials
-  partial_merge_distance: 2.0            # Shockley pieces closer than this (Y-Z plane, within a bin) = same partial [CONFIRM]
+  partial_merge_distance: 2.0            # Shockley pieces closer than this (Y-Z plane, within a bin) = same partial (Erik 24 Nov)
 
 order:                                   # section 7
   shell1_cutoff_a: 0.854                 # 1st shell: r < 0.854 a
@@ -61,5 +68,7 @@ order:                                   # section 7
 
 timeseries:                              # section 8
   drift_final_fraction: 0.30             # drift test over the last 30 % of the run
-  drift_sem_factor: 2.0                  # "flat" if |trend x window| < 2 x block-averaging SEM
+  drift_criterion: change_se             # rev. 4 (Erik 24 Nov): "flat" if |change| < drift_factor x SE(change);
+                                         #   the rev. 3 rule "sem" (|change| < 2 SEM) is kept as an extra column
+  drift_factor: 2.0
   min_window_fraction: 0.30              # averaging window >= 30 % of the run

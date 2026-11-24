@@ -26,8 +26,14 @@ On cmmg (docs/CMMG.md): Stage 1 for many dumps as a job array (`disegreg slurm .
 `/cmmc/ptmp/$USER/conda-envs/disegreg/bin/disegreg analyse <manifests> --out <folder>` (cheap: ~1 s per snapshot).
 
 Output per run: `<run_id>_stage2_D1.csv` (one row per snapshot x quantity), `<run_id>_stage3_D1.csv` (window means with
-block-averaging errors and drift tests), each with a `.provenance.json` (tool version, definition set, SHA-256 of the
-dumps, the manifest). Across runs: `disegreg table <folders> --out results_D1.csv`.
+block-averaging errors and drift tests), `<run_id>_gammaR_D1.csv` (the Gamma(R) curve, R = 5-60 A, for the supplement),
+each with a `.provenance.json` (tool version, definition set, SHA-256 of the dumps, the manifest). Across runs:
+`disegreg table <folders> --out results_D1.csv`.
+
+Columns to know: `basis` = distance used (`r` the one actually used, `r_dxa` DXA only); `ref` = reference composition of
+E, Gamma and alpha_xref (`c_B` the snapshot's own far field, `x_iso` the isotherm from the manifest, `x_bc` a bulk-control
+value given with `--x-ref`). Without a bulk control every such number exists for both `c_B` and `x_iso` (DEFINITIONS 5).
+`role` (results table): `headline` = Gamma(20 A) under r, `check` = Gamma(40 A), `curve` = other R.
 
 ## 3. Read the flags before quoting a number
 
@@ -35,7 +41,11 @@ dumps, the manifest). Across runs: `disegreg table <folders> --out results_D1.cs
   Gamma under `r` and `r_dxa` to see the size of the switch.
 - `z_gp_flag`: manifest glide plane and the lines disagree by more than one (111) spacing -- check the manifest (or the
   dislocation moved out of its glide plane).
-- Stage 3 `converged` and `signal_plateau`: without a block-averaging plateau the error bar is a lower bound.
+- Stage 3 `converged` and `signal_plateau`: without a block-averaging plateau the error bar is a lower bound. Drift
+  criterion `change_se` (|change| < 2 SE(change)); the old rule's verdict is in `flat_rev3_sem`, for comparison only.
+- `check_required`: the fallback axis was active in the window -> quote Gamma(40 A) (`role` check) next to Gamma(20 A).
+- `paper_flag` = "no paper number before bulk control" (ACE Ni-Cu without a bulk control): do not put that run's
+  enrichments or Gamma into the paper.
 - Quote numbers with the definition set (D1) and the tool version from the provenance file.
 
 ## Project notes

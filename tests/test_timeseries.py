@@ -44,16 +44,17 @@ def test_block_sem_short_and_constant():
 
 
 def test_drift_test_pass_rates_on_flat_series():
-    """The D1 criterion |change| < 2 SEM rejects truly flat series about half of the time, because SE(change) =
-    sqrt(12) SEM: expected pass rate P(|Z| < 2 / sqrt(12)) = 0.44. The proposed criterion |change| < 2 SE(change): 0.95."""
+    """The rev. 3 criterion |change| < 2 SEM rejects truly flat series about half of the time, because SE(change) =
+    sqrt(12) SEM: expected pass rate P(|Z| < 2 / sqrt(12)) = 0.44. The rev. 4 criterion |change| < 2 SE(change): 0.95."""
     rng = np.random.default_rng(11)
     t = np.arange(2048.0)
     d1, prop, ratio = [], [], []
     for _ in range(300):
         d = ts.drift_test(t, ar1(2048, 0.8, rng) + 100)
         ratio.append(d.change_se / (np.sqrt(12) * d.sem))
-        d1.append(d.flat)
+        d1.append(d.flat_sem)
         prop.append(d.flat_change_se)
+        assert d.passes() == d.flat_change_se  # rev. 4 default
     assert np.mean(ratio) == pytest.approx(1.0, abs=0.1)  # detrended SEM ~ SEM for a flat series
     assert np.mean(d1) == pytest.approx(0.44, abs=0.09)
     assert np.mean(prop) == pytest.approx(0.95, abs=0.04)
@@ -64,7 +65,7 @@ def test_drift_test_detects_drift():
     t = np.arange(3000.0)
     drifting = ar1(3000, 0.8, rng) + 100 + 0.002 * t  # change across the window 6, SE(change) ~ 0.3
     d = ts.drift_test(t, drifting)
-    assert not d.flat and not d.flat_change_se and d.change == pytest.approx(6.0, abs=1.0)
+    assert not d.flat_sem and not d.flat_change_se and d.change == pytest.approx(6.0, abs=1.0)
     with pytest.raises(ValueError):
         d.passes("nonsense")
 
@@ -73,12 +74,12 @@ def test_averaging_window_after_transient():
     rng = np.random.default_rng(12)
     t = np.arange(10000.0)
     y = 50 * np.exp(-t / 800.0) + ar1(10000, 0.5, rng, 0.5) + 10  # saturates after ~ 4000
-    w = ts.averaging_window(t, y, P["drift_final_fraction"], P["min_window_fraction"], P["drift_sem_factor"],
-                            criterion="change_se")
+    w = ts.averaging_window(t, y, P["drift_final_fraction"], P["min_window_fraction"], P["drift_factor"],
+                            criterion=P["drift_criterion"])
     assert w.converged and 0.30 <= w.fraction <= 0.75
     assert abs(w.test.mean - 10) < 0.3
     y2 = y + 0.003 * t  # never flat
-    for crit in ("d1", "change_se"):
+    for crit in ts.CRITERIA:
         w2 = ts.averaging_window(t, y2, criterion=crit)
         assert not w2.converged and w2.fraction == 0.30
 
@@ -118,6 +119,16 @@ def test_run_stage3_window_from_stream(tmp_path):
     c = next(r for r in out if r["quantity"] == "c")
     assert c["n_samples"] == sum(s * 0.001 >= info["window_t_start"] for s in snap_steps)
     assert abs(c["mean"] - 0.05) < 0.003
-    info2, _ = ts.run_stage3(rows, P)  # no stream: key quantity, D1 criterion, the proposal reported alongside
-    assert info2["window_source"].startswith("stage2:") and info2["criterion"] == "d1"
-    assert "alt_change_se_converged" in info2
+    assert {"flat", "flat_rev3_sem", "ref"} <= set(c)
+    info2, out2 = ts.run_stage3(rows, P)  # no stream: key quantity, rev. 4 criterion, the rev. 3 one reported alongside
+    assert info2["window_source"].startswith("stage2:") and info2["criterion"] == "change_se"
+    assert "alt_sem_converged" in info2
+    info3, out3 = ts.run_stage3(rows, P, criterion="sem")
+    assert info3["criterion"] == "sem" and "alt_change_se_converged" in info3
+    with pytest.raises(ValueError, match="unknown drift criterion"):
+        ts.run_stage3(rows, P, criterion="d1")
+
+
+def test_d1_rev4_drift_parameters():
+    assert P["drift_criterion"] == "change_se" and P["drift_factor"] == 2.0
+    assert P["drift_criterion"] == ts.DEFAULT_CRITERION

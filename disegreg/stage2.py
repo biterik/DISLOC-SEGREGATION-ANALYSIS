@@ -2,8 +2,10 @@
 
 distances (3.1-3.4) -> glide-plane check (3.4) -> regions (4) -> counts, Gamma, partial separation (6) -> order, clusters (7).
 
-The result is a flat list of records (quantity, region, basis, value), the input of the tidy results table. Counts are
-always written, so Gamma can be recomputed for any x_ref later; Gamma, E and alpha vs x_ref only if x_ref is given.
+The result is a flat list of records (quantity, region, basis, ref, value), the input of the tidy results table. Counts
+are always written, so Gamma can be recomputed for any x_ref later. Gamma, E, alpha vs x_ref and c_B / x_ref are written
+once per reference composition, named in ``ref`` (DEFINITIONS 5, rev. 4: until a run has its bulk control, against both
+the in-cell far field c_B of the same snapshot and the isotherm x_iso).
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ from .geometry import line_coverage, line_distances
 
 @dataclass
 class Stage2Result:
-    records: list = field(default_factory=list)   # dicts: quantity, region, basis, value
+    records: list = field(default_factory=list)   # dicts: quantity, region, basis, ref, value
     info: dict = field(default_factory=dict)      # scalars and flags (mode, coverage, z_gp check, timings)
     # per-atom arrays, kept for plots and tests (not written to the tables)
     r: np.ndarray | None = None
@@ -30,24 +32,31 @@ class Stage2Result:
     codes: np.ndarray | None = None
     cluster_size: np.ndarray | None = None
 
-    def add(self, quantity, value, region="", basis=""):
+    def add(self, quantity, value, region="", basis="", ref=""):
         v = float(value) if value is not None else float("nan")
-        self.records.append({"quantity": quantity, "region": region, "basis": basis, "value": v})
+        self.records.append({"quantity": quantity, "region": region, "basis": basis, "ref": ref, "value": v})
 
-    def value(self, quantity, region="", basis=""):
-        for rec in self.records:
-            if rec["quantity"] == quantity and rec["region"] == region and rec["basis"] == basis:
-                return rec["value"]
-        raise KeyError((quantity, region, basis))
+    def value(self, quantity, region="", basis="", ref=None):
+        """The record's value; ``ref`` may be left out if the quantity exists for one reference only."""
+        hits = [rec for rec in self.records if rec["quantity"] == quantity and rec["region"] == region
+                and rec["basis"] == basis and (ref is None or rec["ref"] == ref)]
+        if len(hits) == 1:
+            return hits[0]["value"]
+        if not hits:
+            raise KeyError((quantity, region, basis, ref))
+        raise KeyError(f"{(quantity, region, basis)} exists for several references "
+                       f"{sorted(h['ref'] for h in hits)}: give ref=")
 
 
 def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_ref=None, frame_matrix=None,
-                     workers: int = -1, keep_arrays: bool = False) -> Stage2Result:
+                     workers: int = -1, keep_arrays: bool = False, c_B_ref: bool = False) -> Stage2Result:
     """All Stage-2 quantities of one snapshot.
 
     a_cell : lattice parameter the cell was built with (manifest), for the neighbour-shell cut-offs.
     z_gp   : glide-plane height from the manifest; None -> taken from the lines (and flagged).
-    x_ref  : reference solute fraction; None -> counts and local quantities only.
+    x_ref  : reference solute fraction(s): a number (ref label "given"), or {label: value}, e.g. {"x_iso": 6.85e-3};
+             None -> counts and local quantities only.
+    c_B_ref: also use this snapshot's own far-field concentration c_B as a reference (ref label "c_B").
     frame_matrix : rows = crystal directions of X, Y, Z (Manifest.frame_matrix()); None -> no crystal-frame segment table.
     """
     t0 = time.perf_counter()
@@ -82,6 +91,8 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
     for q in ("f_cov", "f_shockley", "n_axes", "n_clusters"):
         res.add(q, res.info[q])
     res.add("n_active_slabs", sum(res.info["n_active_slabs"]))
+    # 1 where the fallback axis is used somewhere (Gamma(40 A) must then be quoted as the check, DEFINITIONS 6)
+    res.add("fallback_active", float(ld.mode in ("mixed", "axis")))
     for f, length in res.info["length_per_family"].items():
         res.add("dxa_length", length, region=f)
     if frame_matrix is not None:
@@ -110,10 +121,17 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
     slab40 = regions.far_slab40_mask(pos, acna, excluded, gp.z_gp, float(reg["far_slab40_half_width"]))
 
     # ---- composition (6)
-    radii = list(comp["headline_radii"]) + list(reg["radial_bins"][1:])
+    radii = (list(comp["gamma_curve_radii"]) + [comp["headline_radius"], comp["check_radius"]]
+             + list(reg["radial_bins"][1:]))
     cnt = composition.count(solute, codes, ld.r, ld.r_dxa, reg["radial_bins"], radii, cell.line_length, slab40)
     L = cnt.L_x
     res.add("L_x", L)
+    refs = {} if x_ref is None else ({"given": float(x_ref)} if np.isscalar(x_ref) else
+                                     {str(k): float(v) for k, v in x_ref.items()})
+    if c_B_ref:
+        b = cnt.regions.index("B")
+        refs["c_B"] = float(composition.concentration(cnt.nsol_region[b], cnt.n_region[b]))
+    res.info["refs"] = dict(refs)
     for k, code in enumerate(cnt.regions):
         res.add("N", cnt.n_region[k], region=code)
         res.add("N_sol", cnt.nsol_region[k], region=code)
@@ -129,15 +147,19 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
         for R, n, ns in zip(cnt.radii, cnt.n_inside[basis], cnt.nsol_inside[basis]):
             res.add("N_inside", n, region=f"{R:g}", basis=basis)
             res.add("N_sol_inside", ns, region=f"{R:g}", basis=basis)
-            if x_ref is not None:
-                res.add("Gamma", composition.excess(ns, n, x_ref, L), region=f"{R:g}", basis=basis)
-    if x_ref is not None:
-        res.add("x_ref", x_ref)
+            for lab, xr in refs.items():
+                res.add("Gamma", composition.excess(ns, n, xr, L), region=f"{R:g}", basis=basis, ref=lab)
+    c_B = res.value("c", region="B")
+    for lab, xr in refs.items():
+        res.add("x_ref", xr, ref=lab)
+        if lab != "c_B":
+            res.add("c_B_over_x_ref", c_B / xr if xr > 0 else float("nan"), ref=lab)
         for k, code in enumerate(cnt.regions):
             if code == "X":
                 continue
-            res.add("Gamma_region", composition.excess(cnt.nsol_region[k], cnt.n_region[k], x_ref, L), region=code)
-            res.add("E", composition.concentration(cnt.nsol_region[k], cnt.n_region[k]) / x_ref, region=code)
+            res.add("Gamma_region", composition.excess(cnt.nsol_region[k], cnt.n_region[k], xr, L), region=code, ref=lab)
+            with np.errstate(invalid="ignore", divide="ignore"):
+                res.add("E", composition.concentration(cnt.nsol_region[k], cnt.n_region[k]) / xr, region=code, ref=lab)
     ps = composition.partial_separation(cell, shockley, float(comp["partial_separation_bin"]),
                                         float(dist["polyline_spacing"]), float(comp["partial_merge_distance"]))
     res.add("partial_separation_mean", ps.mean)
@@ -148,7 +170,7 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
     # ---- order and clusters (7)
     sh = order.shell_pairs(cell, pos, a_cell, float(ordp["shell1_cutoff_a"]), float(ordp["shell2_cutoff_a"]))
     nc = order.neighbour_counts(len(pos), solute, sh)
-    ob = order.order_by_region(solute, codes, nc, x_ref)
+    ob = order.order_by_region(solute, codes, nc)
     size = order.solute_cluster_sizes(len(pos), solute, sh)
     cb = order.clusters_by_region(size, solute, codes)
     for k, code in enumerate(ob.regions):
@@ -156,9 +178,9 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
             continue
         for q in ("z1", "z2", "p1", "p2", "alpha1_local", "alpha2_local", "R2"):
             res.add(q, getattr(ob, q)[k], region=code)
-        if x_ref is not None:
-            res.add("alpha1_xref", ob.alpha1_xref[k], region=code)
-            res.add("alpha2_xref", ob.alpha2_xref[k], region=code)
+        for lab, xr in refs.items():
+            res.add("alpha1_xref", order.warren_cowley(ob.p1[k], xr), region=code, ref=lab)
+            res.add("alpha2_xref", order.warren_cowley(ob.p2[k], xr), region=code, ref=lab)
         res.add("cluster_mean_size", cb.mean_size[k], region=code)
         res.add("cluster_frac_isolated", cb.frac_isolated[k], region=code)
         res.add("cluster_max_size", cb.max_size[k], region=code)

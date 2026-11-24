@@ -130,11 +130,20 @@ def test_cli_analyse_end_to_end(tmp_path):
     assert sum(n[c] for c in "XCFSTBO") == len(pos)
     assert all(r["definition_set"] == "D1" for r in rows)
     prov = json.loads((out / "RUN_stage2_D1.csv.provenance.json").read_text())
-    assert prov["x_ref"] == 0.05 and prov["x_ref_source"] == "x_iso (manifest)" and len(prov["snapshots"]) == 2
+    assert prov["x_ref"] == {"x_iso": 0.05} and prov["x_ref_source"] == "isotherm" and len(prov["snapshots"]) == 2
+    assert "both c_B and x_iso" in prov["reference_rule"] and prov["paper_flag"] == ""
+    assert {r["ref"] for r in rows if r["quantity"] == "Gamma"} == {"c_B", "x_iso"}  # DEFINITIONS 5, rev. 4
     assert prov["snapshots"][0]["ovito"] == io_ovito.ovito_version()
     # Stage 3 was written next to Stage 2, and `table` merges it with the manifest metadata
     assert (out / "RUN_stage3_D1.csv").is_file()
     assert main(["table", str(out), "--out", str(tmp_path / "all.csv")]) == 0
     allrows = read_table(tmp_path / "all.csv")
     assert {r["run_id"] for r in allrows} == {"RUN"} and {r["character"] for r in allrows} == {"d0"}
-    assert any(r["quantity"] == "Gamma" and r["region"] == "20" for r in allrows)
+    head = [r for r in allrows if r["role"] == "headline"]
+    assert {(r["quantity"], r["region"], r["basis"]) for r in head} == {("Gamma", "20", "r")}
+    assert {r["ref"] for r in head} == {"c_B", "x_iso"} and {r["drift_criterion"] for r in head} == {"change_se"}
+    assert {r["region"] for r in allrows if r["role"] == "check"} == {"40"}
+    # the Gamma(R) curve of the run, 5-60 A (and the bin edges 80, 100), under r and r_dxa, for both references
+    curve = read_table(out / "RUN_gammaR_D1.csv")
+    radii = sorted({float(r["R"]) for r in curve})
+    assert radii[:12] == [5.0 * k for k in range(1, 13)] and {r["ref"] for r in curve} == {"c_B", "x_iso"}

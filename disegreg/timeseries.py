@@ -4,12 +4,12 @@
                       and again; the standard error of the mean (SEM) estimated from the block means grows while the blocks
                       are still correlated and reaches a plateau once they are not. The plateau value is the SEM.
     drift test        over a final window: linear trend x window length (the change across the window) compared with
-                      2 x the block-averaging SEM of the window mean; "flat" if smaller (D1 as written, criterion "d1").
-                      DIAGNOSTIC / PROPOSAL (criterion "change_se"): the change has its own standard error,
-                      SE(change) = SEM_res x L x sqrt(n / S_tt) (= sqrt(12) SEM for evenly spaced samples; SEM_res =
-                      block SEM of the residuals about the fitted line, so the trend does not inflate it), "flat" means
-                      |change| < 2 SE(change). Under "d1" a truly flat series passes only ~44 % of the time
-                      (tests/test_timeseries.py), under "change_se" ~95 %. Both verdicts are always reported.
+                      its own standard error, SE(change) = SEM_res x L x sqrt(n / S_tt) (= sqrt(12) SEM for evenly
+                      spaced samples; SEM_res = block SEM of the residuals about the fitted line, so the trend does not
+                      inflate it); "flat" if |change| < 2 SE(change) (criterion "change_se", D1 rev. 4, the default).
+                      The rev. 3 rule of the old project scripts, |change| < 2 x the block SEM of the window mean
+                      (criterion "sem"), passes a truly flat series only ~44 % of the time (tests/test_timeseries.py),
+                      "change_se" ~95 %. Both verdicts are always reported.
     averaging window  the longest final stretch that passes the drift test, at least 30 % of the run (candidates in 5 %
                       steps of the run length). If even the last 30 % is not flat, the last 30 % is used and the run is
                       flagged not converged.
@@ -27,6 +27,8 @@ from pathlib import Path
 import numpy as np
 
 MIN_BLOCKS = 4  # block levels with fewer block means are not used for the SEM
+CRITERIA = ("change_se", "sem")  # drift criteria: D1 rev. 4 (default) and rev. 3 / old scripts
+DEFAULT_CRITERION = "change_se"
 
 
 # ---------------------------------------------------------------------------------------------------- block averaging
@@ -82,25 +84,25 @@ class DriftTest:
     slope: float         # per unit of t
     change: float        # slope x (t1 - t0)
     change_se: float     # standard error of the change, correlation-corrected with the block-averaging SEM
-    flat: bool           # D1: |change| < sem_factor x sem
-    flat_change_se: bool # proposal: |change| < sem_factor x change_se
+    flat_change_se: bool # D1 rev. 4: |change| < factor x change_se
+    flat_sem: bool       # rev. 3 / old scripts: |change| < factor x sem
 
-    def passes(self, criterion: str = "d1") -> bool:
-        if criterion == "d1":
-            return self.flat
+    def passes(self, criterion: str = DEFAULT_CRITERION) -> bool:
         if criterion == "change_se":
             return self.flat_change_se
-        raise ValueError(f"unknown drift criterion {criterion!r}")
+        if criterion == "sem":
+            return self.flat_sem
+        raise ValueError(f"unknown drift criterion {criterion!r} (known: {CRITERIA})")
 
 
-def drift_test(t, y, sem_factor: float = 2.0) -> DriftTest:
+def drift_test(t, y, factor: float = 2.0) -> DriftTest:
     t = np.asarray(t, dtype=float)
     y = np.asarray(y, dtype=float)
     n = len(t)
     if n < 2:
         return DriftTest(t0=float(t[0]) if n else np.nan, t1=float(t[-1]) if n else np.nan, n=n,
                          mean=float(y.mean()) if n else np.nan, sem=np.nan, plateau=False, slope=np.nan, change=np.nan,
-                         change_se=np.nan, flat=False, flat_change_se=False)
+                         change_se=np.nan, flat_change_se=False, flat_sem=False)
     b = block_sem(y)
     tc = t - t.mean()
     sxx = float(tc @ tc)
@@ -115,8 +117,8 @@ def drift_test(t, y, sem_factor: float = 2.0) -> DriftTest:
         return bool(np.isfinite(limit) and abs(change) < limit) or bool(limit == 0 and change == 0)
 
     return DriftTest(t0=float(t[0]), t1=float(t[-1]), n=n, mean=float(y.mean()), sem=b.sem, plateau=b.plateau,
-                     slope=slope, change=change, change_se=float(change_se), flat=below(sem_factor * b.sem),
-                     flat_change_se=below(sem_factor * change_se))
+                     slope=slope, change=change, change_se=float(change_se), flat_change_se=below(factor * change_se),
+                     flat_sem=below(factor * b.sem))
 
 
 @dataclass
@@ -128,8 +130,8 @@ class Window:
     test: DriftTest      # drift test of the chosen window
 
 
-def averaging_window(t, y, final_fraction: float = 0.30, min_fraction: float = 0.30, sem_factor: float = 2.0,
-                     step: float = 0.05, criterion: str = "d1") -> Window:
+def averaging_window(t, y, final_fraction: float = 0.30, min_fraction: float = 0.30, factor: float = 2.0,
+                     step: float = 0.05, criterion: str = DEFAULT_CRITERION) -> Window:
     """Longest final stretch (>= min_fraction of the run) that passes the drift test."""
     t = np.asarray(t, dtype=float)
     y = np.asarray(y, dtype=float)
@@ -138,7 +140,7 @@ def averaging_window(t, y, final_fraction: float = 0.30, min_fraction: float = 0
 
     def test(frac):
         m = t >= t_run1 - frac * L - 1e-9 * max(L, 1.0)
-        return drift_test(t[m], y[m], sem_factor)
+        return drift_test(t[m], y[m], factor)
 
     last = test(final_fraction)
     if not last.passes(criterion):
@@ -216,23 +218,29 @@ def time_column(columns) -> str:
 
 # ---------------------------------------------------------------------------------------------- Stage 3 of one run
 def group_records(rows):
-    """Stage-2 rows -> {(quantity, region, basis): (timesteps, values)}, sorted by timestep."""
+    """Stage-2 rows -> {(quantity, region, basis, ref): (timesteps, values)}, sorted by timestep."""
     out = {}
     for r in rows:
-        out.setdefault((r["quantity"], r["region"], r["basis"]), []).append((int(r["timestep"]), float(r["value"])))
+        key = (r["quantity"], r["region"], r["basis"], r.get("ref", ""))
+        out.setdefault(key, []).append((int(r["timestep"]), float(r["value"])))
     return {k: tuple(np.array(x) for x in zip(*sorted(v))) for k, v in out.items()}
 
 
 def run_stage3(stage2_rows, params: dict, stream: Stream | None = None, stream_column: str | None = None,
-               md_timestep_ps: float | None = None, key_quantity=("N_sol_inside", "20", "r"), criterion: str = "d1"):
+               md_timestep_ps: float | None = None, key_quantity=("N_sol_inside", "20", "r", ""),
+               criterion: str | None = None):
     """Averaging window from the stream (or, without one, from the key Stage-2 quantity), then window means with
     block-averaging SEM and a drift test for every Stage-2 quantity.
 
     Snapshot times: timestep x md_timestep_ps (ps) if given, else the timestep itself; the stream is put on the same
     axis through its step column.
+    criterion: drift criterion (None: the definition set's ``drift_criterion``); the other one is reported alongside.
     Returns (info dict, list of result rows).
     """
-    ff, fac, mf = (float(params[k]) for k in ("drift_final_fraction", "drift_sem_factor", "min_window_fraction"))
+    ff, fac, mf = (float(params[k]) for k in ("drift_final_fraction", "drift_factor", "min_window_fraction"))
+    criterion = criterion or params.get("drift_criterion", DEFAULT_CRITERION)
+    if criterion not in CRITERIA:
+        raise ValueError(f"unknown drift criterion {criterion!r} (known: {CRITERIA})")
     series = group_records(stage2_rows)
     scale = float(md_timestep_ps) if md_timestep_ps else 1.0
     info = {"time_unit": "ps" if md_timestep_ps else "timestep"}
@@ -249,7 +257,7 @@ def run_stage3(stage2_rows, params: dict, stream: Stream | None = None, stream_c
         sig_t, sig_y = steps * scale, vals
         info.update(window_source="stage2:" + "/".join(key_quantity))
     w = averaging_window(sig_t, sig_y, ff, mf, fac, criterion=criterion)
-    alt = "change_se" if criterion == "d1" else "d1"
+    alt = next(c for c in CRITERIA if c != criterion)
     w_alt = averaging_window(sig_t, sig_y, ff, mf, fac, criterion=alt)
     d = w.test
     info.update(criterion=criterion, window_t_start=w.t_start, window_t_end=w.t_end, window_fraction=w.fraction,
@@ -257,7 +265,7 @@ def run_stage3(stage2_rows, params: dict, stream: Stream | None = None, stream_c
                 signal_change_se=d.change_se, signal_plateau=d.plateau,
                 **{f"alt_{alt}_converged": w_alt.converged, f"alt_{alt}_window_fraction": w_alt.fraction})
     out = []
-    for (q, reg, basis), (steps, vals) in sorted(series.items()):
+    for (q, reg, basis, ref), (steps, vals) in sorted(series.items()):
         t = steps * scale
         m = (t >= w.t_start - 1e-9) & (t <= w.t_end + 1e-9)
         if not m.any():
@@ -265,8 +273,8 @@ def run_stage3(stage2_rows, params: dict, stream: Stream | None = None, stream_c
             m = t == t.max()
         tv, yv = t[m], vals[m]
         dt = drift_test(tv, yv, fac)
-        out.append({"quantity": q, "region": reg, "basis": basis, "mean": dt.mean, "sem": dt.sem, "n_samples": int(m.sum()),
-                    "sem_plateau": dt.plateau, "change": dt.change, "change_se": dt.change_se, "flat": dt.flat,
-                    "flat_change_se": dt.flat_change_se, "t_first": float(tv[0]),
+        out.append({"quantity": q, "region": reg, "basis": basis, "ref": ref, "mean": dt.mean, "sem": dt.sem,
+                    "n_samples": int(m.sum()), "sem_plateau": dt.plateau, "change": dt.change, "change_se": dt.change_se,
+                    "flat": dt.passes(criterion), "flat_rev3_sem": dt.flat_sem, "t_first": float(tv[0]),
                     "t_last": float(tv[-1])})
     return info, out

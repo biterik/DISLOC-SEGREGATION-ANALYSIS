@@ -1,5 +1,11 @@
-"""Tidy long results table (docs/DEFINITIONS.md sections 9, 10): one row per (snapshot, quantity, region, basis), with
-the run, definition set and tool version on every row, and a JSON side file with the full provenance."""
+"""Tidy long results table (docs/DEFINITIONS.md sections 9, 10): one row per (snapshot, quantity, region, basis, ref),
+with the run, definition set and tool version on every row, and a JSON side file with the full provenance.
+
+    basis  distance the quantity uses: r (the distance actually used, DEFINITIONS 3.4) or r_dxa; empty if none
+    ref    reference composition of E, Gamma, alpha_xref, c_B_over_x_ref, x_ref: c_B (in-cell far field of the same
+           snapshot), x_iso (isotherm, manifest), x_bc (bulk control, given on the command line) or given; empty if none
+    role   (Stage 3 and across runs) for Gamma under r: headline = Gamma(20 A), check = Gamma(40 A), curve = other R
+"""
 
 from __future__ import annotations
 
@@ -8,9 +14,13 @@ import json
 import os
 from pathlib import Path
 
-COLUMNS = ("run_id", "snapshot", "timestep", "quantity", "region", "basis", "value", "definition_set", "tool_version")
-STAGE3_COLUMNS = ("run_id", "quantity", "region", "basis", "mean", "sem", "n_samples", "sem_plateau", "change", "change_se",
-                  "flat", "flat_change_se", "t_first", "t_last", "definition_set", "tool_version")
+COLUMNS = ("run_id", "snapshot", "timestep", "quantity", "region", "basis", "ref", "value", "definition_set",
+           "tool_version")
+STAGE3_COLUMNS = ("run_id", "quantity", "region", "basis", "ref", "mean", "sem", "n_samples", "sem_plateau", "change",
+                  "change_se", "flat", "flat_rev3_sem", "t_first", "t_last", "definition_set", "tool_version")
+GAMMA_CURVE_COLUMNS = ("run_id", "R", "basis", "ref", "role", "mean", "sem", "n_samples", "flat", "definition_set",
+                       "tool_version")
+PAPER_HOLD = "no paper number before bulk control"
 
 
 def tool_version(versions: dict) -> str:
@@ -41,7 +51,7 @@ def write_table(path, rows, provenance: dict, columns=COLUMNS) -> Path:
 
 _FLOAT = {"value", "mean", "sem", "change", "change_se", "t_first", "t_last"}
 _INT = {"timestep", "n_samples"}
-_BOOL = {"sem_plateau", "flat", "flat_change_se"}
+_BOOL = {"sem_plateau", "flat", "flat_rev3_sem", "check_required"}
 
 
 def read_table(path) -> list[dict]:
@@ -56,13 +66,54 @@ def read_table(path) -> list[dict]:
                 r[k] = int(r[k])
             elif k in _BOOL:
                 r[k] = r[k] == "True"
+        r.setdefault("ref", "")
     return rows
+
+
+# ------------------------------------------------------------------------------------------ headline, check, paper hold
+def gamma_role(quantity, region, basis, headline_radius: float, check_radius: float) -> str:
+    """headline = Gamma(20 A), check = Gamma(40 A), curve = any other R; only for Gamma under r (DEFINITIONS 6)."""
+    if quantity != "Gamma" or basis != "r":
+        return ""
+    if region == f"{float(headline_radius):g}":
+        return "headline"
+    if region == f"{float(check_radius):g}":
+        return "check"
+    return "curve"
+
+
+def paper_hold(manifest_data: dict, rules) -> str:
+    """PAPER_HOLD if the run has no bulk control and matches a rule of reference.paper_hold_without_bulk_control
+    (D1 rev. 4: ACE Ni-Cu), else ''."""
+    if manifest_data.get("bulk_control"):
+        return ""
+    pot = str(manifest_data.get("potential", "")).lower()
+    for rule in rules or []:
+        if (str(rule.get("potential_contains", "")).lower() in pot
+                and rule.get("host", manifest_data.get("host_element")) == manifest_data.get("host_element")
+                and rule.get("solute", manifest_data.get("solute_element")) == manifest_data.get("solute_element")):
+            return PAPER_HOLD
+    return ""
+
+
+def gamma_curve(stage3_rows, headline_radius: float, check_radius: float) -> list[dict]:
+    """Gamma(R) per run from the Stage-3 rows: one row per (basis, ref, R), R ascending."""
+    out = []
+    for r in stage3_rows:
+        if r["quantity"] != "Gamma":
+            continue
+        out.append({"run_id": r["run_id"], "R": float(r["region"]), "basis": r["basis"], "ref": r["ref"],
+                    "role": gamma_role("Gamma", r["region"], r["basis"], headline_radius, check_radius),
+                    "mean": r["mean"], "sem": r["sem"], "n_samples": r["n_samples"], "flat": r["flat"],
+                    "definition_set": r["definition_set"], "tool_version": r["tool_version"]})
+    return sorted(out, key=lambda r: (r["basis"], r["ref"], r["R"]))
 
 
 # --------------------------------------------------------------------------------------------- across runs (Stage 4 input)
 RESULTS_COLUMNS = ("project", "run_id", "potential", "host", "solute", "character", "temperature", "delta", "start_type",
-                   "quantity", "region", "basis", "value", "error", "n_samples", "flat", "run_converged",
-                   "window_fraction", "x_ref", "x_ref_source", "definition_set", "tool_version")
+                   "quantity", "region", "basis", "ref", "role", "value", "error", "n_samples", "flat", "flat_rev3_sem",
+                   "run_converged", "window_fraction", "drift_criterion", "check_required", "paper_flag", "bulk_control",
+                   "x_ref_source", "definition_set", "tool_version")
 RUN_FIELDS = {"project": "project", "potential": "potential", "host": "host_element", "solute": "solute_element",
               "character": "character", "temperature": "temperature", "delta": "delta", "start_type": "start_type"}
 
@@ -70,7 +121,11 @@ RUN_FIELDS = {"project": "project", "potential": "potential", "host": "host_elem
 def collect_runs(stage3_files) -> tuple[list[dict], dict]:
     """Merge Stage-3 tables of many runs into one tidy long table (DEFINITIONS 9): value = window mean, error =
     block-averaging SEM. Run metadata come from the manifest copy in each table's provenance file. Refuses to mix
-    definition sets."""
+    definition sets.
+
+    role: headline / check / curve for Gamma under r; check_required: the fallback axis was active in the averaging
+    window, so Gamma(40 A) must be quoted next to Gamma(20 A); paper_flag: PAPER_HOLD for runs without a bulk control
+    that the definition set holds back (D1 rev. 4: ACE Ni-Cu)."""
     rows, sources, labels = [], [], set()
     for f in stage3_files:
         f = Path(f)
@@ -79,12 +134,17 @@ def collect_runs(stage3_files) -> tuple[list[dict], dict]:
         s3 = prov.get("stage3", {})
         labels.add(prov.get("definition_set"))
         meta = {k: man.get(v, "") for k, v in RUN_FIELDS.items()}
+        hr, cr = s3.get("headline_radius", 20.0), s3.get("check_radius", 40.0)
         for r in read_table(f):
             rows.append({**meta, "run_id": r["run_id"], "quantity": r["quantity"], "region": r["region"],
-                         "basis": r["basis"], "value": r["mean"], "error": r["sem"], "n_samples": r["n_samples"],
-                         "flat": r["flat"], "run_converged": s3.get("converged", ""),
-                         "window_fraction": s3.get("window_fraction", ""), "x_ref": prov.get("x_ref", ""),
-                         "x_ref_source": prov.get("x_ref_source", ""), "definition_set": r["definition_set"],
+                         "basis": r["basis"], "ref": r["ref"],
+                         "role": gamma_role(r["quantity"], r["region"], r["basis"], hr, cr),
+                         "value": r["mean"], "error": r["sem"], "n_samples": r["n_samples"],
+                         "flat": r["flat"], "flat_rev3_sem": r.get("flat_rev3_sem", ""),
+                         "run_converged": s3.get("converged", ""), "window_fraction": s3.get("window_fraction", ""),
+                         "drift_criterion": s3.get("criterion", ""), "check_required": s3.get("check_required", ""),
+                         "paper_flag": s3.get("paper_flag", ""), "bulk_control": man.get("bulk_control") or "",
+                         "x_ref_source": man.get("x_ref_source", ""), "definition_set": r["definition_set"],
                          "tool_version": r["tool_version"]})
         sources.append({"file": str(f), "run_id": man.get("run_id"), "tool_version": prov.get("tool_version"),
                         "manifest": prov.get("manifest")})

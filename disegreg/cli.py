@@ -69,7 +69,7 @@ def _cmd_analyse(args) -> int:
     from .cache import default_cache_root, get_snapshot
     from .manifest import load_manifest
     from .provenance import environment
-    from .results import STAGE3_COLUMNS, tool_version, write_table
+    from .results import GAMMA_CURVE_COLUMNS, STAGE3_COLUMNS, gamma_curve, paper_hold, tool_version, write_table
     from .stage2 import analyse_snapshot
     from .timeseries import read_mc_stream, run_stage3
 
@@ -78,11 +78,26 @@ def _cmd_analyse(args) -> int:
     env = environment()
     tv = tool_version(env)
     status = 0
+    ref_rule = d["reference"]
+    comp = d["composition"]
+    hr, cr = float(comp["headline_radius"]), float(comp["check_radius"])
     for mf in args.manifests:
         m = load_manifest(mf)
-        x_ref, x_src = args.x_ref, "command line"
-        if x_ref is None and m["x_ref_source"] == "isotherm":
-            x_ref, x_src = float(m["x_iso"]), "x_iso (manifest)"
+        # reference compositions (DEFINITIONS 5, rev. 4): c_B of the snapshot always; x_iso if the manifest has it;
+        # a value from the command line as x_bc (bulk control) or "given"
+        refs = {}
+        if args.x_ref is not None:
+            refs["x_bc" if m["x_ref_source"] == "bulk_control" else "given"] = float(args.x_ref)
+        if m.get("x_iso") is not None:
+            refs["x_iso"] = float(m["x_iso"])
+        has_bc = bool(m.get("bulk_control")) and "x_bc" in refs
+        if not has_bc:
+            missing = [r for r in ref_rule["without_bulk_control_report_against"] if r != "c_B" and r not in refs]
+            if missing:
+                print(f"{m['run_id']}: no bulk control and no {missing} in the manifest -- reported against c_B only")
+        rule_text = ("x_bc (bulk control), c_B and x_iso as diagnostics" if has_bc else
+                     "no bulk control: reported against both c_B and x_iso (DEFINITIONS 5, rev. 4)")
+        hold = paper_hold(m.data, ref_rule.get("paper_hold_without_bulk_control"))
         dumps = m.dump_files()
         if args.last:
             dumps = dumps[-args.last:]
@@ -94,13 +109,13 @@ def _cmd_analyse(args) -> int:
         for dump in dumps:
             t0 = time.perf_counter()
             snap = get_snapshot(dump, d, cache_root=root, verbose=args.verbose)
-            res = analyse_snapshot(snap, d, float(m["a_cell"]), z_gp=float(m["z_gp"]), x_ref=x_ref,
-                                   frame_matrix=m.frame_matrix())
+            res = analyse_snapshot(snap, d, float(m["a_cell"]), z_gp=float(m["z_gp"]), x_ref=refs or None,
+                                   frame_matrix=m.frame_matrix(), c_B_ref=True)
             ts = _md_step(dump, snap.meta.get("timestep", -1))
             for r in res.records:
                 rows.append({"run_id": m["run_id"], "snapshot": Path(dump).name, "timestep": ts, **r,
                              "definition_set": d.label, "tool_version": tv})
-            info = {k: v for k, v in res.info.items()}
+            info = dict(res.info)
             snaps.append({"dump": str(dump), "source_sha256": snap.meta.get("source_sha256"), "md_step": ts,
                           "dump_timestep": snap.meta.get("timestep"),
                           "ovito": snap.meta.get("provenance", {}).get("ovito"), "info": info})
@@ -113,7 +128,8 @@ def _cmd_analyse(args) -> int:
         out = Path(args.out).expanduser() / f"{m['run_id']}_stage2_{d.label}.csv"
         prov = {"environment": env, "tool_version": tv, "definition_set": d.label, "definitions_sha256": d.sha256,
                 "definitions_status": d.status, "manifest": str(m.path), "manifest_data": m.data,
-                "x_ref": x_ref, "x_ref_source": x_src, "snapshots": snaps}
+                "x_ref": refs, "x_ref_source": m["x_ref_source"], "reference_rule": rule_text, "paper_flag": hold,
+                "snapshots": snaps}
         write_table(out, rows, prov)
         print(f"  -> {out} ({len(rows)} rows)")
         # ---- Stage 3: averaging window (from the MC stream if there is one), window means, drift tests
@@ -130,14 +146,27 @@ def _cmd_analyse(args) -> int:
             continue
         for r in rows3:
             r.update(run_id=m["run_id"], definition_set=d.label, tool_version=tv)
+        fa = next((r["mean"] for r in rows3 if r["quantity"] == "fallback_active"), 0.0)
+        info3.update(headline_radius=hr, check_radius=cr, fallback_active_fraction=fa, check_required=bool(fa > 0),
+                     paper_flag=hold)
         out3 = Path(args.out).expanduser() / f"{m['run_id']}_stage3_{d.label}.csv"
         write_table(out3, rows3, {**prov, "stage3": info3}, columns=STAGE3_COLUMNS)
+        curve = gamma_curve(rows3, hr, cr)
+        outg = Path(args.out).expanduser() / f"{m['run_id']}_gammaR_{d.label}.csv"
+        write_table(outg, curve, {**prov, "stage3": info3}, columns=GAMMA_CURVE_COLUMNS)
         verdict = "converged" if info3["converged"] else "NOT converged"
         if not info3["signal_plateau"]:
             verdict += " (block averaging without plateau: error bar is a lower bound, verdict uncertain)"
         print(f"  Stage 3: window {info3['window_t_start']:.0f}-{info3['window_t_end']:.0f} {info3['time_unit']} "
               f"({info3['window_fraction']:.0%} of the run, {info3['window_source']}), {verdict}"
               f" [criterion {info3['criterion']}]  -> {out3}")
+        for c in curve:
+            if c["role"] == "headline" or (c["role"] == "check" and info3["check_required"]):
+                print(f"  Gamma({c['R']:g} A) vs {c['ref']}: {c['mean']:.4g} +- {c['sem']:.2g} atoms/A"
+                      + ("  [check: fallback axis active]" if c["role"] == "check" else "  [headline]"))
+        print(f"  Gamma(R) curve -> {outg}")
+        if hold:
+            print(f"  FLAG: {hold} ({m['potential']} {m['host_element']}-{m['solute_element']}, DEFINITIONS 5)")
     return status
 
 
@@ -204,12 +233,14 @@ def main(argv=None) -> int:
     pa = sub.add_parser("analyse", help="Stage 2 for every dump of a run (Stage 1 from the cache, computed if missing)")
     pa.add_argument("manifests", nargs="+", help="run manifest YAML files")
     pa.add_argument("--out", default=".", help="folder for <run_id>_stage2_<D>.csv (default: current folder)")
-    pa.add_argument("--x-ref", type=float, help="reference solute fraction (default: x_iso if the manifest says isotherm)")
+    pa.add_argument("--x-ref", type=float, help="extra reference solute fraction, e.g. the bulk-control value (ref x_bc "
+                    "if the manifest says bulk_control); c_B and the manifest's x_iso are always used")
     pa.add_argument("--last", type=int, help="only the last N dumps of each run")
     pa.add_argument("--cache", help="cache folder (default: $DISEGREG_CACHE or the agreed location for this machine)")
     pa.add_argument("--definitions", default="D1", help="definition set label or YAML path (default D1)")
-    pa.add_argument("--drift-criterion", choices=("d1", "change_se"), default="d1",
-                    help="d1: |change| < 2 SEM (DEFINITIONS 8 as written); change_se: |change| < 2 SE(change) (proposal)")
+    pa.add_argument("--drift-criterion", choices=("change_se", "sem"), default=None,
+                    help="change_se: |change| < 2 SE(change) (default, D1 rev. 4); sem: |change| < 2 SEM (rev. 3 / old "
+                    "scripts); the other verdict is always stored as well")
     pa.add_argument("--verbose", action="store_true")
     pa.set_defaults(func=_cmd_analyse)
     ps = sub.add_parser("slurm", help="write a Slurm job array for Stage 1 (cmmg); prints the sbatch command")
