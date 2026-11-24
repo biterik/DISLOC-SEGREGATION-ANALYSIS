@@ -22,6 +22,27 @@ GAMMA_CURVE_COLUMNS = ("run_id", "R", "basis", "ref", "role", "mean", "sem", "n_
                        "tool_version")
 PAPER_HOLD = "no paper number before bulk control"
 
+# v0.2 (docs/PLAN_v0.2.md, rule 3): quantities that depend on an undecided [PROPOSAL v0.2] carry status "proposal" in the
+# results table, and the table refuses them for role "headline". Modules that compute such quantities register them here.
+STATUS_DEFINITION, STATUS_PROPOSAL = "definition", "proposal"
+PROPOSAL_QUANTITIES: set[str] = set()
+
+
+def quantity_status(quantity: str) -> str:
+    return STATUS_PROPOSAL if quantity in PROPOSAL_QUANTITIES else STATUS_DEFINITION
+
+
+class ProposalAsHeadline(ValueError):
+    pass
+
+
+def check_headline_status(rows) -> None:
+    """Refuse a number that depends on an undecided proposal as a headline."""
+    bad = [r for r in rows if r.get("role") == "headline" and r.get("status") == STATUS_PROPOSAL]
+    if bad:
+        raise ProposalAsHeadline(f"{len(bad)} row(s) with status proposal and role headline, e.g. "
+                                 f"{bad[0].get('quantity')} {bad[0].get('region')} of {bad[0].get('run_id') or bad[0].get('runs')}")
+
 
 def tool_version(versions: dict) -> str:
     v = versions.get("disegreg", "?")
@@ -40,7 +61,8 @@ def write_table(path, rows, provenance: dict, columns=COLUMNS) -> Path:
         w = csv.DictWriter(f, fieldnames=columns, extrasaction="raise")
         w.writeheader()
         for r in rows:
-            w.writerow({k: (repr(v) if isinstance(v, float) else v) for k, v in r.items()})
+            # float(v): numpy scalars are floats too, but their repr is "np.float64(...)" (numpy >= 2)
+            w.writerow({k: (repr(float(v)) if isinstance(v, float) else v) for k, v in r.items()})
     os.replace(tmp, path)
     side = path.with_name(path.name + ".provenance.json")
     tmp = side.with_name(side.name + f".tmp{os.getpid()}")
@@ -113,7 +135,7 @@ def gamma_curve(stage3_rows, headline_radius: float, check_radius: float) -> lis
 RESULTS_COLUMNS = ("project", "run_id", "potential", "host", "solute", "character", "temperature", "delta", "start_type",
                    "quantity", "region", "basis", "ref", "role", "value", "error", "n_samples", "flat", "flat_rev3_sem",
                    "run_converged", "window_fraction", "drift_criterion", "check_required", "paper_flag", "bulk_control",
-                   "x_ref_source", "definition_set", "tool_version")
+                   "x_ref_source", "definition_set", "tool_version", "status")
 RUN_FIELDS = {"project": "project", "potential": "potential", "host": "host_element", "solute": "solute_element",
               "character": "character", "temperature": "temperature", "delta": "delta", "start_type": "start_type"}
 
@@ -145,9 +167,10 @@ def collect_runs(stage3_files) -> tuple[list[dict], dict]:
                          "drift_criterion": s3.get("criterion", ""), "check_required": s3.get("check_required", ""),
                          "paper_flag": s3.get("paper_flag", ""), "bulk_control": man.get("bulk_control") or "",
                          "x_ref_source": man.get("x_ref_source", ""), "definition_set": r["definition_set"],
-                         "tool_version": r["tool_version"]})
+                         "tool_version": r["tool_version"], "status": quantity_status(r["quantity"])})
         sources.append({"file": str(f), "run_id": man.get("run_id"), "tool_version": prov.get("tool_version"),
                         "manifest": prov.get("manifest")})
     if len(labels) > 1:
         raise ValueError(f"tables from different definition sets {sorted(map(str, labels))} must not be merged")
+    check_headline_status(rows)
     return rows, {"definition_set": labels.pop() if labels else None, "inputs": sources}

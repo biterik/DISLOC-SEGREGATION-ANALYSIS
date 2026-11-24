@@ -1,0 +1,20 @@
+# Parameters of the v0.2 PROPOSALS (docs/DEFINITIONS.md sections marked [PROPOSAL v0.2]) -- NOT part of any definition set.
+# D1 (D1.yaml, rev. 4) is unchanged. Every number computed with a value from this file carries status = proposal in the
+# output tables, and the results table refuses such a number for role "headline". When Erik decides a proposal, its value
+# moves into a definition set (D1 extension or D2, his choice) and out of this file.
+label: P-v0.2
+status: "proposal (2026-11-24), waiting for Erik -- see docs/OPEN-DECISIONS_v0.2.md"
+
+mclean:                                  # DEFINITIONS 9 + [PROPOSAL v0.2] P1: which 0 K sites count as core sites
+  core_site_radius: 5.0                  # a tabulated site is a core site if r_DXA < 5 A in the relaxed 0 K cell (= D1 core radius)
+  missing_sites: tabulated_only          # tabulated_only: c_C(McLean) = mean theta over the tabulated core sites;
+                                         # bulk: core sites of the 0 K cell without a table entry count with E = 0 (theta = x_ref)
+
+hysteresis:                              # DEFINITIONS 9 + [PROPOSAL v0.2] P2: when are bottom-up and top-down "different"
+  factor: 2.0                            # different if |v_up - v_down| > 2 x sqrt(SEM_up^2 + SEM_down^2)
+  quantities:                            # (quantity, region, basis) compared; Gamma for every reference
+    - [Gamma, "20", r]
+    - [c, C, ""]
+
+bulk_control:                            # [PROPOSAL v0.2] P3 (code side of DEFINITIONS 5, x_bc)
+  propagate_x_ref_error: true            # Stage 4: error of Gamma vs x_bc includes N_inside / L_x x SEM(x_bc), in quadrature

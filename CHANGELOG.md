@@ -4,7 +4,30 @@ All notable changes to `disegreg` are listed here. Versions follow semantic vers
 the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 
 ## [Unreleased]
-### Added
+v0.2 development on branch v0.2-dev (docs/PLAN_v0.2.md). Definition set D1 rev. 4 unchanged; new quantities are proposals
+(docs/DEFINITIONS.md "[PROPOSAL v0.2]", disegreg/definitions/proposals_v0.2.yaml), marked `status = proposal` in every table.
+Open decisions: docs/OPEN-DECISIONS_v0.2.md.
+### Added (v0.2)
+- Stage 4, `disegreg across` (`disegreg.across`): run sets ordered by Delta (up = bottom-up + seeded, down = top-down), uptake
+  exponent n_up = Delta ln c_C / Delta ln x_ref between neighbouring offsets for every shared reference with propagated errors,
+  hysteresis bottom-up vs top-down at the same Delta (differences; verdict = proposal P2), McLean prediction (proposal P1),
+  error of Gamma vs x_bc incl. SEM(x_bc) (proposal P3). Output: tidy table with `status` per row.
+- `disegreg.sites`: 0 K site-energy tables (adapters `segE0K-by-site` for Ni-Cu thread 09 / Nb-Au thread 06, and `csv`),
+  core sites = r < 5 A of the 0 K DXA line, periodic copies merged, coverage and degenerate sites reported; McLean occupancy
+  and its local exponent. Site configuration YAML (examples/stage4/sites.yaml).
+- Bulk-control runs: manifest field `cell_type: bulk_control` (optional; schema 1 unchanged), `stage2.analyse_bulk_snapshot`,
+  `disegreg analyse` analyses bulk controls first and feeds x_bc automatically into the runs naming them (`--bulk-dir`), with
+  the D1 minimum of 100 solute atoms.
+- Results table: last column `status` (definition | proposal); a proposal with role headline is refused.
+- Stage 1: optional periodicity override (`pbc`) for LAMMPS data files; v0.1 cache keys unchanged.
+- `disegreg plot gamma | timeseries | delta | uptake | regions` (`disegreg.plotting`, item B): house style (fonts >= 13 pt,
+  Okabe-Ito palette checked for colour-vision deficiency, fixed colour per character, symmetric diverging scale for signed
+  maps); optional dependency `plot` (matplotlib).
+- examples/stage4/: demo manifests for 52 Nb-Au and Ni-Cu thread-07 runs (make_demo_manifests.py), site configuration.
+### Fixed (v0.2 branch; no v0.1.0 number affected)
+- `results.write_table` writes numpy numbers as plain numbers (numpy >= 2 repr was "np.float64(...)").
+- `paper_flag` is dropped only when x_bc is actually used, not as soon as a bulk control is named.
+### Added (docs, on main before v0.2)
 - Zenodo DOIs in README.md and CITATION.cff: concept 10.5281/zenodo.24513776, v0.1.0 10.5281/zenodo.24513777.
 ### Changed
 - CITATION.cff abstract and README: state that v0.1 covers one run at a time plus the results table across runs;

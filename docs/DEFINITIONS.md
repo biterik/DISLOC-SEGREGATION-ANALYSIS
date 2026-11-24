@@ -224,3 +224,37 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
   Same day: c_B as reference is taken per snapshot, not as a window mean (section 5); DXA deterministic on one machine
   (section 2). No value changed.
 - final (24 Nov): D1 rev. 4 released with disegreg v0.1.0. Any further change creates D2.
+
+---
+
+# [PROPOSAL v0.2] -- open proposals, NOT part of D1 (written 24 Nov by the analysis-tool session, waiting for Erik)
+Everything below is a proposal for disegreg v0.2. D1 rev. 4 above is unchanged. Each proposal gets a label (D1 extension or
+D2) only when Erik decides it; until then every number that depends on it carries `status = proposal` in the output tables, and
+the results table refuses such a number for role "headline". Parameter values: `disegreg/definitions/proposals_v0.2.yaml`
+(label P-v0.2). Decisions, options and demo numbers: docs/OPEN-DECISIONS_v0.2.md.
+
+## P1. McLean prediction: which 0 K sites are core sites (section 9)
+- Input: a project's table of 0 K single-solute segregation energies E_i (one solute atom on site i of the relaxed 0 K pure-host
+  cell with one dislocation; negative = attraction), sites identified by atom id, and that relaxed 0 K cell.
+- Proposal: site i is a CORE site if its atom lies closer than 5 A (the D1 core radius) to a DXA line of the relaxed 0 K cell
+  (Stage 1 with the D1 DXA parameters, all periodic images). The table is meant to cover one line period; sites that repeat an
+  earlier entry shifted by a whole line period along X are the same site and count once.
+- Predicted core concentration: c_C(McLean) = mean of theta_i over the core sites, with
+  theta_i / (1 - theta_i) = x_ref / (1 - x_ref) exp(-E_i / kT), for every reference x_ref of the run (c_B, x_iso, x_bc).
+  Reported: c_C(McLean), measured c_C / c_C(McLean), and the local exponent of the prediction d ln c_C / d ln x_ref (<= 1).
+- Core sites missing from the table: option "tabulated_only" (mean over the tabulated core sites; default of the proposal) or
+  "bulk" (missing core sites count with E = 0, theta = x_ref). The coverage (tabulated core sites / core atoms per line period of
+  the 0 K cell) is always reported; below 90 % the rows are flagged.
+- Caveat (Ni-Cu thread 09, 4 Nov): many tabulated sites relax to the same deepest state because the partial glides to the solute;
+  their E_i is not their own. The number of such "degenerate" sites is reported. Then c_C(McLean) is an upper bound.
+
+## P2. Hysteresis criterion (section 9)
+- Pairs: a bottom-up and a top-down run of the same run set at the same Delta (|difference| < 0.001). Seeded runs are not compared.
+- Compared: Gamma(20 A) under r (every reference both runs have) and c_C. Difference d = up - down, error s = sqrt(SEM_up^2 + SEM_down^2)
+  (block-averaging SEMs of the two windows).
+- Proposal: the two runs are DIFFERENT if |d| > 2 s (two independent normal errors: a false "different" in ~5 % of pairs).
+  The difference and |d| / s are always reported, the verdict as 1 / 0.
+
+## P3. Error of Gamma vs x_bc (section 5, code side)
+- The Stage-3 SEM of Gamma vs x_bc holds only the time scatter of the dislocation run; x_bc is one number with its own SEM.
+- Proposal: quote the total error sqrt(SEM_Gamma^2 + (N(r < R) / L_x x SEM(x_bc))^2) (Stage 4, row "Gamma_error_total").

@@ -112,8 +112,11 @@ def stage1_params(definitions) -> dict:
     return {"structure": definitions["structure"], "definition_set": definitions.label}
 
 
-def params_key(params: dict, ovito_version: str) -> str:
-    blob = json.dumps({"params": params["structure"], "ovito": ovito_version, "format": CACHE_FORMAT}, sort_keys=True)
+def params_key(params: dict, ovito_version: str, pbc=None) -> str:
+    key = {"params": params["structure"], "ovito": ovito_version, "format": CACHE_FORMAT}
+    if pbc is not None:  # only then: the keys of all v0.1 cache entries stay as they were
+        key["pbc_override"] = [bool(x) for x in pbc]
+    blob = json.dumps(key, sort_keys=True)
     return hashlib.sha256(blob.encode()).hexdigest()[:8]
 
 
@@ -127,13 +130,14 @@ def cache_path(dump, key: str, cache_root=None) -> Path:
     return root.joinpath(*levels) / f"{name}.s1-{key}.npz"
 
 
-def get_snapshot(dump, definitions, cache_root=None, recompute: bool = False, verbose: bool = False) -> Snapshot:
+def get_snapshot(dump, definitions, cache_root=None, recompute: bool = False, verbose: bool = False,
+                 pbc=None) -> Snapshot:
     """Stage-1 data for one dump: from the cache if present and the dump is unchanged (SHA-256), else computed with
-    OVITO and written to the cache."""
+    OVITO and written to the cache. ``pbc`` overrides the file's periodicity (LAMMPS data files, see io_ovito)."""
     from . import io_ovito  # imports OVITO
 
     params = stage1_params(definitions)
-    path = cache_path(dump, params_key(params, io_ovito.ovito_version()), cache_root)
+    path = cache_path(dump, params_key(params, io_ovito.ovito_version(), pbc), cache_root)
     sha = sha256_file(dump)
     if path.is_file() and not recompute:
         snap = Snapshot.load(path)
@@ -143,7 +147,7 @@ def get_snapshot(dump, definitions, cache_root=None, recompute: bool = False, ve
             return snap
         if verbose:
             print(f"stale cache (dump changed) {path}")
-    snap = io_ovito.compute_stage1(dump, definitions, source_sha256=sha)
+    snap = io_ovito.compute_stage1(dump, definitions, source_sha256=sha, pbc=pbc)
     snap.save(path)
     if verbose:
         print(f"computed    {path}")

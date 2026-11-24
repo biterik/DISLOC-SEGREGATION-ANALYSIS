@@ -95,6 +95,12 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - Zenodo DOIs: concept 10.5281/zenodo.24513776 (all versions), v0.1.0 10.5281/zenodo.24513777 (cite this one in the paper,
   with D1); both in README.md and CITATION.cff.
 
+## State v0.2 (branch v0.2-dev, worktree ~/DEVEL/DISLOC-SEGREGATION-ANALYSIS-v0.2, env disegreg-dev; unattended session)
+- Rules: docs/PLAN_v0.2.md. Decisions for Erik: docs/OPEN-DECISIONS_v0.2.md (the one page). D1 unchanged; proposals in
+  docs/DEFINITIONS.md "[PROPOSAL v0.2]" + disegreg/definitions/proposals_v0.2.yaml, outputs carry status = proposal.
+- 24 Nov: item A (Stage 4: across.py, sites.py, bulk-control manifests + automatic x_bc) done with tests; plotting module
+  (item B) drafted. disegreg-dev now has the editable install of the worktree (it had none).
+
 ## Next steps
 1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing
    (DESIGN: one demo run per project).

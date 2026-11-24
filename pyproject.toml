@@ -21,6 +21,7 @@ dependencies = [
 # OVITO is needed only for Stage 1 (reading dumps, a-CNA, PTM, DXA). Pinned exactly: DXA output can change between versions.
 # Preferred install is the conda environment (environment.yml); this extra is for plain pip environments such as CI.
 ovito = ["ovito==3.17.2"]
+plot = ["matplotlib>=3.7"]
 test = ["pytest>=7"]
 
 [project.scripts]

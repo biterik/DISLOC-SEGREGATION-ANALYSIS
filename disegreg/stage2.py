@@ -188,3 +188,51 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
     if keep_arrays:
         res.r, res.r_dxa, res.codes, res.cluster_size = ld.r, ld.r_dxa, codes, size
     return res
+
+
+BULK_REGION = "interior"
+
+
+def analyse_bulk_snapshot(snap: Snapshot, definitions, a_cell: float, keep_arrays: bool = False) -> Stage2Result:
+    """Stage 2 of a bulk-control snapshot (no dislocation, DEFINITIONS 5): composition, order and clusters of the interior.
+
+    Interior = every atom, all structure labels, except region X when the cell is NOT periodic in Z (same z faces as the
+    dislocation cells: fixed layers or free surfaces); a cell periodic in Z has no excluded layer. The records use
+    region "interior": N, N_sol, c (= x_bc of this snapshot), and the order / cluster quantities of section 7 with c_ref
+    = the interior's own c. Nothing here depends on a line, so there are no distances, Gamma or E.
+    """
+    t0 = time.perf_counter()
+    res = Stage2Result()
+    cell = snap.cell()
+    pos = snap.positions.astype(float)
+    inp, reg, ordp = (definitions[k] for k in ("input", "regions", "order"))
+    solute = snap.types == int(inp["type_solute"])
+    if bool(snap.pbc[2]):
+        excluded = np.zeros(len(pos), dtype=bool)
+        z_lo = z_hi = float("nan")
+    else:
+        excluded, z_lo, z_hi = regions.excluded_mask(pos, float(reg["surface_exclusion"]))
+    codes = np.where(excluded, regions.code_index("X"), regions.code_index("B")).astype(np.int8)
+    n_int, ns_int = int((~excluded).sum()), int((solute & ~excluded).sum())
+    res.info.update(cell_type="bulk_control", z_excluded=not bool(snap.pbc[2]), z_lo=z_lo, z_hi=z_hi,
+                    n_interior=n_int, n_solute_interior=ns_int)
+    res.add("N", n_int, region=BULK_REGION)
+    res.add("N_sol", ns_int, region=BULK_REGION)
+    res.add("c", composition.concentration(ns_int, n_int), region=BULK_REGION)
+    res.add("N", int(excluded.sum()), region="X")
+    res.add("N_sol", int((solute & excluded).sum()), region="X")
+    sh = order.shell_pairs(cell, pos, a_cell, float(ordp["shell1_cutoff_a"]), float(ordp["shell2_cutoff_a"]))
+    nc = order.neighbour_counts(len(pos), solute, sh)
+    ob = order.order_by_region(solute, codes, nc)
+    size = order.solute_cluster_sizes(len(pos), solute, sh)
+    cb = order.clusters_by_region(size, solute, codes)
+    k = regions.code_index("B")
+    for q in ("z1", "z2", "p1", "p2", "alpha1_local", "alpha2_local", "R2"):
+        res.add(q, getattr(ob, q)[k], region=BULK_REGION)
+    res.add("cluster_mean_size", cb.mean_size[k], region=BULK_REGION)
+    res.add("cluster_frac_isolated", cb.frac_isolated[k], region=BULK_REGION)
+    res.add("cluster_max_size", cb.max_size[k], region=BULK_REGION)
+    res.info["timing_s"] = round(time.perf_counter() - t0, 3)
+    if keep_arrays:
+        res.codes, res.cluster_size = codes, size
+    return res

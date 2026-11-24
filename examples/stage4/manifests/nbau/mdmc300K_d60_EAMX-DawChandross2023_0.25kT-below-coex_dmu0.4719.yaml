@@ -1,0 +1,48 @@
+# DEMO manifest for disegreg v0.2 Stage 4 (examples/stage4/make_demo_manifests.py); the project owns the real one
+schema_version: 1
+project: Nb-Au-AT-DISLOCS-Ni-ACE-EAM
+thread: 07_MDMC-SOLUTE-SEGREGATION-T300-WHOLE-INTERIOR
+run_id: mdmc300K_d60_EAMX-DawChandross2023_0.25kT-below-coex_dmu0.4719
+potential: EAMX-DawChandross2023
+host_element: Ni
+solute_element: Au
+character: d60
+frame:
+  X:
+  - 0
+  - -1
+  - 1
+  Y:
+  - 2
+  - -1
+  - -1
+  Z:
+  - 1
+  - 1
+  - 1
+frame_source: Ni cells of 00_CORRECTED-CELLS-A0-3.52 (LAMMPS frame X = line)
+a_cell: 3.53865
+a_cell_source: mdmc-parameters.dat a(x,T)
+temperature: 300
+dmu: 0.4719
+dmu_lammps: 0.4719
+dmu_lammps_sign: 1
+dmu_coex: 0.4784
+coex_line: incoherent
+dmu_coex_source: mdmc-parameters.dat FINAL dmu_coex(300 K) = 0.4784 vs fcc_Au
+delta: -0.2514
+dumps: ~/Desktop/SIMULATIONS/Nb-Au-AT-DISLOCS-Ni-ACE-EAM/07_MDMC-SOLUTE-SEGREGATION-T300-WHOLE-INTERIOR/mdmc300K_d60_EAMX-DawChandross2023_0.25kT-below-coex_dmu0.4719/*_quenched_step*.dump
+quenched: true
+md_timestep_ps: 0.001
+z_boundary: fixed
+z_gp: 125.6469
+z_gp_source: builder glide gap 124.9847 A at a = 3.52 A x a_cell / 3.52
+bulk_control: null
+bulk_control_reason: no bulk control on the Mac yet (demo)
+x_ref_source: isotherm
+x_iso: 1.6204e-05
+x_iso_source: mdmc-parameters.dat xSol_overall
+start_type: bottom-up
+notes: DEMO manifest for disegreg v0.2 Stage 4 (examples/stage4/make_demo_manifests.py); the project owns the real one
+mc_stream: ~/Desktop/SIMULATIONS/Nb-Au-AT-DISLOCS-Ni-ACE-EAM/07_MDMC-SOLUTE-SEGREGATION-T300-WHOLE-INTERIOR/mdmc300K_d60_EAMX-DawChandross2023_0.25kT-below-coex_dmu0.4719/mdmc300K_d60_EAMX-DawChandross2023_0.25kT-below-coex_dmu0.4719_mc-stream.dat
+mc_stream_column: nSol_interior

@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+from pathlib import Path
 
 from . import __version__
 from .definitions import load_definitions
@@ -62,6 +63,83 @@ def _md_step(dump, fallback) -> int:
     return int(m.group(1)) if m else int(fallback)
 
 
+def find_x_bc(run_id: str, label: str, folders, min_solute: int = 100):
+    """x_bc of a bulk control from its Stage-3 table <run_id>_stage3_<label>.csv (first folder that has it):
+    window mean and block-averaging SEM of the interior solute fraction. None if no table is found."""
+    from pathlib import Path
+
+    from .results import read_table
+    from .stage2 import BULK_REGION
+
+    for folder in folders:
+        f = Path(folder) / f"{run_id}_stage3_{label}.csv"
+        if not f.is_file():
+            continue
+        rows = {(r["quantity"], r["region"]): r for r in read_table(f)}
+        c, ns = rows.get(("c", BULK_REGION)), rows.get(("N_sol", BULK_REGION))
+        if c is None:
+            raise ValueError(f"{f}: no interior solute fraction -- is this a bulk-control table?")
+        n_sol = ns["mean"] if ns else float("nan")
+        return {"source": str(f), "value": c["mean"], "sem": c["sem"], "n_samples": c["n_samples"], "flat": c["flat"],
+                "n_solute": n_sol, "min_solute": min_solute, "enough_solute": bool(n_sol >= min_solute)}
+    return None
+
+
+def _analyse_bulk(m, d, root, env, tv, args) -> int:
+    """Stage 2 + 3 of a bulk-control run: x_bc per snapshot, then its window mean (DEFINITIONS 5, v0.2)."""
+    import time
+    from pathlib import Path
+
+    from .cache import get_snapshot
+    from .results import STAGE3_COLUMNS, write_table
+    from .stage2 import BULK_REGION, analyse_bulk_snapshot
+    from .timeseries import read_mc_stream, run_stage3
+
+    dumps = m.dump_files()
+    if args.last:
+        dumps = dumps[-args.last:]
+    if not dumps:
+        print(f"{m['run_id']}: no dump files match {m['dumps']}")
+        return 1
+    rows, snaps = [], []
+    for dump in dumps:
+        t0 = time.perf_counter()
+        snap = get_snapshot(dump, d, cache_root=root, verbose=args.verbose)
+        res = analyse_bulk_snapshot(snap, d, float(m["a_cell"]))
+        ts = _md_step(dump, snap.meta.get("timestep", -1))
+        for r in res.records:
+            rows.append({"run_id": m["run_id"], "snapshot": Path(dump).name, "timestep": ts, **r,
+                         "definition_set": d.label, "tool_version": tv})
+        snaps.append({"dump": str(dump), "source_sha256": snap.meta.get("source_sha256"), "md_step": ts,
+                      "info": dict(res.info)})
+        print(f"{m['run_id']} (bulk control) step {ts}: x_bc {res.value('c', region=BULK_REGION):.5g} "
+              f"({res.info['n_solute_interior']} of {res.info['n_interior']} interior atoms)  "
+              f"({time.perf_counter() - t0:.1f} s)")
+    out = Path(args.out).expanduser() / f"{m['run_id']}_stage2_{d.label}.csv"
+    prov = {"environment": env, "tool_version": tv, "definition_set": d.label, "definitions_sha256": d.sha256,
+            "definitions_status": d.status, "manifest": str(m.path), "manifest_data": m.data, "cell_type": "bulk_control",
+            "snapshots": snaps}
+    write_table(out, rows, prov)
+    stream = None
+    if m.get("mc_stream") and m.resolve(m["mc_stream"]).is_file():
+        stream = read_mc_stream(m.resolve(m["mc_stream"]))
+    try:
+        info3, rows3 = run_stage3(rows, d["timeseries"], stream=stream, stream_column=m.get("mc_stream_column"),
+                                  md_timestep_ps=m.get("md_timestep_ps"), criterion=args.drift_criterion,
+                                  key_quantity=("N_sol", BULK_REGION, "", ""))
+    except ValueError as e:
+        print(f"  Stage 3 skipped: {e}")
+        return 0
+    for r in rows3:
+        r.update(run_id=m["run_id"], definition_set=d.label, tool_version=tv)
+    out3 = Path(args.out).expanduser() / f"{m['run_id']}_stage3_{d.label}.csv"
+    write_table(out3, rows3, {**prov, "stage3": info3}, columns=STAGE3_COLUMNS)
+    c = next(r for r in rows3 if r["quantity"] == "c" and r["region"] == BULK_REGION)
+    print(f"  Stage 3: x_bc = {c['mean']:.5g} +- {c['sem']:.2g} ({c['n_samples']} snapshots, "
+          f"{'converged' if info3['converged'] else 'NOT converged'})  -> {out3}")
+    return 0
+
+
 def _cmd_analyse(args) -> int:
     import time
     from pathlib import Path
@@ -81,23 +159,45 @@ def _cmd_analyse(args) -> int:
     ref_rule = d["reference"]
     comp = d["composition"]
     hr, cr = float(comp["headline_radius"]), float(comp["check_radius"])
-    for mf in args.manifests:
-        m = load_manifest(mf)
+    # bulk controls first, so the runs naming one find its x_bc (v0.2: automatic x_bc)
+    manifests = sorted((load_manifest(mf) for mf in args.manifests), key=lambda m: not m.is_bulk_control)
+    bulk_dirs = [Path(args.out).expanduser()] + [Path(b).expanduser() for b in (args.bulk_dir or [])]
+    for m in manifests:
+        if m.is_bulk_control:
+            status |= _analyse_bulk(m, d, root, env, tv, args)
+            continue
         # reference compositions (DEFINITIONS 5, rev. 4): c_B of the snapshot always; x_iso if the manifest has it;
-        # a value from the command line as x_bc (bulk control) or "given"
+        # x_bc from the bulk control's own Stage-3 table (automatic, v0.2) or a value from the command line
         refs = {}
+        x_bc_info = None
         if args.x_ref is not None:
             refs["x_bc" if m["x_ref_source"] == "bulk_control" else "given"] = float(args.x_ref)
+            if m["x_ref_source"] == "bulk_control":
+                x_bc_info = {"source": "command line --x-ref", "value": float(args.x_ref), "sem": float("nan")}
+        elif m.get("bulk_control"):
+            x_bc_info = find_x_bc(m["bulk_control"], d.label, bulk_dirs,
+                                  int(ref_rule.get("min_solute_in_bulk_control", 100)))
+            if x_bc_info is None:
+                print(f"{m['run_id']}: bulk control {m['bulk_control']} named, but no {m['bulk_control']}_stage3_"
+                      f"{d.label}.csv in {[str(b) for b in bulk_dirs]} -- analyse it first (or give --x-ref)")
+            else:
+                refs["x_bc"] = x_bc_info["value"]
+                print(f"{m['run_id']}: x_bc = {x_bc_info['value']:.5g} +- {x_bc_info['sem']:.2g} from {x_bc_info['source']}"
+                      + ("" if x_bc_info["enough_solute"] else
+                         f"  [only {x_bc_info['n_solute']:.0f} solute atoms < {x_bc_info['min_solute']}: x_iso is the "
+                         "reference (DEFINITIONS 5, 2b), x_bc reported as a diagnostic]"))
         if m.get("x_iso") is not None:
             refs["x_iso"] = float(m["x_iso"])
-        has_bc = bool(m.get("bulk_control")) and "x_bc" in refs
+        has_bc = (bool(m.get("bulk_control")) and "x_bc" in refs
+                  and (x_bc_info is None or x_bc_info.get("enough_solute", True)))
         if not has_bc:
             missing = [r for r in ref_rule["without_bulk_control_report_against"] if r != "c_B" and r not in refs]
             if missing:
                 print(f"{m['run_id']}: no bulk control and no {missing} in the manifest -- reported against c_B only")
         rule_text = ("x_bc (bulk control), c_B and x_iso as diagnostics" if has_bc else
                      "no bulk control: reported against both c_B and x_iso (DEFINITIONS 5, rev. 4)")
-        hold = paper_hold(m.data, ref_rule.get("paper_hold_without_bulk_control"))
+        hold = "" if has_bc else paper_hold({**m.data, "bulk_control": None},
+                                            ref_rule.get("paper_hold_without_bulk_control"))
         dumps = m.dump_files()
         if args.last:
             dumps = dumps[-args.last:]
@@ -129,7 +229,7 @@ def _cmd_analyse(args) -> int:
         prov = {"environment": env, "tool_version": tv, "definition_set": d.label, "definitions_sha256": d.sha256,
                 "definitions_status": d.status, "manifest": str(m.path), "manifest_data": m.data,
                 "x_ref": refs, "x_ref_source": m["x_ref_source"], "reference_rule": rule_text, "paper_flag": hold,
-                "snapshots": snaps}
+                "x_bc": x_bc_info, "snapshots": snaps}
         write_table(out, rows, prov)
         print(f"  -> {out} ({len(rows)} rows)")
         # ---- Stage 3: averaging window (from the MC stream if there is one), window means, drift tests
@@ -189,6 +289,188 @@ def _cmd_table(args) -> int:
     return 0
 
 
+def load_site_cores(config_path, runs, definitions, proposals, cache_root=None, verbose=True):
+    """Core sites + energies for every (project, potential, character) of the runs that the site configuration covers.
+    Returns ({key: (E_core, n_missing, info)}, list of summary dicts)."""
+    import numpy as np
+    import yaml
+
+    from .cache import get_snapshot
+    from .sites import core_sites, read_site_table
+
+    cfg = yaml.safe_load(Path(config_path).expanduser().read_text())
+    base = Path(config_path).expanduser().resolve().parent
+    mc = proposals["mclean"]
+    wanted = {}
+    for r in runs:
+        if not r.is_bulk_control:
+            wanted.setdefault((r["project"], r["potential"], r["character"]), r)
+    out, summary = {}, []
+    for entry in cfg.get("site_tables", []):
+        pots = entry.get("potentials") or [entry.get("potential")]
+        chars = entry.get("characters") or [entry.get("character")]
+        for pot in pots:
+            for ch in chars:
+                key = (entry["project"], pot, ch)
+                if key not in wanted or key in out:
+                    continue
+                run = wanted[key]
+                tpath = Path(str(entry["table"]).format(potential=pot, character=ch)).expanduser()
+                cpath = Path(str(entry["cell_0K"]).format(potential=pot, character=ch)).expanduser()
+                tpath, cpath = (q if q.is_absolute() else base / q for q in (tpath, cpath))
+                table = read_site_table(tpath, entry.get("format", "segE0K-by-site"), pot, ch)
+                snap0 = get_snapshot(cpath, definitions, cache_root=cache_root, verbose=verbose,
+                                     pbc=entry.get("cell_0K_pbc"))
+                cs = core_sites(table, snap0, float(mc["core_site_radius"]), run["frame"]["X"], float(run["a_cell"]),
+                                spacing=float(definitions["distance"]["polyline_spacing"]),
+                                surface_exclusion=float(definitions["regions"]["surface_exclusion"]))
+                n_missing = max(0.0, cs.n_core_expected - cs.n_core_tabulated) if mc["missing_sites"] == "bulk" else 0.0
+                e_core = table.energy[cs.is_core]
+                flags = []
+                if cs.coverage < 0.9:
+                    flags.append(f"site table covers {cs.coverage:.0%} of the core sites")
+                if cs.x_extent > cs.info["period"] + 0.5:
+                    flags.append(f"sites span {cs.x_extent:.1f} A along X > one period {cs.info['period']:.2f} A")
+                n_deg = table.degenerate_sites()
+                info = {"project": key[0], "potential": pot, "character": ch, "table": str(tpath), "table_sha256": table.sha256,
+                        "format": table.format, "cell_0K": str(cpath), "cell_0K_sha256": snap0.meta.get("source_sha256"),
+                        "n_sites": len(table), "n_core_tabulated": cs.n_core_tabulated,
+                        "n_core_expected_per_period": round(cs.n_core_expected, 2), "coverage": round(cs.coverage, 3),
+                        "n_periods": cs.n_periods, "period_A": round(cs.info["period"], 4), "x_extent_A": round(cs.x_extent, 3),
+                        "n_degenerate_sites": n_deg, "E_min_core": float(e_core.min()) if len(e_core) else float("nan"),
+                        "E_mean_core": float(e_core.mean()) if len(e_core) else float("nan"),
+                        "r_max_tabulated": float(cs.r.max()), "missing_sites": mc["missing_sites"], "n_missing": n_missing,
+                        "flags": "; ".join(flags)}
+                out[key] = (e_core, n_missing, info)
+                summary.append(info)
+                if verbose:
+                    print(f"  sites {pot} {ch}: {len(table)} in table, {cs.n_core_tabulated} core (r < "
+                          f"{mc['core_site_radius']} A of the 0 K DXA line) of {cs.n_core_expected:.1f} per period "
+                          f"({cs.coverage:.0%}); E_min {info['E_min_core']:.3f} eV; {n_deg} degenerate"
+                          + (f"  [{info['flags']}]" if flags else ""))
+    return out, summary
+
+
+def _cmd_across(args) -> int:
+    from .across import STAGE4_COLUMNS, load_runs, stage4
+    from .definitions import load_proposals
+    from .provenance import environment
+    from .results import tool_version, write_table
+
+    files = sorted({str(p) for f in args.stage3 for p in (Path(f).glob("*_stage3_*.csv") if Path(f).is_dir() else [f])})
+    if not files:
+        print("no Stage-3 tables (*_stage3_*.csv) found")
+        return 1
+    runs, label = load_runs(files)
+    d = load_definitions(args.definitions)
+    if label and label != d.label:
+        print(f"Stage-3 tables are {label}, --definitions is {d.label}")
+        return 1
+    props = load_proposals()
+    env = environment()
+    tv = tool_version(env)
+    site_cores, site_summary = ({}, [])
+    if args.sites:
+        site_cores, site_summary = load_site_cores(args.sites, runs, d, props, cache_root=args.cache)
+    comp = d["composition"]
+    rows = stage4(runs, props, site_cores, gamma_radii=(comp["headline_radius"], comp["check_radius"]))
+    for r in rows:
+        r.update(definition_set=d.label, proposal_set=props.label, tool_version=tv)
+    prov = {"environment": env, "tool_version": tv, "definition_set": d.label, "definitions_sha256": d.sha256,
+            "proposal_set": props.label, "proposals_sha256": props.sha256, "proposals": props.params,
+            "inputs": [{"file": r.file, "run_id": r.run_id, "tool_version": r.prov.get("tool_version")} for r in runs],
+            "site_tables": site_summary, "sites_config": str(args.sites) if args.sites else None}
+    write_table(args.out, rows, prov, columns=STAGE4_COLUMNS)
+    n_sets = len({(r["project"], r["potential"], r["character"]) for r in rows})
+    by = {}
+    for r in rows:
+        by[r["analysis"]] = by.get(r["analysis"], 0) + 1
+    print(f"{len(runs)} runs, {n_sets} run sets, {len(rows)} rows {by} -> {args.out}")
+    return 0
+
+
+def _cmd_plot(args) -> int:
+    """disegreg plot gamma | timeseries | delta | uptake | regions (house style, PNG/PDF)."""
+    import json
+
+    import numpy as np
+
+    from . import plotting
+    from .results import read_table
+
+    fmts = tuple(args.format)
+    kind = args.kind
+    if kind == "gamma":
+        f = Path(args.input)
+        rows = read_table(f)
+        refs = args.ref or sorted({r["ref"] for r in rows})
+        rows = [r for r in rows if r["ref"] in refs]
+        for r in rows:
+            r["R"] = float(r["R"])
+        run = rows[0]["run_id"] if rows else f.stem
+        fig = plotting.gamma_curve(rows, title=f"Γ(R) — {run}")
+        out = args.out or f.with_suffix("")
+    elif kind == "timeseries":
+        f = Path(args.input)  # <run>_stage2_<D>.csv; the Stage-3 table next to it gives the window
+        q, region, basis, ref = (args.quantity.split(":") + ["", "", ""])[:4]
+        rows = [r for r in read_table(f) if (r["quantity"], r["region"], r["basis"], r["ref"]) == (q, region, basis, ref)]
+        if not rows:
+            print(f"no rows for {args.quantity} in {f}")
+            return 1
+        rows.sort(key=lambda r: r["timestep"])
+        f3 = f.with_name(f.name.replace("_stage2_", "_stage3_"))
+        prov = json.loads(f.with_name(f.name + ".provenance.json").read_text())
+        dt = prov.get("manifest_data", {}).get("md_timestep_ps")
+        scale, unit = (dt * 1e-3, "time (ns)") if dt else (1.0, "MD step")
+        t = np.array([r["timestep"] for r in rows]) * scale
+        y = np.array([r["value"] for r in rows])
+        window = mean = sem = flat = slope = None
+        if f3.is_file():
+            info3 = json.loads(f3.with_name(f3.name + ".provenance.json").read_text()).get("stage3", {})
+            k = 1e-3 if info3.get("time_unit") == "ps" else 1.0
+            window = (info3["window_t_start"] * k, info3["window_t_end"] * k) if dt else (info3["window_t_start"],
+                                                                                          info3["window_t_end"])
+            r3 = next((r for r in read_table(f3) if (r["quantity"], r["region"], r["basis"], r["ref"])
+                       == (q, region, basis, ref)), None)
+            if r3:
+                mean, sem, flat = r3["mean"], r3["sem"], r3["flat"]
+                span = (r3["t_last"] - r3["t_first"]) * (k if dt else 1.0)
+                slope = r3["change"] / span if span > 0 else None
+        fig = plotting.timeseries(t, y, window, mean, sem, flat, ylabel=args.quantity.rstrip(":"),
+                                  title=f"{prov.get('manifest_data', {}).get('run_id', f.stem)}: {args.quantity.rstrip(':')}",
+                                  time_label=unit, slope=slope)
+        out = args.out or f.with_name(f.stem + "_" + args.quantity.replace(":", "-").rstrip("-"))
+    elif kind == "delta":
+        f = Path(args.input)  # results table of `disegreg table`
+        q, region, basis, ref = (args.quantity.split(":") + ["", "", ""])[:4]
+        rows = [r for r in read_table(f) if (r["quantity"], r["region"], r["basis"], r["ref"]) == (q, region, basis, ref)]
+        for r in rows:
+            r["delta"] = float(r["delta"])
+        fig = plotting.vs_delta(rows, ylabel=args.quantity.rstrip(":"), log=args.log)
+        out = args.out or f.with_name(f.stem + "_vs-delta_" + args.quantity.replace(":", "-").rstrip("-"))
+    elif kind == "uptake":
+        f = Path(args.input)  # Stage-4 table of `disegreg across`
+        rows = read_table(f)
+        for r in rows:
+            for k in ("value", "error", "delta", "delta_2"):
+                r[k] = float(r[k]) if r[k] != "" else float("nan")
+        if args.ref:
+            rows = [r for r in rows if r["ref"] in args.ref]
+        fig = plotting.uptake(rows)
+        out = args.out or f.with_name(f.stem + "_uptake")
+    elif kind == "regions":
+        f = Path(args.input)  # results table
+        rows = [r for r in read_table(f) if r["run_id"] == args.run and r["ref"] == ""]
+        xr = {r["ref"]: r["value"] for r in read_table(f) if r["run_id"] == args.run and r["quantity"] == "x_ref"}
+        fig = plotting.regions(rows, args.run, refs={f"x_ref ({k})": v for k, v in xr.items() if k != "c_B"})
+        out = args.out or f.with_name(f"{args.run}_regions")
+    else:  # pragma: no cover -- argparse restricts the choices
+        return 1
+    for p in plotting.save(fig, out, fmts):
+        print(f"-> {p}")
+    return 0
+
+
 def _cmd_slurm(args) -> int:
     import glob
 
@@ -241,6 +523,8 @@ def main(argv=None) -> int:
     pa.add_argument("--drift-criterion", choices=("change_se", "sem"), default=None,
                     help="change_se: |change| < 2 SE(change) (default, D1 rev. 4); sem: |change| < 2 SEM (rev. 3 / old "
                     "scripts); the other verdict is always stored as well")
+    pa.add_argument("--bulk-dir", nargs="*", help="extra folders with bulk-control Stage-3 tables (default: --out only); "
+                    "a run whose manifest names a bulk_control takes x_bc from <bulk_control>_stage3_<D>.csv")
     pa.add_argument("--verbose", action="store_true")
     pa.set_defaults(func=_cmd_analyse)
     ps = sub.add_parser("slurm", help="write a Slurm job array for Stage 1 (cmmg); prints the sbatch command")
@@ -261,6 +545,25 @@ def main(argv=None) -> int:
     pt.add_argument("stage3", nargs="+", help="*_stage3_<D>.csv files or folders containing them")
     pt.add_argument("--out", required=True, help="output CSV (a .provenance.json is written next to it)")
     pt.set_defaults(func=_cmd_table)
+    px = sub.add_parser("across", help="Stage 4 across runs: uptake exponent, McLean, hysteresis (from Stage-3 tables)")
+    px.add_argument("stage3", nargs="+", help="*_stage3_<D>.csv files or folders containing them")
+    px.add_argument("--out", required=True, help="output CSV (a .provenance.json is written next to it)")
+    px.add_argument("--sites", help="site-energy configuration YAML for the McLean prediction (examples/stage4/sites.yaml)")
+    px.add_argument("--cache", help="Stage-1 cache folder for the 0 K cells (default: $DISEGREG_CACHE or the agreed location)")
+    px.add_argument("--definitions", default="D1", help="definition set label or YAML path (default D1)")
+    px.set_defaults(func=_cmd_across)
+    pp = sub.add_parser("plot", help="plots in the house style: gamma | timeseries | delta | uptake | regions")
+    pp.add_argument("kind", choices=("gamma", "timeseries", "delta", "uptake", "regions"))
+    pp.add_argument("input", help="gamma: <run>_gammaR_<D>.csv; timeseries: <run>_stage2_<D>.csv; delta, regions: results "
+                    "table of `disegreg table`; uptake: Stage-4 table of `disegreg across`")
+    pp.add_argument("--quantity", default="N_sol_inside:20:r",
+                    help="quantity:region:basis:ref (timeseries, delta), e.g. c:C or Gamma:20:r:x_iso")
+    pp.add_argument("--ref", nargs="*", help="only these references (gamma, uptake)")
+    pp.add_argument("--run", help="run id (regions)")
+    pp.add_argument("--log", action="store_true", help="logarithmic y axis (delta)")
+    pp.add_argument("--out", help="output file name without extension (default: next to the input)")
+    pp.add_argument("--format", nargs="+", default=["png"], help="png and/or pdf (default png)")
+    pp.set_defaults(func=_cmd_plot)
     args = parser.parse_args(argv)
     return args.func(args)
 

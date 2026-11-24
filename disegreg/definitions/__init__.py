@@ -54,3 +54,15 @@ def load_definitions(label_or_path: str | Path = DEFAULT_LABEL) -> Definitions:
         path=str(p),
         params=params,
     )
+
+
+PROPOSALS_LABEL = "proposals_v0.2"
+
+
+def load_proposals(label_or_path: str | Path = PROPOSALS_LABEL) -> Definitions:
+    """Parameters of the open v0.2 proposals (``proposals_v0.2.yaml``). NOT a definition set: every number computed with
+    them carries status = proposal (docs/PLAN_v0.2.md, rule 3)."""
+    p = Path(label_or_path)
+    if p.suffix not in (".yaml", ".yml"):
+        p = _DIR / f"{label_or_path}.yaml"
+    return load_definitions(p)

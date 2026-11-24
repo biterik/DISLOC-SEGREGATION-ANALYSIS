@@ -66,11 +66,14 @@ def _run(data, modifier):
     return pl.compute()
 
 
-def compute_stage1(dump, definitions, source_sha256: str | None = None) -> Snapshot:
-    """Read one dump and compute everything Stage 1 caches."""
+def compute_stage1(dump, definitions, source_sha256: str | None = None, pbc=None) -> Snapshot:
+    """Read one dump and compute everything Stage 1 caches. ``pbc`` (three booleans) overrides the periodicity read from
+    the file -- needed for LAMMPS data files, which do not store the boundary (OVITO then assumes periodic in Z)."""
     dump = Path(dump).resolve()
     t0 = time.perf_counter()
     data = import_file(str(dump)).compute()
+    if pbc is not None:
+        data.cell_.pbc = tuple(bool(x) for x in pbc)
     t_read = time.perf_counter() - t0
     parts = data.particles
     ids = np.asarray(parts.identifiers, dtype=np.int64) if parts.identifiers is not None else np.arange(1, parts.count + 1)
@@ -109,6 +112,7 @@ def compute_stage1(dump, definitions, source_sha256: str | None = None) -> Snaps
         "definitions_sha256": definitions.sha256,
         "provenance": {**environment(), "ovito": ovito_version()},
         "timings_s": {k: round(v, 3) for k, v in timings.items()},
+        "pbc_override": None if pbc is None else [bool(x) for x in pbc],
         "dxa_attributes": {k: float(v) for k, v in dd.attributes.items() if k.startswith("DislocationAnalysis.")},
     }
     return Snapshot(
