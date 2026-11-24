@@ -45,3 +45,18 @@ the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 - Synthetic tests against brute-force references (incl. the tilted-cell y-boundary case), exact L1_2 / D0_22 order parameters
   (alpha1 = -1/3, R2 = 4 and 8/3), cluster sizes across the periodic boundary, end-to-end Stage 2 and `disegreg analyse`, OVITO smoke test,
   GitHub Actions: synthetic tests on Python 3.11-3.13, OVITO tests on Linux, conda environment + all tests on macOS arm64.
+- D1 rev. 4 (Erik, 24 Nov; D1.yaml status "rev. 4 (2026-11-24)"): no open definition point left.
+  - Drift test: `change_se` (|change| < 2 SE(change)) is the default (`timeseries.drift_criterion`, `drift_factor`); the
+    rev. 3 rule is criterion `sem` and its verdict is stored in the extra column `flat_rev3_sem`. `--drift-criterion` takes
+    `change_se | sem` (the old name `d1` is gone).
+  - Reference composition: new column `ref` in every table (Stage 2, Stage 3, results). `analyse` reports E, Gamma,
+    alpha vs x_ref and `c_B_over_x_ref` against the snapshot's own far field `c_B` and the manifest's `x_iso` (and against
+    `--x-ref`, named `x_bc` for a bulk-control manifest). Rule `reference.paper_hold_without_bulk_control` (ACE Ni-Cu):
+    column `paper_flag` = "no paper number before bulk control" until the run has its bulk control.
+  - Gamma(20 A) is the headline: column `role` = headline / check (Gamma(40 A)) / curve for Gamma under r; `check_required`
+    is true when the fallback axis was active in the window (per-snapshot quantity `fallback_active`). New per-run file
+    `<run>_gammaR_<D>.csv` with the Gamma(R) curve, R = 5-60 A in 5 A steps (plus 80, 100), under r and r_DXA, per reference.
+- tests/test_testcell.py expects the DXA Burgers vector 1/2[-1 1 0] (the builder's nominal b with opposite sign, DEFINITIONS 1).
+- Regression with tolerances (regression/check_tolerance.py): positions 0.5 A, concentrations max(2 %, one solute atom),
+  order parameters max(2 %, 0.01). Ni-Cu: 16 runs exact, the 3 ACE runs within tolerance; Nb-Au: 24 within tolerance.
+  DXA is deterministic on one machine (four Stage-1 runs of the ACE d90 snapshot on the M5 bit-identical).

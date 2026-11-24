@@ -81,20 +81,17 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   - Erik's decisions (now in DEFINITIONS rev. 4): drift test |change| < 2 SE(change); x_ref: report vs both c_B and x_iso until a bulk
     control exists, no ACE Ni-Cu enrichment in the paper before it; headline Gamma(20 A), Gamma(R) 5-60 A in the supplement, Gamma(40 A)
     as check where the fallback axis is active; F before O and partial_merge_distance 2 A confirmed.
-  - Files changed by that session (uncommitted, please review and commit): docs/DEFINITIONS.md, docs/CMMG.md, CLAUDE.md.
+  - Files changed by that session: docs/DEFINITIONS.md, docs/CMMG.md, CLAUDE.md (committed 24 Nov as 8063d67).
+
+- 24 Nov (Claude Code session on the M5): next steps 1-4 of the 24 Nov list done, committed locally, NOT pushed, NOT tagged.
+  Code matches DEFINITIONS rev. 4 (drift criterion change_se default + column flat_rev3_sem; column `ref` with c_B and x_iso;
+  paper_flag for ACE Ni-Cu without bulk control; role headline/check/curve, check_required, <run>_gammaR_D1.csv). 103 tests pass
+  on the M5 (incl. the test cell). DXA deterministic on one machine (4 Stage-1 runs of ACE d90 790000 bit-identical).
+  regression/check_tolerance.py: Ni-Cu 16 exact + 3 ACE within tolerance; Nb-Au 24 within tolerance; closest calls ~90 % of the
+  tolerance (Ni-Cu d60 ACE -0.50 core c; Nb-Au EAM-X d0 -0.25 separation).
 
 ## Next steps
-1. Commit the three edited files above (one commit: "Definitions D1 rev. 4: Erik's decisions of 24 Nov; cmmg recipe via micromamba").
-2. Code to match DEFINITIONS rev. 4:
-   a. drift criterion change_se becomes the default (`--drift-criterion` default, D1.yaml drift parameters + status
-      "rev. 4 (2026-11-24)"); the old verdict stays as an extra column.
-   b. results/tables: enrichments and Gamma against BOTH c_B and x_iso when no bulk control exists (columns with the reference named);
-      a flag for ACE Ni-Cu runs ("no paper number before bulk control").
-   c. Gamma(20 A) as the headline column; Gamma(R) curve 5-60 A in the per-run output; Gamma(40 A) flagged as the check in mixed mode.
-3. tests/test_testcell.py: expect "1/2[-1 1 0]" for the test cell, with a comment on the builder/DXA sign relation (DEFINITIONS 1).
-4. Regression: compare DXA-derived quantities with a tolerance (positions ~0.5 A, single-snapshot core concentrations ~2 %), not exactly.
-   Quick check whether DXA is also non-deterministic on ONE machine: run the ACE d90 790000 snapshot twice on the M5 with --recompute
-   and compare seg_points (if it differs, it is thread order; say so once in the paper's Methods).
-5. Decide whether to commit the 0.7 MB test cell (force-add past the *.dump.gz rule) so the test-cell tests run in GitHub CI.
-6. Then tag v0.1.0, CHANGELOG, Zenodo DOI (as for openbis-mcp-server), and hand each project instance its "how to call disegreg" note
+1. Erik reviews the changes of 24 Nov (CHANGELOG [Unreleased], last entries); then `git push`.
+2. Decide whether to commit the 0.7 MB test cell (force-add past the *.dump.gz rule) so the test-cell tests run in GitHub CI.
+3. Then tag v0.1.0, CHANGELOG, Zenodo DOI (as for openbis-mcp-server), and hand each project instance its "how to call disegreg" note
    (docs/HOWTO_PROJECTS.md).
