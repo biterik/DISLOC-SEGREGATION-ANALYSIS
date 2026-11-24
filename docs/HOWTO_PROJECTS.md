@@ -55,3 +55,15 @@ value given with `--x-ref`). Without a bulk control every such number exists for
 | Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE (Ni-Cu) | `nCu_interior` | +1 (fix atom/swap) | builder metadata: 00_CORRECTED-CELLS-A0-3.52 gate reports (glide gap at a = 3.52 A: scale by a_cell / 3.52) |
 | Nb-Au-AT-DISLOCS-Ni-ACE-EAM | `nSol_interior` | +1 (DMU = mu_Nb - mu_Ni) | EAM-X Au counts are tiny (x ~ 1e-5): x_ref from the isotherm (dilute law), not from a bulk control |
 | TURLO-REDO (Cu-Zr) | `NZr_mcgroup` | -1 (fix sgcmc: DMU_SGC = -dmu) | free (111) z faces; complexion runs are `mixed`; PTM label 4 = icosahedral |
+
+## v0.2 additions (branch v0.2-dev, not released -- for information; use v0.1.0 for numbers)
+- **Bulk control runs**: write a manifest for the bulk-control cell itself with `cell_type: bulk_control` (character, frame,
+  frame_source, z_gp, z_gp_source, x_ref_source, start_type are not needed) and name its run_id in the `bulk_control` field of
+  every dislocation run at the same dmu. `disegreg analyse` takes bulk controls first and passes their x_bc on automatically
+  (`--bulk-dir <folder>` if the bulk control was analysed into another folder). Whether a 32 000-atom cell counts as a bulk
+  control is open (docs/OPEN-DECISIONS_v0.2.md, E1).
+- **rsync the MC stream together with the dumps.** Stage 3 takes the averaging window from the stream; snapshots later than the
+  end of the stream are not used (v0.2 prints a WARNING with their number).
+- Across runs: `disegreg across <folder with *_stage3_D1.csv> --out stage4.csv [--sites sites.yaml]` (uptake exponent, McLean,
+  bottom-up vs top-down). Plots: `disegreg plot gamma | timeseries | delta | uptake | regions | alongline ...`.
+- Rows with `status = proposal` depend on an undecided v0.2 proposal: do not quote them in the paper.
