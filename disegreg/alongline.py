@@ -1,0 +1,107 @@
+"""Along-line core composition and its Fourier spectrum against binomial noise ([PROPOSAL v0.2] P4). Pure numpy.
+
+Question (paper diagnostic for the "line defect phase"): does the core hold a CONTINUOUS line state (solute spread evenly
+along the line) or a PERIODIC ARRAY of particles (solute-rich stretches separated by solute-poor ones)?
+
+    bins       the core atoms (region C, r < 5 A) in n = round(L_x / 5 A) bins along X (actual width L_x / n)
+    profile    N_k core atoms and s_k solute atoms per bin; c = sum s_k / sum N_k; fluctuation d_k = s_k - c N_k
+    dispersion D = sum d_k^2 / ((1 - 1/n) sum N_k c (1 - c)): mean 1 for independent (binomial) placement (the factor
+               1 - 1/n: one degree of freedom goes into c), >> 1 for particles (solute bunched in some bins), < 1 for a
+               more even than random spread (an ordered, continuous line state)
+    spectrum   S(q) = |sum_k d_k exp(-2 pi i q k / n)|^2 / (n Nbar c (1 - c)), q = 1 .. floor(n/2), Nbar = mean N_k;
+               for binomial placement every S(q) has mean ~1 (exponentially distributed, independent between q).
+               A periodic array of particles with spacing lambda gives a peak at q = L_x / lambda.
+    peak test  S_max = max_q S(q); p = 1 - (1 - exp(-S_max))^m2 x (1 - erfc(sqrt(S_max / 2)))^m1: the chance that binomial
+               noise alone gives a peak this high somewhere in the spectrum; m2 modes with two degrees of freedom (exp(1)),
+               m1 = 1 for even n (the mode q = n/2 is real: S = Z^2, one degree of freedom), else 0.
+
+Averaging S(q) over the snapshots of the window (Stage 3 does this for every Stage-2 quantity) sharpens the test: the mean
+of n_s independent exp(1) values has standard deviation 1/sqrt(n_s).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import numpy as np
+
+from .geometry import Cell, n_slabs_for
+
+QUANTITIES = ("alongline_n_bins", "alongline_bin_width", "alongline_c", "alongline_dispersion", "alongline_S",
+              "alongline_S_max", "alongline_q_peak", "alongline_lambda_peak", "alongline_p_peak", "alongline_N_bin",
+              "alongline_N_sol_bin")
+
+
+@dataclass
+class AlongLine:
+    n_bins: int
+    bin_width: float
+    N: np.ndarray            # core atoms per bin
+    s: np.ndarray            # core solute atoms per bin
+    c: float                 # core solute fraction
+    dispersion: float
+    q: np.ndarray            # 1 .. floor(n/2)
+    S: np.ndarray            # normalised spectrum
+    S_max: float
+    q_peak: int
+    lambda_peak: float       # L_x / q_peak (A)
+    p_peak: float
+
+
+def binomial_peak_p(S_max: float, m: int, m1: int = 0) -> float:
+    """P(max of m independent exp(1) variables and m1 independent chi^2_1 variables (mean 1) >= S_max)."""
+    from math import erfc, sqrt
+
+    if not np.isfinite(S_max) or m + m1 <= 0:
+        return float("nan")
+    if S_max <= 0:
+        return 1.0
+    log_below = m * np.log1p(-np.exp(-S_max)) + m1 * np.log1p(-erfc(sqrt(S_max / 2.0)))
+    return float(-np.expm1(log_below))
+
+
+def profile(cell: Cell, positions, solute, mask, bin_width: float = 5.0) -> AlongLine:
+    """Along-line profile and spectrum of the atoms in ``mask`` (the core)."""
+    pos = np.asarray(positions, float)[np.asarray(mask, bool)]
+    sol = np.asarray(solute, bool)[np.asarray(mask, bool)]
+    n = n_slabs_for(cell, bin_width)
+    L = cell.line_length
+    sx = cell.wrap_fractional(cell.to_fractional(pos))[:, 0] if len(pos) else np.empty(0)
+    k = np.minimum((sx * n).astype(np.int64), n - 1)
+    N = np.bincount(k, minlength=n).astype(float)
+    s = np.bincount(k[sol], minlength=n).astype(float)
+    nan = float("nan")
+    q = np.arange(1, n // 2 + 1)
+    if N.sum() == 0:
+        return AlongLine(n, L / n, N, s, nan, nan, q, np.full(len(q), nan), nan, 0, nan, nan)
+    c = s.sum() / N.sum()
+    d = s - c * N
+    var = N.sum() * c * (1 - c)
+    if var <= 0:  # core entirely solute or entirely host: no fluctuation to analyse
+        return AlongLine(n, L / n, N, s, float(c), nan, q, np.full(len(q), nan), nan, 0, nan, nan)
+    disp = float((d * d).sum() / ((1.0 - 1.0 / n) * var)) if n > 1 else float("nan")
+    F = np.fft.fft(d)
+    S = (np.abs(F[q]) ** 2) / (n * (N.mean() * c * (1 - c)))
+    j = int(np.argmax(S)) if len(S) else -1
+    smax = float(S[j]) if j >= 0 else nan
+    qp = int(q[j]) if j >= 0 else 0
+    return AlongLine(n_bins=n, bin_width=L / n, N=N, s=s, c=float(c), dispersion=disp, q=q, S=S, S_max=smax,
+                     q_peak=qp, lambda_peak=L / qp if qp else nan,
+                     p_peak=binomial_peak_p(smax, len(q) - (n % 2 == 0), int(n % 2 == 0)))
+
+
+def records(al: AlongLine, add) -> None:
+    """Write the Stage-2 records through ``add(quantity, value, region=...)`` (stage2.Stage2Result.add)."""
+    add("alongline_n_bins", al.n_bins, region="C")
+    add("alongline_bin_width", al.bin_width, region="C")
+    add("alongline_c", al.c, region="C")
+    add("alongline_dispersion", al.dispersion, region="C")
+    add("alongline_S_max", al.S_max, region="C")
+    add("alongline_q_peak", al.q_peak, region="C")
+    add("alongline_lambda_peak", al.lambda_peak, region="C")
+    add("alongline_p_peak", al.p_peak, region="C")
+    for qq, v in zip(al.q, al.S):
+        add("alongline_S", v, region=f"q{int(qq)}")
+    for kk, (nn, ss) in enumerate(zip(al.N, al.s)):
+        add("alongline_N_bin", nn, region=f"x{kk}")
+        add("alongline_N_sol_bin", ss, region=f"x{kk}")

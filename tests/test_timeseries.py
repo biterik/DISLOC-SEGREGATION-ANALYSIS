@@ -132,3 +132,18 @@ def test_run_stage3_window_from_stream(tmp_path):
 def test_d1_rev4_drift_parameters():
     assert P["drift_criterion"] == "change_se" and P["drift_factor"] == 2.0
     assert P["drift_criterion"] == ts.DEFAULT_CRITERION
+
+
+def test_stage3_counts_snapshots_after_the_stream():
+    """v0.2: a stream that ends before the last snapshot leaves those snapshots out of every window -- counted."""
+    from pathlib import Path
+
+    from disegreg.timeseries import Stream, run_stage3
+
+    rows = [{"quantity": "c", "region": "C", "basis": "", "ref": "", "timestep": t, "value": 0.1} for t in range(0, 200, 10)]
+    st = np.arange(0, 100, 1.0)
+    stream = Stream(path=Path("x"), columns=["step", "time", "nX_interior"],
+                    data=np.column_stack([st, st, np.full(len(st), 50.0)]))
+    params = {"drift_final_fraction": 0.3, "drift_factor": 2.0, "min_window_fraction": 0.3}
+    info, out = run_stage3(rows, params, stream=stream)
+    assert info["snapshots_total"] == 20 and info["snapshots_after_window_signal"] == 10

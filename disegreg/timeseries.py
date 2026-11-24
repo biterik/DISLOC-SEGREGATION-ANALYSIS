@@ -260,6 +260,10 @@ def run_stage3(stage2_rows, params: dict, stream: Stream | None = None, stream_c
     alt = next(c for c in CRITERIA if c != criterion)
     w_alt = averaging_window(sig_t, sig_y, ff, mf, fac, criterion=alt)
     d = w.test
+    # v0.2: snapshots later than the end of the stream are outside every window -- say so (they are not used)
+    all_t = np.unique(np.concatenate([st for st, _ in series.values()])) * scale if series else np.empty(0)
+    info["snapshots_after_window_signal"] = int((all_t > float(sig_t[-1]) + 1e-9).sum())
+    info["snapshots_total"] = int(len(all_t))
     info.update(criterion=criterion, window_t_start=w.t_start, window_t_end=w.t_end, window_fraction=w.fraction,
                 converged=w.converged, signal_mean=d.mean, signal_sem=d.sem, signal_change=d.change,
                 signal_change_se=d.change_se, signal_plateau=d.plateau,

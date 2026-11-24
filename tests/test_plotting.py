@@ -76,3 +76,25 @@ def test_plot_cli_all_kinds(tmp_path):
     assert main(["across", str(tmp_path / "s3"), "--out", str(tmp_path / "s4.csv")]) == 0
     assert main(["plot", "uptake", str(tmp_path / "s4.csv"), "--format", "png", "pdf"]) == 0
     assert (tmp_path / "s4_uptake.pdf").is_file() and len(files) == 3
+
+
+def test_plot_alongline_from_stage2(tmp_path):
+    from disegreg.definitions import load_definitions, load_proposals
+    from disegreg.stage2 import analyse_snapshot
+    from test_manifest_stage2 import A, synthetic_snapshot
+
+    rows = []
+    for k, seed in enumerate((1, 2, 3)):
+        snap, cell, pos, r_true, solute, z0 = synthetic_snapshot(seed)
+        rng = np.random.default_rng(seed)
+        core = r_true < 5
+        snap.types = np.where(core, np.where(rng.random(len(pos)) < 0.3, 2, 1), snap.types).astype(np.int8)
+        res = analyse_snapshot(snap, load_definitions(), A, z_gp=z0, proposals=load_proposals())
+        rows += [{"run_id": "RUN", "snapshot": f"s{k}", "timestep": 1000 * (k + 1), **r, "definition_set": "D1",
+                  "tool_version": "t"} for r in res.records]
+    m = demo()
+    m["run_id"] = "RUN"
+    write_table(tmp_path / "RUN_stage2_D1.csv", rows, {"manifest_data": m})
+    assert main(["plot", "alongline", str(tmp_path / "RUN_stage2_D1.csv")]) == 0
+    assert (tmp_path / "RUN_stage2_D1_alongline_map.png").is_file()
+    assert (tmp_path / "RUN_stage2_D1_alongline_spectrum.png").is_file()

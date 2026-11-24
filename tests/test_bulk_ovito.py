@@ -77,7 +77,11 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     assert {r["analysis"] for r in s4} == {"x_bc_error"} and {r["runs"] for r in s4} == {"RUN"}
     # the table still works, with a status column
     assert main(["table", str(out), "--out", str(tmp_path / "all.csv")]) == 0
-    assert {r["status"] for r in read_table(tmp_path / "all.csv")} == {"definition"}
+    allrows = read_table(tmp_path / "all.csv")
+    from disegreg.results import PROPOSAL_QUANTITIES
+    assert {r["status"] for r in allrows if r["quantity"] in PROPOSAL_QUANTITIES} == {"proposal"}
+    assert {r["status"] for r in allrows if r["quantity"] not in PROPOSAL_QUANTITIES} == {"definition"}
+    assert {r["quantity"] for r in allrows if r["status"] == "proposal"} >= {"alongline_S", "domain_n"}
     # a bulk control with too few solute atoms (DEFINITIONS 5, 2b): x_bc only as a diagnostic, x_iso stays the reference
     defs = load_definitions()
     params = {**defs.params, "reference": {**defs.params["reference"], "min_solute_in_bulk_control": 10 ** 6}}

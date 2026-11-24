@@ -28,6 +28,17 @@ STATUS_DEFINITION, STATUS_PROPOSAL = "definition", "proposal"
 PROPOSAL_QUANTITIES: set[str] = set()
 
 
+def _register_proposals():
+    from .alongline import QUANTITIES as alongline_q  # P4
+    from .domains import QUANTITIES as domain_q        # P5
+
+    PROPOSAL_QUANTITIES.update(alongline_q)
+    PROPOSAL_QUANTITIES.update(domain_q)
+
+
+_register_proposals()
+
+
 def quantity_status(quantity: str) -> str:
     return STATUS_PROPOSAL if quantity in PROPOSAL_QUANTITIES else STATUS_DEFINITION
 

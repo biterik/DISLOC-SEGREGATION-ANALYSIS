@@ -9,7 +9,18 @@ Delta = offset (dmu - dmu_coex) / kT, negative = below coexistence; c_C = solute
 x_ref = reference solute fraction: c_B (in-cell far field), x_iso (isotherm), x_bc (bulk-control cell).
 
 ## 0. Bugs in v0.1.0 (may need a v0.1.1 on main, with Erik)
-None found that changes a v0.1.0 number. Two robustness points, fixed on the branch only:
+**0.1 Snapshots after the end of the MC stream are silently dropped (v0.1.0 behaviour, needs your decision).**
+Stage 3 takes the averaging window from the MC stream; a snapshot later than the last stream line lies outside every window
+and is not used -- without any message. Found on the Mac copies of the Nb-Au Mendelev runs: the stream ends at 1.53 ns
+(rsynced earlier), the dumps go to 3.01 ns, so about half of the snapshots are ignored. No number is wrong for the snapshots
+it does use, and on cmmg (stream and dumps from the same run folder) it does not happen. On the branch: a WARNING and the count
+(`snapshots_after_window_signal` in the Stage-3 provenance); no number changed.
+Options: (a) keep v0.1.0 behaviour + the warning (branch state; recommended for v0.1.1 = warning only, so no v0.1.0 number
+changes); (b) when the stream ends before the last snapshot, take the window from the Stage-2 key quantity instead (changes
+numbers for such runs); (c) refuse to run Stage 3 in that case. Recommendation: (a) now, and ask the projects to rsync the
+stream together with the dumps (one line in docs/HOWTO_PROJECTS.md).
+
+Two robustness points, fixed on the branch only (no v0.1.0 number affected):
 - `results.write_table` would have written a numpy number as the text "np.float64(0.25)" (numpy >= 2). v0.1.0 always passes
   plain Python numbers, so no v0.1.0 table is affected; the fix writes plain Python numbers identically.
 - `paper_flag` (ACE Ni-Cu held back) was dropped as soon as a manifest NAMED a bulk control, even before its x_bc existed.
@@ -19,9 +30,9 @@ None found that changes a v0.1.0 number. Two robustness points, fixed on the bra
 | item | state | commit |
 |---|---|---|
 | A. Stage 4 across runs | code + tests done; demo on 52 runs (Nb-Au, Ni-Cu) running | see git log |
-| B. plotting | (next) | |
-| C. along-line Fourier | (open) | |
-| D. ordered domains Ni-Al | (open) | |
+| B. plotting | `disegreg plot` 6 kinds, tests; demo figures with the demo numbers | see git log |
+| C. along-line Fourier | code + tests done (proposal P4); demo numbers with the demo run | see git log |
+| D. ordered domains Ni-Al | code + tests done (proposal P5); synthetic only -- no Ni-Al data on the Mac | see git log |
 | E. project feedback | (open) | |
 
 ### A. Stage 4 (`disegreg across`)
@@ -81,6 +92,31 @@ top-down "A2" approved 22 Nov, not yet run).
 Proposal: total error = sqrt(SEM_Gamma^2 + (N(r < R) / L_x x SEM(x_bc))^2), row `Gamma_error_total`. Recommended (otherwise the
 bulk-control uncertainty is silently dropped). For Gamma(20 A), N(r < 20 A) / L_x ~ 180 atoms per A, so SEM(x_bc) = 1e-5 adds
 0.0018 atoms/A.
+
+### P4. Along-line core composition: continuous line state or periodic particles?  (P4)
+Proposal (DEFINITIONS P4): core atoms (r < 5 A) in X bins of ~5 A; dispersion index D (1 = random, >> 1 = particles,
+< 1 = more even than random); spectrum S(q) normalised to binomial noise (mean 1), window-averaged; "periodic" if the highest
+peak has p < 0.01 under binomial noise. Synthetic checks: a particle array with 25 A spacing in a 100 A cell gives q = 4,
+lambda = 25.0 A, p < 1e-6, D > 5; random placement gives mean S = 1.00, mean D = 1.00, and 0.86 % false peaks at p < 0.01 (5.3 % at p < 0.05; 5000 trials;
+the mode q = n/2 is treated with its one degree of freedom -- without that the false rate was 1.7 %).
+Options: bins 5 A (recommended: ~40 core atoms per bin in the Ni cells, wavelengths 10-100 A) or 2.5 A (one (110) period at
+d0/d60, noisier); atoms C only (recommended) or C + S; threshold p < 0.01 (recommended) or 0.05.
+Demo numbers: section 3.
+
+### P5. Ordered-domain sizes (Ni-Al vs 2.7 +- 0.6 nm)  (P5)
+Proposal (DEFINITIONS P5): ordered solute = no solute 1st neighbour and >= 4 of 6 solute 2nd neighbours; domain = 2nd-shell-
+connected ordered solute atoms (>= 4) plus their solute 2nd neighbours (the surface); d = (6 n a^3 / pi)^(1/3).
+Synthetic test, L1_2 Ni3Al sphere of diameter D in fcc Ni (a = 3.52 A), measured d / D:
+
+| D (nm) | 1.6 | 2.0 | 2.7 | 3.2 | 4.0 |
+|---|---|---|---|---|---|
+| ordered atoms only (no surface) | 0.80 | 0.84 | 0.94 | 0.91 | 0.94 |
+| with the surface atoms (recommended) | 1.05 | 0.99 | 1.02 | 1.00 | 0.99 |
+
+The same sphere in a random Ni-13Al matrix: d / D within 10 %, no spurious domain in the matrix (random Ni-13Al: < 2 % of the Al
+"ordered", no domain of >= 4). Options: k = 4 (recommended; counts D0_22-type order too) or k = 5 / 6 (L1_2 only, smaller
+domains); with or without the surface atoms (recommended: with -- otherwise a 2 nm domain is reported as 1.7 nm).
+Blocked: no Ni-Al MD/MC snapshot exists yet (the Ni-Al project folder on the Mac is empty).
 
 ## 3. Demo numbers
 (filled in when the demo run of 52 runs is finished)

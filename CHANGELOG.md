@@ -23,6 +23,14 @@ Open decisions: docs/OPEN-DECISIONS_v0.2.md.
 - `disegreg plot gamma | timeseries | delta | uptake | regions` (`disegreg.plotting`, item B): house style (fonts >= 13 pt,
   Okabe-Ito palette checked for colour-vision deficiency, fixed colour per character, symmetric diverging scale for signed
   maps); optional dependency `plot` (matplotlib).
+- Along-line core composition (`disegreg.alongline`, proposal P4, item C): core solute counts in ~5 A X bins, dispersion
+  index, spectrum normalised to binomial noise, peak wavelength and p-value (exact for the q = n/2 mode); Stage-2 quantities
+  `alongline_*` (status proposal); `disegreg plot alongline` (kymograph with symmetric scale + window-averaged spectrum).
+- Ordered-domain sizes (`disegreg.domains`, proposal P5, item D): ordered solute (no solute 1st, >= 4 of 6 solute 2nd
+  neighbours), 2nd-shell-connected domains with their surface atoms, equivalent diameter, per region and in bulk controls;
+  Stage-2 quantities `domain_*` (status proposal). Synthetic L1_2 Ni3Al spheres 1.6-4 nm recovered to 1-5 %.
+- `disegreg analyse` adds the proposal quantities by default (`--no-proposals`: D1 only).
+- Stage 3 warns and counts snapshots later than the end of the window signal (MC stream), which v0.1.0 drops silently.
 - examples/stage4/: demo manifests for 52 Nb-Au and Ni-Cu thread-07 runs (make_demo_manifests.py), site configuration.
 ### Fixed (v0.2 branch; no v0.1.0 number affected)
 - `results.write_table` writes numpy numbers as plain numbers (numpy >= 2 repr was "np.float64(...)").

@@ -258,3 +258,26 @@ the results table refuses such a number for role "headline". Parameter values: `
 ## P3. Error of Gamma vs x_bc (section 5, code side)
 - The Stage-3 SEM of Gamma vs x_bc holds only the time scatter of the dislocation run; x_bc is one number with its own SEM.
 - Proposal: quote the total error sqrt(SEM_Gamma^2 + (N(r < R) / L_x x SEM(x_bc))^2) (Stage 4, row "Gamma_error_total").
+
+## P4. Along-line core composition and its spectrum (section 7, "planned for v0.2")
+Question: does the core hold a continuous line state (solute spread evenly along the line) or a periodic array of particles?
+- Atoms: the core, region C (r < 5 A); option: C and S (r < 10 A) for particles wider than the core.
+- Bins: n = round(L_x / 5 A) bins along X (actual width L_x / n, as the X slabs of 3.3). Per bin k: N_k core atoms, s_k core solute
+  atoms; c = sum s_k / sum N_k; fluctuation d_k = s_k - c N_k.
+- Dispersion index D = sum d_k^2 / ((1 - 1/n) sum N_k c (1 - c)): 1 for independent (binomial) placement, >> 1 for solute bunched
+  into particles, < 1 for a more even than random spread.
+- Spectrum S(q) = |sum_k d_k exp(-2 pi i q k / n)|^2 / (n Nbar c (1 - c)), q = 1 .. n/2 (wavelength L_x / q): mean 1 at every q
+  for binomial placement. A periodic array of particles with spacing lambda gives a peak at q = L_x / lambda.
+- Peak test: p = 1 - (1 - exp(-S_max))^m (m = number of q values) = probability that binomial noise alone gives a peak this high;
+  "periodic" if p < 0.01 in the window-averaged spectrum (Stage 3 averages S(q) over the snapshots).
+- Limit: with L_x ~ 100 A and 5 A bins, wavelengths 10-100 A are resolved (q = 1 .. 10); particle spacings above L_x cannot be seen
+  in one cell.
+
+## P5. Ordered-domain sizes (section 7, "planned for v0.2"; Ni-Al vs Howard et al. 2025: 2.7 +- 0.6 nm)
+- Ordered solute atom: no solute 1st neighbour and at least 4 of its 6 2nd neighbours solute (L1_2 Ni3Al: 0 and 6; D0_22: 0 and 4;
+  random solution at x = 0.13: ~0.3 % of the solute atoms qualify).
+- Domain: ordered solute atoms connected by 2nd-shell bonds, at least 4 of them; plus (option, recommended) the solute atoms that
+  are 2nd neighbours of the domain but not ordered themselves -- the domain surface.
+- Size: equivalent diameter d = (6 n a^3 / pi)^(1/3), n = solute atoms of the domain (L1_2: one solute atom per cube a^3).
+- Region of a domain: the region code (section 4) of the majority of its atoms; per region: number of domains, mean and largest d,
+  fraction of the region's solute that is ordered; the same for the bulk control (Howard: no domains away from dislocations).

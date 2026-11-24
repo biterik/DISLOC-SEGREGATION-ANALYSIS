@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from . import composition, frame, order, regions
+from . import alongline, composition, domains, frame, order, regions
 from .cache import STRUCTURE_CODES, Snapshot
 from .frame import SHOCKLEY
 from .geometry import line_coverage, line_distances
@@ -49,7 +49,7 @@ class Stage2Result:
 
 
 def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_ref=None, frame_matrix=None,
-                     workers: int = -1, keep_arrays: bool = False, c_B_ref: bool = False) -> Stage2Result:
+                     workers: int = -1, keep_arrays: bool = False, c_B_ref: bool = False, proposals=None) -> Stage2Result:
     """All Stage-2 quantities of one snapshot.
 
     a_cell : lattice parameter the cell was built with (manifest), for the neighbour-shell cut-offs.
@@ -58,6 +58,9 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
              None -> counts and local quantities only.
     c_B_ref: also use this snapshot's own far-field concentration c_B as a reference (ref label "c_B").
     frame_matrix : rows = crystal directions of X, Y, Z (Manifest.frame_matrix()); None -> no crystal-frame segment table.
+    proposals : the v0.2 proposal parameters (definitions.load_proposals()); None -> D1 quantities only. With them, the
+             proposal quantities are added (status proposal in the results table): along-line core spectrum (P4),
+             ordered-domain sizes (P5).
     """
     t0 = time.perf_counter()
     res = Stage2Result()
@@ -167,6 +170,14 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
     res.add("partial_separation_valid_bins", ps.n_valid)
     res.info.update(partial_separation_bins=ps.n_bins, n_shockley_polylines=ps.n_partials)
 
+    # ---- [PROPOSAL v0.2] P4: along-line core composition and spectrum
+    if proposals is not None and "alongline" in proposals.params:
+        pa = proposals["alongline"]
+        sel = np.isin(codes, [regions.code_index(c) for c in pa["regions"]])
+        al = alongline.profile(cell, pos, solute, sel, float(pa["bin_width"]))
+        alongline.records(al, res.add)
+        res.info.update(alongline_q_peak=al.q_peak, alongline_p_peak=al.p_peak, alongline_dispersion=al.dispersion)
+
     # ---- order and clusters (7)
     sh = order.shell_pairs(cell, pos, a_cell, float(ordp["shell1_cutoff_a"]), float(ordp["shell2_cutoff_a"]))
     nc = order.neighbour_counts(len(pos), solute, sh)
@@ -184,6 +195,13 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
         res.add("cluster_mean_size", cb.mean_size[k], region=code)
         res.add("cluster_frac_isolated", cb.frac_isolated[k], region=code)
         res.add("cluster_max_size", cb.max_size[k], region=code)
+    # ---- [PROPOSAL v0.2] P5: ordered-domain sizes
+    if proposals is not None and "ordered_domains" in proposals.params:
+        po = proposals["ordered_domains"]
+        dom = domains.find_domains(solute, nc, sh, codes, a_cell, int(po["max_solute_1st"]), int(po["min_solute_2nd"]),
+                                   int(po["min_domain_solute"]), float(po["volume_per_solute_a3"]),
+                                   bool(po.get("include_border", False)))
+        domains.records(dom, solute, codes, res.add)
     res.info["timing_s"] = round(time.perf_counter() - t0, 3)
     if keep_arrays:
         res.r, res.r_dxa, res.codes, res.cluster_size = ld.r, ld.r_dxa, codes, size
@@ -193,7 +211,8 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
 BULK_REGION = "interior"
 
 
-def analyse_bulk_snapshot(snap: Snapshot, definitions, a_cell: float, keep_arrays: bool = False) -> Stage2Result:
+def analyse_bulk_snapshot(snap: Snapshot, definitions, a_cell: float, keep_arrays: bool = False,
+                          proposals=None) -> Stage2Result:
     """Stage 2 of a bulk-control snapshot (no dislocation, DEFINITIONS 5): composition, order and clusters of the interior.
 
     Interior = every atom, all structure labels, except region X when the cell is NOT periodic in Z (same z faces as the
@@ -232,6 +251,17 @@ def analyse_bulk_snapshot(snap: Snapshot, definitions, a_cell: float, keep_array
     res.add("cluster_mean_size", cb.mean_size[k], region=BULK_REGION)
     res.add("cluster_frac_isolated", cb.frac_isolated[k], region=BULK_REGION)
     res.add("cluster_max_size", cb.max_size[k], region=BULK_REGION)
+    if proposals is not None and "ordered_domains" in proposals.params:   # [PROPOSAL v0.2] P5, as in the dislocation cell
+        po = proposals["ordered_domains"]
+        dom = domains.find_domains(solute, nc, sh, codes, a_cell, int(po["max_solute_1st"]), int(po["min_solute_2nd"]),
+                                   int(po["min_domain_solute"]), float(po["volume_per_solute_a3"]),
+                                   bool(po.get("include_border", False)))
+        sel = dom.big & (dom.region == k)
+        res.add("domain_frac_ordered", (dom.ordered & ~excluded).sum() / ns_int if ns_int else float("nan"),
+                region=BULK_REGION)
+        res.add("domain_n", int(sel.sum()), region=BULK_REGION)
+        res.add("domain_d_mean", float(dom.diameter[sel].mean()) if sel.any() else float("nan"), region=BULK_REGION)
+        res.add("domain_d_max", float(dom.diameter[sel].max()) if sel.any() else float("nan"), region=BULK_REGION)
     res.info["timing_s"] = round(time.perf_counter() - t0, 3)
     if keep_arrays:
         res.codes, res.cluster_size = codes, size

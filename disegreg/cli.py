@@ -85,7 +85,7 @@ def find_x_bc(run_id: str, label: str, folders, min_solute: int = 100):
     return None
 
 
-def _analyse_bulk(m, d, root, env, tv, args) -> int:
+def _analyse_bulk(m, d, root, env, tv, args, props=None) -> int:
     """Stage 2 + 3 of a bulk-control run: x_bc per snapshot, then its window mean (DEFINITIONS 5, v0.2)."""
     import time
     from pathlib import Path
@@ -105,7 +105,7 @@ def _analyse_bulk(m, d, root, env, tv, args) -> int:
     for dump in dumps:
         t0 = time.perf_counter()
         snap = get_snapshot(dump, d, cache_root=root, verbose=args.verbose)
-        res = analyse_bulk_snapshot(snap, d, float(m["a_cell"]))
+        res = analyse_bulk_snapshot(snap, d, float(m["a_cell"]), proposals=props)
         ts = _md_step(dump, snap.meta.get("timestep", -1))
         for r in res.records:
             rows.append({"run_id": m["run_id"], "snapshot": Path(dump).name, "timestep": ts, **r,
@@ -159,12 +159,15 @@ def _cmd_analyse(args) -> int:
     ref_rule = d["reference"]
     comp = d["composition"]
     hr, cr = float(comp["headline_radius"]), float(comp["check_radius"])
+    from .definitions import load_proposals
+
+    props = None if args.no_proposals else load_proposals()  # v0.2 proposal quantities (status proposal)
     # bulk controls first, so the runs naming one find its x_bc (v0.2: automatic x_bc)
     manifests = sorted((load_manifest(mf) for mf in args.manifests), key=lambda m: not m.is_bulk_control)
     bulk_dirs = [Path(args.out).expanduser()] + [Path(b).expanduser() for b in (args.bulk_dir or [])]
     for m in manifests:
         if m.is_bulk_control:
-            status |= _analyse_bulk(m, d, root, env, tv, args)
+            status |= _analyse_bulk(m, d, root, env, tv, args, props)
             continue
         # reference compositions (DEFINITIONS 5, rev. 4): c_B of the snapshot always; x_iso if the manifest has it;
         # x_bc from the bulk control's own Stage-3 table (automatic, v0.2) or a value from the command line
@@ -210,7 +213,7 @@ def _cmd_analyse(args) -> int:
             t0 = time.perf_counter()
             snap = get_snapshot(dump, d, cache_root=root, verbose=args.verbose)
             res = analyse_snapshot(snap, d, float(m["a_cell"]), z_gp=float(m["z_gp"]), x_ref=refs or None,
-                                   frame_matrix=m.frame_matrix(), c_B_ref=True)
+                                   frame_matrix=m.frame_matrix(), c_B_ref=True, proposals=props)
             ts = _md_step(dump, snap.meta.get("timestep", -1))
             for r in res.records:
                 rows.append({"run_id": m["run_id"], "snapshot": Path(dump).name, "timestep": ts, **r,
@@ -228,6 +231,7 @@ def _cmd_analyse(args) -> int:
         out = Path(args.out).expanduser() / f"{m['run_id']}_stage2_{d.label}.csv"
         prov = {"environment": env, "tool_version": tv, "definition_set": d.label, "definitions_sha256": d.sha256,
                 "definitions_status": d.status, "manifest": str(m.path), "manifest_data": m.data,
+                "proposal_set": props.label if props else None, "proposals_sha256": props.sha256 if props else None,
                 "x_ref": refs, "x_ref_source": m["x_ref_source"], "reference_rule": rule_text, "paper_flag": hold,
                 "x_bc": x_bc_info, "snapshots": snaps}
         write_table(out, rows, prov)
@@ -254,6 +258,10 @@ def _cmd_analyse(args) -> int:
         curve = gamma_curve(rows3, hr, cr)
         outg = Path(args.out).expanduser() / f"{m['run_id']}_gammaR_{d.label}.csv"
         write_table(outg, curve, {**prov, "stage3": info3}, columns=GAMMA_CURVE_COLUMNS)
+        if info3.get("snapshots_after_window_signal"):
+            print(f"  WARNING: {info3['snapshots_after_window_signal']} of {info3['snapshots_total']} snapshots are later "
+                  f"than the end of the {info3['window_source']} signal and are NOT used (is the MC stream copy older than "
+                  "the dumps?)")
         verdict = "converged" if info3["converged"] else "NOT converged"
         if not info3["signal_plateau"]:
             verdict += " (block averaging without plateau: error bar is a lower bound, verdict uncertain)"
@@ -464,6 +472,48 @@ def _cmd_plot(args) -> int:
         xr = {r["ref"]: r["value"] for r in read_table(f) if r["run_id"] == args.run and r["quantity"] == "x_ref"}
         fig = plotting.regions(rows, args.run, refs={f"x_ref ({k})": v for k, v in xr.items() if k != "c_B"})
         out = args.out or f.with_name(f"{args.run}_regions")
+    elif kind == "alongline":
+        f = Path(args.input)  # <run>_stage2_<D>.csv with the P4 quantities
+        rows = read_table(f)
+        prov = json.loads(f.with_name(f.name + ".provenance.json").read_text())
+        run = prov.get("manifest_data", {}).get("run_id", f.stem)
+        dt = prov.get("manifest_data", {}).get("md_timestep_ps")
+        steps = sorted({r["timestep"] for r in rows if r["quantity"] == "alongline_N_bin"})
+        if not steps:
+            print(f"no along-line quantities in {f} (analysed with --no-proposals?)")
+            return 1
+        f3 = f.with_name(f.name.replace("_stage2_", "_stage3_"))
+        if f3.is_file():  # only the snapshots of the averaging window
+            info3 = json.loads(f3.with_name(f3.name + ".provenance.json").read_text()).get("stage3", {})
+            k = (dt or 1.0)
+            steps = [t for t in steps if info3["window_t_start"] - 1e-6 <= t * k <= info3["window_t_end"] + 1e-6] or steps
+        nb = int(next(r["value"] for r in rows if r["quantity"] == "alongline_n_bins"))
+        L = next(r["value"] for r in rows if r["quantity"] == "L_x")
+        N = {(r["timestep"], int(r["region"][1:])): r["value"] for r in rows if r["quantity"] == "alongline_N_bin"}
+        Ns = {(r["timestep"], int(r["region"][1:])): r["value"] for r in rows if r["quantity"] == "alongline_N_sol_bin"}
+        d = np.zeros((nb, len(steps)))
+        for j, t in enumerate(steps):
+            n = np.array([N[(t, k)] for k in range(nb)])
+            sn = np.array([Ns[(t, k)] for k in range(nb)])
+            d[:, j] = sn - (sn.sum() / n.sum() if n.sum() else 0.0) * n
+        S = {}
+        for r in rows:
+            if r["quantity"] == "alongline_S" and r["timestep"] in steps:
+                S.setdefault(int(r["region"][1:]), []).append(r["value"])
+        q = np.array(sorted(S))
+        Sm = np.array([np.mean(S[k]) for k in q])
+        Se = np.array([np.std(S[k], ddof=1) / np.sqrt(len(S[k])) if len(S[k]) > 1 else np.nan for k in q])
+        tt = np.array(steps, float) * ((dt or 1.0) * (1e-3 if dt else 1.0))
+        te = np.concatenate([[tt[0] - 0.5 * (tt[1] - tt[0]) if len(tt) > 1 else tt[0] - 0.5],
+                             0.5 * (tt[1:] + tt[:-1]), [tt[-1] + 0.5 * (tt[-1] - tt[-2]) if len(tt) > 1 else tt[0] + 0.5]])
+        base = args.out or f.with_name(f.stem + "_alongline")
+        fig = plotting.signed_map(np.linspace(0, L, nb + 1), te, d, "position along the line X (Å)",
+                                  "time (ns)" if dt else "MD step", "core solute excess per bin (atoms)",
+                                  title=f"{run}: core composition along the line", aspect="auto")
+        for p in plotting.save(fig, str(base) + "_map", fmts):
+            print(f"-> {p}")
+        fig = plotting.alongline_spectrum(q, Sm, Se, L, len(steps), title=f"{run}: along-line spectrum of the core")
+        out = str(base) + "_spectrum"
     else:  # pragma: no cover -- argparse restricts the choices
         return 1
     for p in plotting.save(fig, out, fmts):
@@ -525,6 +575,7 @@ def main(argv=None) -> int:
                     "scripts); the other verdict is always stored as well")
     pa.add_argument("--bulk-dir", nargs="*", help="extra folders with bulk-control Stage-3 tables (default: --out only); "
                     "a run whose manifest names a bulk_control takes x_bc from <bulk_control>_stage3_<D>.csv")
+    pa.add_argument("--no-proposals", action="store_true", help="D1 quantities only (no v0.2 proposal quantities)")
     pa.add_argument("--verbose", action="store_true")
     pa.set_defaults(func=_cmd_analyse)
     ps = sub.add_parser("slurm", help="write a Slurm job array for Stage 1 (cmmg); prints the sbatch command")
@@ -552,8 +603,8 @@ def main(argv=None) -> int:
     px.add_argument("--cache", help="Stage-1 cache folder for the 0 K cells (default: $DISEGREG_CACHE or the agreed location)")
     px.add_argument("--definitions", default="D1", help="definition set label or YAML path (default D1)")
     px.set_defaults(func=_cmd_across)
-    pp = sub.add_parser("plot", help="plots in the house style: gamma | timeseries | delta | uptake | regions")
-    pp.add_argument("kind", choices=("gamma", "timeseries", "delta", "uptake", "regions"))
+    pp = sub.add_parser("plot", help="plots in the house style: gamma | timeseries | delta | uptake | regions | alongline")
+    pp.add_argument("kind", choices=("gamma", "timeseries", "delta", "uptake", "regions", "alongline"))
     pp.add_argument("input", help="gamma: <run>_gammaR_<D>.csv; timeseries: <run>_stage2_<D>.csv; delta, regions: results "
                     "table of `disegreg table`; uptake: Stage-4 table of `disegreg across`")
     pp.add_argument("--quantity", default="N_sol_inside:20:r",

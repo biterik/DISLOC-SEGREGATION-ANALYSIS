@@ -272,3 +272,27 @@ def signed_map(x_edges, y_edges, values, xlabel: str, ylabel: str, cbar_label: s
         ax.set_ylabel(ylabel)
         ax.set_title(title or cbar_label)
     return fig
+
+
+# ---------------------------------------------------------------------------------- along-line spectrum (P4)
+def alongline_spectrum(q, S_mean, S_sem, line_length: float, n_snapshots: int, title: str = ""):
+    """Mean normalised spectrum S(q) of the core composition along the line, with the binomial-noise level 1 and its
+    95 % band for the mean of n_snapshots independent spectra (exp(1) values: sd 1/sqrt(n))."""
+    q = np.asarray(q, float)
+    with _ctx():
+        fig, ax, _ = _figure()
+        band = 1.96 / np.sqrt(max(n_snapshots, 1))
+        ax.axhspan(max(0.0, 1 - band), 1 + band, color=GRID, alpha=0.6, lw=0,
+                   label=f"binomial noise ± 95 % ({n_snapshots} snapshot{'s' if n_snapshots != 1 else ''})")
+        ax.axhline(1.0, color=TEXT_2, lw=1.5, ls=":")
+        ax.errorbar(q, S_mean, yerr=np.where(np.isfinite(S_sem), S_sem, 0), color=PALETTE[0], marker="o", capsize=3,
+                    label="core, mean over the window")
+        ax.set_xlabel("mode q (wavelength L$_x$ / q)")
+        ax.set_ylabel("S(q) / binomial noise")
+        sec = ax.secondary_xaxis("top", functions=(lambda x: line_length / np.maximum(x, 1e-9),
+                                                   lambda w: line_length / np.maximum(w, 1e-9)))
+        sec.set_xlabel("wavelength (Å)")
+        sec.tick_params(labelsize=14)
+        ax.set_title(title or "Along-line core composition: spectrum")
+        ax.legend(loc="best")
+    return fig
