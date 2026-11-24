@@ -1,0 +1,336 @@
+project,run,quantity,kind,old,old_recipe,diff,rel_diff,tolerance,verdict
+nicu,d0 CuNi-ACE 0.10 830,c0_5,conc,0.1259,0.125891,9e-06,7.15e-05,0.00257,exact
+nicu,d0 CuNi-ACE 0.10 830,c5_10,conc,0.0076,0.00756888,3.11e-05,0.00409,0.000353,exact
+nicu,d0 CuNi-ACE 0.10 830,c10_20,conc,0.00518,0.00518085,8.5e-07,0.000164,0.000109,exact
+nicu,d0 CuNi-ACE 0.10 830,c_far,conc,0.000706,0.00070582,1.8e-07,0.000255,1.46e-05,exact
+nicu,d0 CuNi-ACE 0.10 830,sep,position,9.5,9.54983,0.0498,0.00525,0.55,exact
+nicu,d30 CuNi-ACE 0.10 750,c0_5,conc,0.0434,0.043387,1.3e-05,0.0003,0.000918,exact
+nicu,d30 CuNi-ACE 0.10 750,c5_10,conc,0.0044,0.00439504,4.96e-06,0.00113,0.000309,exact
+nicu,d30 CuNi-ACE 0.10 750,c10_20,conc,9e-05,8.59033e-05,4.1e-06,0.0455,9.09e-05,exact
+nicu,d30 CuNi-ACE 0.10 750,c_far,conc,0.000733,0.000732577,4.23e-07,0.000577,1.52e-05,exact
+nicu,d30 CuNi-ACE 0.10 750,sep,position,13.3,13.2854,0.0146,0.0011,0.55,exact
+nicu,d60 CuNi-ACE 0.10 810,c0_5,conc,0.189,0.188971,2.9e-05,0.000153,0.00428,exact
+nicu,d60 CuNi-ACE 0.10 810,c5_10,conc,0.0237,0.0237264,2.64e-05,0.00111,0.000524,exact
+nicu,d60 CuNi-ACE 0.10 810,c10_20,conc,8e-05,8.33264e-05,3.33e-06,0.0416,8.83e-05,exact
+nicu,d60 CuNi-ACE 0.10 810,c_far,conc,0.000641,0.000641294,2.94e-07,0.000459,1.33e-05,exact
+nicu,d60 CuNi-ACE 0.10 810,sep,position,17.4,17.3954,0.0046,0.000264,0.55,exact
+nicu,d90 CuNi-ACE 0.10 790,c0_5,conc,0.1487,0.146413,0.00229,0.0154,0.00302,tolerance
+nicu,d90 CuNi-ACE 0.10 790,c5_10,conc,0.0198,0.0199824,0.000182,0.00921,0.000446,tolerance
+nicu,d90 CuNi-ACE 0.10 790,c10_20,conc,0.00047,0.000467399,2.6e-06,0.00553,8.29e-05,exact
+nicu,d90 CuNi-ACE 0.10 790,c_far,conc,0.001068,0.00106686,1.14e-06,0.00107,2.19e-05,tolerance
+nicu,d90 CuNi-ACE 0.10 790,sep,position,19,18.8293,0.171,0.00898,1,exact
+nicu,d0 CuNi-ACE 0.50 310,c0_5,conc,0.0219,0.021875,2.5e-05,0.00114,0.000831,exact
+nicu,d0 CuNi-ACE 0.50 310,c5_10,conc,0,0,0,,0.5,exact
+nicu,d0 CuNi-ACE 0.50 310,c10_20,conc,0.00046,0.000461084,1.08e-06,0.00236,9.72e-05,exact
+nicu,d0 CuNi-ACE 0.50 310,c_far,conc,0.000114,0.000113926,7.4e-08,0.000649,3.85e-06,exact
+nicu,d0 CuNi-ACE 0.50 310,sep,position,11,10.9772,0.0228,0.00207,1,exact
+nicu,d30 CuNi-ACE 0.50 290,c0_5,conc,0.0045,0.00446429,3.57e-05,0.00794,0.000794,exact
+nicu,d30 CuNi-ACE 0.50 290,c5_10,conc,0,0,0,,0.5,exact
+nicu,d30 CuNi-ACE 0.50 290,c10_20,conc,9e-05,8.66251e-05,3.37e-06,0.0375,9.16e-05,exact
+nicu,d30 CuNi-ACE 0.50 290,c_far,conc,0.000188,0.000188059,5.9e-08,0.000314,4.26e-06,exact
+nicu,d30 CuNi-ACE 0.50 290,sep,position,13.2,13.2391,0.0391,0.00296,0.55,exact
+nicu,d60 CuNi-ACE 0.50 310,c0_5,conc,0.0394,0.0401515,0.000752,0.0191,0.000838,tolerance
+nicu,d60 CuNi-ACE 0.50 310,c5_10,conc,0.0018,0.00157871,0.000221,0.123,0.000276,tolerance
+nicu,d60 CuNi-ACE 0.50 310,c10_20,conc,8e-05,8.10767e-05,1.08e-06,0.0135,8.61e-05,exact
+nicu,d60 CuNi-ACE 0.50 310,c_far,conc,0.000134,0.000133558,4.42e-07,0.0033,4.01e-06,exact
+nicu,d60 CuNi-ACE 0.50 310,sep,position,19,18.9935,0.0065,0.000342,1,exact
+nicu,d90 CuNi-ACE 0.50 290,c0_5,conc,0.0151,0.0153285,0.000228,0.0151,0.00078,tolerance
+nicu,d90 CuNi-ACE 0.50 290,c5_10,conc,0.0018,0.00174596,5.4e-05,0.03,0.000268,tolerance
+nicu,d90 CuNi-ACE 0.50 290,c10_20,conc,0.00031,0.000311526,1.53e-06,0.00492,8.29e-05,exact
+nicu,d90 CuNi-ACE 0.50 290,c_far,conc,0.000242,0.000242109,1.09e-07,0.00045,5.34e-06,exact
+nicu,d90 CuNi-ACE 0.50 290,sep,position,18.9,18.9329,0.0329,0.00174,0.55,exact
+nicu,d0 LeeShim2004-MEAM 0.10 2390,c0_5,conc,0.041,0.0409722,2.78e-05,0.000678,0.00132,exact
+nicu,d0 LeeShim2004-MEAM 0.10 2390,c5_10,conc,0.0086,0.00864198,4.2e-05,0.00488,0.000359,exact
+nicu,d0 LeeShim2004-MEAM 0.10 2390,c10_20,conc,0.00699,0.00698819,1.81e-06,0.000259,0.000145,exact
+nicu,d0 LeeShim2004-MEAM 0.10 2390,c_far,conc,0.007281,0.00728089,1.1e-07,1.51e-05,0.000146,exact
+nicu,d0 LeeShim2004-MEAM 0.10 2390,sep,position,9.7,9.70675,0.00675,0.000696,0.55,exact
+nicu,d30 LeeShim2004-MEAM 0.10 2250,c0_5,conc,0.0702,0.0701754,2.46e-05,0.00035,0.00145,exact
+nicu,d30 LeeShim2004-MEAM 0.10 2250,c5_10,conc,0.0092,0.00917191,2.81e-05,0.00305,0.000312,exact
+nicu,d30 LeeShim2004-MEAM 0.10 2250,c10_20,conc,0.0077,0.00769912,8.8e-07,0.000114,0.000204,exact
+nicu,d30 LeeShim2004-MEAM 0.10 2250,c_far,conc,0.00745,0.00744999,1e-08,1.34e-06,0.000154,exact
+nicu,d30 LeeShim2004-MEAM 0.10 2250,sep,position,12.5,12.5282,0.0282,0.00226,0.55,exact
+nicu,d60 LeeShim2004-MEAM 0.10 2390,c0_5,conc,0.1097,0.109722,2.2e-05,0.000201,0.00224,exact
+nicu,d60 LeeShim2004-MEAM 0.10 2390,c5_10,conc,0.0109,0.0109091,9.1e-06,0.000835,0.000277,exact
+nicu,d60 LeeShim2004-MEAM 0.10 2390,c10_20,conc,0.00937,0.00936576,4.24e-06,0.000453,0.000192,exact
+nicu,d60 LeeShim2004-MEAM 0.10 2390,c_far,conc,0.00782,0.00782017,1.7e-07,2.17e-05,0.000161,exact
+nicu,d60 LeeShim2004-MEAM 0.10 2390,sep,position,18.8,18.8494,0.0494,0.00263,0.55,exact
+nicu,d90 LeeShim2004-MEAM 0.10 2250,c0_5,conc,0.1462,0.146212,1.2e-05,8.21e-05,0.00297,exact
+nicu,d90 LeeShim2004-MEAM 0.10 2250,c5_10,conc,0.0104,0.0103627,3.73e-05,0.00359,0.000266,exact
+nicu,d90 LeeShim2004-MEAM 0.10 2250,c10_20,conc,0.01002,0.0100249,4.9e-06,0.000489,0.000205,exact
+nicu,d90 LeeShim2004-MEAM 0.10 2250,c_far,conc,0.007514,0.00751368,3.2e-07,4.26e-05,0.000151,exact
+nicu,d90 LeeShim2004-MEAM 0.10 2250,sep,position,21.5,21.5414,0.0414,0.00193,0.55,exact
+nicu,d0 LeeShim2004-MEAM 0.25 830,c0_5,conc,0.0292,0.0291667,3.33e-05,0.00114,0.000744,exact
+nicu,d0 LeeShim2004-MEAM 0.25 830,c5_10,conc,0.0079,0.00792683,2.68e-05,0.0034,0.000355,exact
+nicu,d0 LeeShim2004-MEAM 0.25 830,c10_20,conc,0.00522,0.00521654,3.46e-06,0.000663,0.000109,exact
+nicu,d0 LeeShim2004-MEAM 0.25 830,c_far,conc,0.006158,0.00615777,2.3e-07,3.73e-05,0.000124,exact
+nicu,d0 LeeShim2004-MEAM 0.25 830,sep,position,9.8,9.79554,0.00446,0.000455,0.55,exact
+nicu,d30 LeeShim2004-MEAM 0.25 770,c0_5,conc,0.0438,0.0438218,2.18e-05,0.000498,0.000926,exact
+nicu,d30 LeeShim2004-MEAM 0.25 770,c5_10,conc,0.0093,0.00929032,9.68e-06,0.00104,0.000308,exact
+nicu,d30 LeeShim2004-MEAM 0.25 770,c10_20,conc,0.00704,0.00704473,4.73e-06,0.000672,0.000146,exact
+nicu,d30 LeeShim2004-MEAM 0.25 770,c_far,conc,0.006445,0.00644495,5e-08,7.76e-06,0.000129,exact
+nicu,d30 LeeShim2004-MEAM 0.25 770,sep,position,12.7,12.6824,0.0176,0.00139,0.55,exact
+nicu,d60 LeeShim2004-MEAM 0.25 830,c0_5,conc,0.0493,0.0492647,3.53e-05,0.000716,0.00104,exact
+nicu,d60 LeeShim2004-MEAM 0.25 830,c5_10,conc,0.0119,0.0118737,2.63e-05,0.00221,0.000288,exact
+nicu,d60 LeeShim2004-MEAM 0.25 830,c10_20,conc,0.00762,0.00761951,4.9e-07,6.43e-05,0.000157,exact
+nicu,d60 LeeShim2004-MEAM 0.25 830,c_far,conc,0.006264,0.00626402,2e-08,3.19e-06,0.000126,exact
+nicu,d60 LeeShim2004-MEAM 0.25 830,sep,position,18.8,18.8407,0.0407,0.00216,0.55,exact
+nicu,d90 LeeShim2004-MEAM 0.25 770,c0_5,conc,0.0781,0.078114,1.4e-05,0.000179,0.00161,exact
+nicu,d90 LeeShim2004-MEAM 0.25 770,c5_10,conc,0.0089,0.00890723,7.23e-06,0.000812,0.000267,exact
+nicu,d90 LeeShim2004-MEAM 0.25 770,c10_20,conc,0.00698,0.00698462,4.62e-06,0.000662,0.000145,exact
+nicu,d90 LeeShim2004-MEAM 0.25 770,c_far,conc,0.006416,0.00641617,1.7e-07,2.65e-05,0.000129,exact
+nicu,d90 LeeShim2004-MEAM 0.25 770,sep,position,23.3,23.2775,0.0225,0.000966,0.55,exact
+nicu,d0 LeeShim2004-MEAM 1.00 2390,c0_5,conc,0.0153,0.0152778,2.22e-05,0.00145,0.000744,exact
+nicu,d0 LeeShim2004-MEAM 1.00 2390,c5_10,conc,0.0027,0.0027439,4.39e-05,0.0163,0.000355,exact
+nicu,d0 LeeShim2004-MEAM 1.00 2390,c10_20,conc,0.00256,0.00255906,9.4e-07,0.000367,0.000103,exact
+nicu,d0 LeeShim2004-MEAM 1.00 2390,c_far,conc,0.002732,0.00273189,1.1e-07,4.03e-05,5.51e-05,exact
+nicu,d0 LeeShim2004-MEAM 1.00 2390,sep,position,9.8,9.77164,0.0284,0.00289,0.55,exact
+nicu,d30 LeeShim2004-MEAM 2.00 2250,c0_5,conc,0.0095,0.00950292,2.92e-06,0.000307,0.000781,exact
+nicu,d30 LeeShim2004-MEAM 2.00 2250,c5_10,conc,0.0013,0.001294,6e-06,0.00462,0.000309,exact
+nicu,d30 LeeShim2004-MEAM 2.00 2250,c10_20,conc,0.00088,0.000884643,4.64e-06,0.00528,9.35e-05,exact
+nicu,d30 LeeShim2004-MEAM 2.00 2250,c_far,conc,0.001062,0.00106164,3.6e-07,0.000339,2.17e-05,exact
+nicu,d30 LeeShim2004-MEAM 2.00 2250,sep,position,12.7,12.7118,0.0118,0.000929,0.55,exact
+nicu,d60 LeeShim2004-MEAM 2.00 2390,c0_5,conc,0.0036,0.00355114,4.89e-05,0.0136,0.00076,exact
+nicu,d60 LeeShim2004-MEAM 2.00 2390,c5_10,conc,0.0011,0.00112816,2.82e-05,0.0256,0.000276,exact
+nicu,d60 LeeShim2004-MEAM 2.00 2390,c10_20,conc,0.00147,0.00147059,5.9e-07,0.000401,8.67e-05,exact
+nicu,d60 LeeShim2004-MEAM 2.00 2390,c_far,conc,0.001025,0.00102542,4.2e-07,0.00041,2.1e-05,exact
+nicu,d60 LeeShim2004-MEAM 2.00 2390,sep,position,19.2,19.1561,0.0439,0.00229,0.55,exact
+nbau,EAMX-DawChandross2023 d0 0.25,N5,count,4.1,4,0.1,0.0244,1.05,tolerance
+nbau,EAMX-DawChandross2023 d0 0.25,c_core,conc,0.002941,0.00293903,1.97e-06,0.00067,5.93e-05,tolerance
+nbau,EAMX-DawChandross2023 d0 0.25,c_shell,conc,0.000153,0.000153158,1.58e-07,0.00103,3.56e-06,exact
+nbau,EAMX-DawChandross2023 d0 0.25,c_SF,conc,4.491e-05,4.48934e-05,1.66e-08,0.00037,9.03e-07,tolerance
+nbau,EAMX-DawChandross2023 d0 0.25,c_far,conc,1.213e-05,1.21286e-05,1.4e-09,0.000115,2.48e-07,exact
+nbau,EAMX-DawChandross2023 d0 0.25,a1_core,order,0.01091,0.0109123,2.3e-06,0.000211,0.01,exact
+nbau,EAMX-DawChandross2023 d0 0.25,a1_far,order,-1.213e-05,-1.21287e-05,1.3e-09,0.000107,0.01,exact
+nbau,EAMX-DawChandross2023 d0 0.25,r2_core,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d0 0.25,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d0 0.25,sep,position,75.88,75.4305,0.45,0.00592,0.505,tolerance
+nbau,EAMX-DawChandross2023 d0 0.50,N5,count,4.2,4.44444,0.244,0.0582,1.05,tolerance
+nbau,EAMX-DawChandross2023 d0 0.50,c_core,conc,0.003285,0.00328129,3.71e-06,0.00113,6.62e-05,tolerance
+nbau,EAMX-DawChandross2023 d0 0.50,c_shell,conc,7.635e-05,7.63863e-05,3.63e-08,0.000475,1.53e-06,tolerance
+nbau,EAMX-DawChandross2023 d0 0.50,c_SF,conc,0,0,0,,0.5,exact
+nbau,EAMX-DawChandross2023 d0 0.50,c_far,conc,1.031e-05,1.03054e-05,4.6e-09,0.000446,2.11e-07,exact
+nbau,EAMX-DawChandross2023 d0 0.50,a1_core,order,0.003517,0.00351708,8e-08,2.27e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d0 0.50,a1_far,order,-1.031e-05,-1.03056e-05,4.4e-09,0.000427,0.01,exact
+nbau,EAMX-DawChandross2023 d0 0.50,r2_core,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d0 0.50,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d0 0.50,sep,position,90.05,89.9492,0.101,0.00112,0.505,tolerance
+nbau,EAMX-DawChandross2023 d0 1.00,N5,count,5.3,5.11111,0.189,0.0356,1.05,tolerance
+nbau,EAMX-DawChandross2023 d0 1.00,c_core,conc,0.003724,0.0037247,7e-07,0.000188,7.5e-05,tolerance
+nbau,EAMX-DawChandross2023 d0 1.00,c_shell,conc,2.574e-05,2.57679e-05,2.79e-08,0.00108,5.2e-07,tolerance
+nbau,EAMX-DawChandross2023 d0 1.00,c_SF,conc,0,0,0,,0.5,exact
+nbau,EAMX-DawChandross2023 d0 1.00,c_far,conc,8.188e-06,8.19003e-06,2.03e-09,0.000248,1.64e-07,tolerance
+nbau,EAMX-DawChandross2023 d0 1.00,a1_core,order,0.01775,0.0177469,3.1e-06,0.000175,0.01,exact
+nbau,EAMX-DawChandross2023 d0 1.00,a1_far,order,-8.188e-06,-8.19012e-06,2.12e-09,0.000259,0.01,tolerance
+nbau,EAMX-DawChandross2023 d0 1.00,r2_core,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d0 1.00,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d0 1.00,sep,position,84.05,84.3079,0.258,0.00307,0.505,tolerance
+nbau,EAMX-DawChandross2023 d30 0.25,N5,count,23.11,23.875,0.765,0.0331,1,tolerance
+nbau,EAMX-DawChandross2023 d30 0.25,c_core,conc,0.01752,0.0175124,7.6e-06,0.000434,0.000355,tolerance
+nbau,EAMX-DawChandross2023 d30 0.25,c_shell,conc,0.0001083,0.00010815,1.5e-07,0.00139,2.22e-06,tolerance
+nbau,EAMX-DawChandross2023 d30 0.25,c_SF,conc,0,0,0,,0.5,exact
+nbau,EAMX-DawChandross2023 d30 0.25,c_far,conc,1.792e-05,1.79235e-05,3.5e-09,0.000195,3.63e-07,exact
+nbau,EAMX-DawChandross2023 d30 0.25,a1_core,order,0.08425,0.0842458,4.2e-06,4.99e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d30 0.25,a1_far,order,-1.792e-05,-1.79238e-05,3.8e-09,0.000212,0.01,exact
+nbau,EAMX-DawChandross2023 d30 0.25,r2_core,order,0.3537,0.354484,0.000784,0.00222,0.01,tolerance
+nbau,EAMX-DawChandross2023 d30 0.25,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d30 0.25,sep,position,102.2,101.87,0.33,0.00323,0.55,tolerance
+nbau,EAMX-DawChandross2023 d30 0.50,N5,count,18.11,18.875,0.765,0.0422,1,tolerance
+nbau,EAMX-DawChandross2023 d30 0.50,c_core,conc,0.01375,0.0137377,1.23e-05,0.000895,0.00028,tolerance
+nbau,EAMX-DawChandross2023 d30 0.50,c_shell,conc,0.0001893,0.000189226,7.4e-08,0.000391,3.84e-06,tolerance
+nbau,EAMX-DawChandross2023 d30 0.50,c_SF,conc,7.766e-05,7.7688e-05,2.8e-08,0.000361,1.56e-06,tolerance
+nbau,EAMX-DawChandross2023 d30 0.50,c_far,conc,1.091e-05,1.09093e-05,7e-10,6.42e-05,2.23e-07,exact
+nbau,EAMX-DawChandross2023 d30 0.50,a1_core,order,0.0834,0.0833975,2.5e-06,3e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d30 0.50,a1_far,order,-1.091e-05,-1.09094e-05,6e-10,5.5e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d30 0.50,r2_core,order,0.6987,0.699683,0.000983,0.00141,0.014,tolerance
+nbau,EAMX-DawChandross2023 d30 0.50,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d30 0.50,sep,position,98.98,98.7382,0.242,0.00244,0.505,tolerance
+nbau,EAMX-DawChandross2023 d30 1.00,N5,count,13.11,13.375,0.265,0.0202,1,tolerance
+nbau,EAMX-DawChandross2023 d30 1.00,c_core,conc,0.009754,0.00973724,1.68e-05,0.00172,0.000196,tolerance
+nbau,EAMX-DawChandross2023 d30 1.00,c_shell,conc,5.401e-05,5.40687e-05,5.87e-08,0.00109,1.09e-06,tolerance
+nbau,EAMX-DawChandross2023 d30 1.00,c_SF,conc,3.499e-05,3.49944e-05,4.4e-09,0.000126,7.05e-07,exact
+nbau,EAMX-DawChandross2023 d30 1.00,c_far,conc,8.96e-06,8.96042e-06,4.2e-10,4.69e-05,1.84e-07,exact
+nbau,EAMX-DawChandross2023 d30 1.00,a1_core,order,0.06514,0.0651434,3.4e-06,5.22e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d30 1.00,a1_far,order,-1.024e-05,-1.02406e-05,6e-10,5.86e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d30 1.00,r2_core,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d30 1.00,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d30 1.00,sep,position,102.5,102.222,0.278,0.00271,0.55,tolerance
+nbau,EAMX-DawChandross2023 d60 0.25,N5,count,20.2,20.6667,0.467,0.0231,1.05,tolerance
+nbau,EAMX-DawChandross2023 d60 0.25,c_core,conc,0.01554,0.0155198,2.02e-05,0.0013,0.000316,tolerance
+nbau,EAMX-DawChandross2023 d60 0.25,c_shell,conc,0.0002231,0.000223356,2.56e-07,0.00115,4.51e-06,tolerance
+nbau,EAMX-DawChandross2023 d60 0.25,c_SF,conc,6.087e-05,6.08664e-05,3.6e-09,5.91e-05,1.22e-06,exact
+nbau,EAMX-DawChandross2023 d60 0.25,c_far,conc,1.754e-05,1.75368e-05,3.2e-09,0.000182,3.56e-07,exact
+nbau,EAMX-DawChandross2023 d60 0.25,a1_core,order,0.06702,0.0670244,4.4e-06,6.57e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d60 0.25,a1_far,order,-1.754e-05,-1.75371e-05,2.9e-09,0.000165,0.01,exact
+nbau,EAMX-DawChandross2023 d60 0.25,r2_core,order,0.5235,0.522876,0.000624,0.00119,0.0105,tolerance
+nbau,EAMX-DawChandross2023 d60 0.25,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d60 0.25,sep,position,109.8,110.137,0.337,0.00307,0.55,tolerance
+nbau,EAMX-DawChandross2023 d60 0.50,N5,count,18.7,19.5556,0.856,0.0458,1.05,tolerance
+nbau,EAMX-DawChandross2023 d60 0.50,c_core,conc,0.01467,0.0146714,1.4e-06,9.54e-05,0.000298,exact
+nbau,EAMX-DawChandross2023 d60 0.50,c_shell,conc,9.977e-05,9.96693e-05,1.01e-07,0.00101,2e-06,tolerance
+nbau,EAMX-DawChandross2023 d60 0.50,c_SF,conc,8.672e-05,8.67541e-05,3.41e-08,0.000393,1.74e-06,tolerance
+nbau,EAMX-DawChandross2023 d60 0.50,c_far,conc,1.571e-05,1.57137e-05,3.7e-09,0.000236,3.19e-07,exact
+nbau,EAMX-DawChandross2023 d60 0.50,a1_core,order,0.06911,0.069112,2e-06,2.89e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d60 0.50,a1_far,order,-1.571e-05,-1.5714e-05,4e-09,0.000255,0.01,exact
+nbau,EAMX-DawChandross2023 d60 0.50,r2_core,order,0.4252,0.425917,0.000717,0.00169,0.01,tolerance
+nbau,EAMX-DawChandross2023 d60 0.50,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d60 0.50,sep,position,110.9,111.359,0.459,0.00414,0.55,tolerance
+nbau,EAMX-DawChandross2023 d60 1.00,N5,count,17.2,17.8889,0.689,0.0401,1.05,tolerance
+nbau,EAMX-DawChandross2023 d60 1.00,c_core,conc,0.01341,0.0134165,6.5e-06,0.000485,0.000273,tolerance
+nbau,EAMX-DawChandross2023 d60 1.00,c_shell,conc,7.543e-05,7.55174e-05,8.74e-08,0.00116,1.51e-06,tolerance
+nbau,EAMX-DawChandross2023 d60 1.00,c_SF,conc,0,0,0,,0.5,exact
+nbau,EAMX-DawChandross2023 d60 1.00,c_far,conc,1.035e-05,1.03534e-05,3.4e-09,0.000329,2.12e-07,exact
+nbau,EAMX-DawChandross2023 d60 1.00,a1_core,order,0.06047,0.0604675,2.5e-06,4.13e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d60 1.00,a1_far,order,-1.035e-05,-1.03535e-05,3.5e-09,0.000338,0.01,exact
+nbau,EAMX-DawChandross2023 d60 1.00,r2_core,order,0.4762,0.4752,0.001,0.0021,0.01,tolerance
+nbau,EAMX-DawChandross2023 d60 1.00,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d60 1.00,sep,position,106.6,106.806,0.206,0.00193,0.55,tolerance
+nbau,EAMX-DawChandross2023 d90 0.25,N5,count,43.33,44.125,0.795,0.0183,1,tolerance
+nbau,EAMX-DawChandross2023 d90 0.25,c_core,conc,0.03229,0.0322946,4.6e-06,0.000142,0.000651,exact
+nbau,EAMX-DawChandross2023 d90 0.25,c_shell,conc,0.0002424,0.000242167,2.33e-07,0.000961,4.9e-06,tolerance
+nbau,EAMX-DawChandross2023 d90 0.25,c_SF,conc,0,0,0,,0.5,exact
+nbau,EAMX-DawChandross2023 d90 0.25,c_far,conc,2.266e-05,2.26551e-05,4.9e-09,0.000216,4.58e-07,exact
+nbau,EAMX-DawChandross2023 d90 0.25,a1_core,order,0.08751,0.0875134,3.4e-06,3.89e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d90 0.25,a1_far,order,-2.266e-05,-2.26556e-05,4.4e-09,0.000194,0.01,exact
+nbau,EAMX-DawChandross2023 d90 0.25,r2_core,order,0.5066,0.506403,0.000197,0.000389,0.0102,tolerance
+nbau,EAMX-DawChandross2023 d90 0.25,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d90 0.25,sep,position,110.9,110.854,0.046,0.000415,0.55,exact
+nbau,EAMX-DawChandross2023 d90 0.50,N5,count,35.62,35.625,0.005,0.00014,1,exact
+nbau,EAMX-DawChandross2023 d90 0.50,c_core,conc,0.02603,0.0260474,1.74e-05,0.000668,0.000526,tolerance
+nbau,EAMX-DawChandross2023 d90 0.50,c_shell,conc,0.0002697,0.000269618,8.2e-08,0.000304,5.44e-06,tolerance
+nbau,EAMX-DawChandross2023 d90 0.50,c_SF,conc,0,0,0,,0.5,exact
+nbau,EAMX-DawChandross2023 d90 0.50,c_far,conc,1.016e-05,1.01557e-05,4.3e-09,0.000423,2.08e-07,exact
+nbau,EAMX-DawChandross2023 d90 0.50,a1_core,order,0.08367,0.0836737,3.7e-06,4.42e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d90 0.50,a1_far,order,-1.016e-05,-1.01559e-05,4.1e-09,0.000404,0.01,exact
+nbau,EAMX-DawChandross2023 d90 0.50,r2_core,order,0.7943,0.793781,0.000519,0.000653,0.0159,tolerance
+nbau,EAMX-DawChandross2023 d90 0.50,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d90 0.50,sep,position,109.5,109.545,0.045,0.000411,0.55,exact
+nbau,EAMX-DawChandross2023 d90 1.00,N5,count,19.33,19.875,0.545,0.0282,1,tolerance
+nbau,EAMX-DawChandross2023 d90 1.00,c_core,conc,0.01439,0.0143848,5.2e-06,0.000361,0.000293,tolerance
+nbau,EAMX-DawChandross2023 d90 1.00,c_shell,conc,0.0001352,0.000135241,4.1e-08,0.000303,2.75e-06,exact
+nbau,EAMX-DawChandross2023 d90 1.00,c_SF,conc,9.938e-05,9.93766e-05,3.4e-09,3.42e-05,1.99e-06,exact
+nbau,EAMX-DawChandross2023 d90 1.00,c_far,conc,1.016e-05,1.01557e-05,4.3e-09,0.000423,2.08e-07,exact
+nbau,EAMX-DawChandross2023 d90 1.00,a1_core,order,0.07107,0.0710714,1.4e-06,1.97e-05,0.01,exact
+nbau,EAMX-DawChandross2023 d90 1.00,a1_far,order,-1.016e-05,-1.01559e-05,4.1e-09,0.000404,0.01,exact
+nbau,EAMX-DawChandross2023 d90 1.00,r2_core,order,0.8152,0.815456,0.000256,0.000314,0.0164,tolerance
+nbau,EAMX-DawChandross2023 d90 1.00,r2_far,order,0,0,0,,0.51,exact
+nbau,EAMX-DawChandross2023 d90 1.00,sep,position,108.8,108.392,0.408,0.00375,0.55,tolerance
+nbau,Mendelev2022-EAMFS d0 0.25,N5,count,106.6,106.8,0.2,0.00188,2.18,tolerance
+nbau,Mendelev2022-EAMFS d0 0.25,c_core,conc,0.08122,0.0813366,0.000117,0.00144,0.00163,tolerance
+nbau,Mendelev2022-EAMFS d0 0.25,c_shell,conc,0.0744,0.0743329,6.71e-05,0.000902,0.00154,tolerance
+nbau,Mendelev2022-EAMFS d0 0.25,c_SF,conc,0.1143,0.11434,4e-05,0.00035,0.00234,exact
+nbau,Mendelev2022-EAMFS d0 0.25,c_far,conc,0.07063,0.0706254,4.6e-06,6.51e-05,0.00142,exact
+nbau,Mendelev2022-EAMFS d0 0.25,a1_core,order,-0.07599,-0.0759924,2.4e-06,3.16e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d0 0.25,a1_far,order,-0.07599,-0.0759924,2.4e-06,3.16e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d0 0.25,r2_core,order,0.41,0.412965,0.00297,0.00723,0.015,exact
+nbau,Mendelev2022-EAMFS d0 0.25,r2_far,order,0.1713,0.171319,1.9e-05,0.000111,0.01,exact
+nbau,Mendelev2022-EAMFS d0 0.25,sep,position,109.1,109.063,0.037,0.000339,0.55,exact
+nbau,Mendelev2022-EAMFS d0 0.50,N5,count,104.8,104.6,0.2,0.00191,2.15,tolerance
+nbau,Mendelev2022-EAMFS d0 0.50,c_core,conc,0.07948,0.0793992,8.08e-05,0.00102,0.00159,tolerance
+nbau,Mendelev2022-EAMFS d0 0.50,c_shell,conc,0.07314,0.0731761,3.61e-05,0.000494,0.00147,tolerance
+nbau,Mendelev2022-EAMFS d0 0.50,c_SF,conc,0.1079,0.107888,1.2e-05,0.000111,0.00221,exact
+nbau,Mendelev2022-EAMFS d0 0.50,c_far,conc,0.06603,0.0660275,2.5e-06,3.79e-05,0.00133,exact
+nbau,Mendelev2022-EAMFS d0 0.50,a1_core,order,-0.0707,-0.0706954,4.6e-06,6.51e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d0 0.50,a1_far,order,-0.0707,-0.0706954,4.6e-06,6.51e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d0 0.50,r2_core,order,0.432,0.440803,0.0088,0.0204,0.0105,tolerance
+nbau,Mendelev2022-EAMFS d0 0.50,r2_far,order,0.1532,0.153161,3.9e-05,0.000255,0.01,exact
+nbau,Mendelev2022-EAMFS d0 0.50,sep,position,109.3,109.219,0.081,0.000741,0.55,tolerance
+nbau,Mendelev2022-EAMFS d0 1.00,N5,count,95.2,95.2,0,0,1.95,exact
+nbau,Mendelev2022-EAMFS d0 1.00,c_core,conc,0.07199,0.0719728,1.72e-05,0.000239,0.00144,tolerance
+nbau,Mendelev2022-EAMFS d0 1.00,c_shell,conc,0.06401,0.0639604,4.96e-05,0.000775,0.00129,tolerance
+nbau,Mendelev2022-EAMFS d0 1.00,c_SF,conc,0.1003,0.100267,3.3e-05,0.000329,0.00206,exact
+nbau,Mendelev2022-EAMFS d0 1.00,c_far,conc,0.05734,0.0573385,1.5e-06,2.62e-05,0.00115,exact
+nbau,Mendelev2022-EAMFS d0 1.00,a1_core,order,-0.06083,-0.0608262,3.8e-06,6.25e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d0 1.00,a1_far,order,-0.06083,-0.0608262,3.8e-06,6.25e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d0 1.00,r2_core,order,0.4622,0.461596,0.000604,0.00131,0.01,tolerance
+nbau,Mendelev2022-EAMFS d0 1.00,r2_far,order,0.1317,0.131707,7e-06,5.32e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d0 1.00,sep,position,90.87,90.889,0.019,0.000209,0.505,tolerance
+nbau,Mendelev2022-EAMFS d30 0.25,N5,count,114.2,114.25,0.05,0.000438,2.33,exact
+nbau,Mendelev2022-EAMFS d30 0.25,c_core,conc,0.08365,0.0836339,1.61e-05,0.000192,0.00168,tolerance
+nbau,Mendelev2022-EAMFS d30 0.25,c_shell,conc,0.07487,0.0749753,0.000105,0.00141,0.0015,tolerance
+nbau,Mendelev2022-EAMFS d30 0.25,c_SF,conc,0.1123,0.112251,4.9e-05,0.000436,0.0023,exact
+nbau,Mendelev2022-EAMFS d30 0.25,c_far,conc,0.07058,0.0705838,3.8e-06,5.38e-05,0.00142,exact
+nbau,Mendelev2022-EAMFS d30 0.25,a1_core,order,-0.07594,-0.0759443,4.3e-06,5.66e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d30 0.25,a1_far,order,-0.07594,-0.0759443,4.3e-06,5.66e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d30 0.25,r2_core,order,0.5994,0.59949,9e-05,0.00015,0.012,tolerance
+nbau,Mendelev2022-EAMFS d30 0.25,r2_far,order,0.1755,0.175472,2.8e-05,0.00016,0.01,exact
+nbau,Mendelev2022-EAMFS d30 0.25,sep,position,102,102.042,0.042,0.000412,1,exact
+nbau,Mendelev2022-EAMFS d30 0.50,N5,count,113.2,113.25,0.05,0.000442,2.31,exact
+nbau,Mendelev2022-EAMFS d30 0.50,c_core,conc,0.08308,0.0831241,4.41e-05,0.000531,0.00167,tolerance
+nbau,Mendelev2022-EAMFS d30 0.50,c_shell,conc,0.07115,0.0711613,1.13e-05,0.000159,0.00143,tolerance
+nbau,Mendelev2022-EAMFS d30 0.50,c_SF,conc,0.107,0.106956,4.4e-05,0.000411,0.00264,exact
+nbau,Mendelev2022-EAMFS d30 0.50,c_far,conc,0.06602,0.0660162,3.8e-06,5.76e-05,0.00133,exact
+nbau,Mendelev2022-EAMFS d30 0.50,a1_core,order,-0.07068,-0.0706824,2.4e-06,3.4e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d30 0.50,a1_far,order,-0.07068,-0.0706824,2.4e-06,3.4e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d30 0.50,r2_core,order,0.5013,0.500978,0.000322,0.000642,0.0101,tolerance
+nbau,Mendelev2022-EAMFS d30 0.50,r2_far,order,0.162,0.161951,4.9e-05,0.000302,0.0105,exact
+nbau,Mendelev2022-EAMFS d30 0.50,sep,position,110.4,110.4,0,0,0.55,exact
+nbau,Mendelev2022-EAMFS d30 1.00,N5,count,91.2,91.4,0.2,0.00219,1.87,tolerance
+nbau,Mendelev2022-EAMFS d30 1.00,c_core,conc,0.06669,0.066763,7.3e-05,0.00109,0.00134,tolerance
+nbau,Mendelev2022-EAMFS d30 1.00,c_shell,conc,0.06328,0.0632771,2.9e-06,4.58e-05,0.00127,exact
+nbau,Mendelev2022-EAMFS d30 1.00,c_SF,conc,0.1029,0.102897,3e-06,2.92e-05,0.00211,exact
+nbau,Mendelev2022-EAMFS d30 1.00,c_far,conc,0.05736,0.0573558,4.2e-06,7.32e-05,0.00115,exact
+nbau,Mendelev2022-EAMFS d30 1.00,a1_core,order,-0.06085,-0.0608457,4.3e-06,7.07e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d30 1.00,a1_far,order,-0.06085,-0.0608457,4.3e-06,7.07e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d30 1.00,r2_core,order,0.538,0.536606,0.00139,0.00259,0.0113,tolerance
+nbau,Mendelev2022-EAMFS d30 1.00,r2_far,order,0.1375,0.137512,1.2e-05,8.73e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d30 1.00,sep,position,109.4,109.36,0.04,0.000366,0.55,exact
+nbau,Mendelev2022-EAMFS d60 0.25,N5,count,105.8,105.6,0.2,0.00189,2.17,tolerance
+nbau,Mendelev2022-EAMFS d60 0.25,c_core,conc,0.0809,0.0807142,0.000186,0.0023,0.00167,tolerance
+nbau,Mendelev2022-EAMFS d60 0.25,c_shell,conc,0.07632,0.0763382,1.82e-05,0.000238,0.00153,tolerance
+nbau,Mendelev2022-EAMFS d60 0.25,c_SF,conc,0.1112,0.111228,2.8e-05,0.000252,0.00227,exact
+nbau,Mendelev2022-EAMFS d60 0.25,c_far,conc,0.07066,0.0706567,3.3e-06,4.67e-05,0.00142,exact
+nbau,Mendelev2022-EAMFS d60 0.25,a1_core,order,-0.07603,-0.0760287,1.3e-06,1.71e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d60 0.25,a1_far,order,-0.07603,-0.0760287,1.3e-06,1.71e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d60 0.25,r2_core,order,0.7215,0.720444,0.00106,0.00146,0.0145,tolerance
+nbau,Mendelev2022-EAMFS d60 0.25,r2_far,order,0.1739,0.173926,2.6e-05,0.00015,0.01,exact
+nbau,Mendelev2022-EAMFS d60 0.25,sep,position,124.1,124.097,0.003,2.42e-05,0.55,exact
+nbau,Mendelev2022-EAMFS d60 0.50,N5,count,104,104.2,0.2,0.00192,2.58,exact
+nbau,Mendelev2022-EAMFS d60 0.50,c_core,conc,0.07962,0.0796693,4.93e-05,0.000619,0.0016,tolerance
+nbau,Mendelev2022-EAMFS d60 0.50,c_shell,conc,0.06894,0.0687989,0.000141,0.00205,0.00138,tolerance
+nbau,Mendelev2022-EAMFS d60 0.50,c_SF,conc,0.1072,0.107219,1.9e-05,0.000177,0.00219,exact
+nbau,Mendelev2022-EAMFS d60 0.50,c_far,conc,0.06598,0.0659816,1.6e-06,2.42e-05,0.00132,exact
+nbau,Mendelev2022-EAMFS d60 0.50,a1_core,order,-0.07064,-0.0706428,2.8e-06,3.96e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d60 0.50,a1_far,order,-0.07064,-0.0706428,2.8e-06,3.96e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d60 0.50,r2_core,order,0.5991,0.601351,0.00225,0.00376,0.012,tolerance
+nbau,Mendelev2022-EAMFS d60 0.50,r2_far,order,0.1635,0.163464,3.6e-05,0.00022,0.01,exact
+nbau,Mendelev2022-EAMFS d60 0.50,sep,position,118,117.973,0.027,0.000229,1,exact
+nbau,Mendelev2022-EAMFS d60 1.00,N5,count,92,91.8,0.2,0.00217,2.34,exact
+nbau,Mendelev2022-EAMFS d60 1.00,c_core,conc,0.07113,0.0709972,0.000133,0.00187,0.00143,tolerance
+nbau,Mendelev2022-EAMFS d60 1.00,c_shell,conc,0.0629,0.0628977,2.3e-06,3.66e-05,0.00131,exact
+nbau,Mendelev2022-EAMFS d60 1.00,c_SF,conc,0.1082,0.10818,2e-05,0.000185,0.00221,exact
+nbau,Mendelev2022-EAMFS d60 1.00,c_far,conc,0.05733,0.0573273,2.7e-06,4.71e-05,0.00115,exact
+nbau,Mendelev2022-EAMFS d60 1.00,a1_core,order,-0.06081,-0.0608135,3.5e-06,5.76e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d60 1.00,a1_far,order,-0.06081,-0.0608135,3.5e-06,5.76e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d60 1.00,r2_core,order,0.406,0.403505,0.0025,0.00615,0.0105,tolerance
+nbau,Mendelev2022-EAMFS d60 1.00,r2_far,order,0.1435,0.143488,1.2e-05,8.36e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d60 1.00,sep,position,105.6,105.606,0.006,5.68e-05,0.55,exact
+nbau,Mendelev2022-EAMFS d90 0.25,N5,count,108.5,108.75,0.25,0.0023,2.22,tolerance
+nbau,Mendelev2022-EAMFS d90 0.25,c_core,conc,0.07975,0.0800379,0.000288,0.00361,0.0016,tolerance
+nbau,Mendelev2022-EAMFS d90 0.25,c_shell,conc,0.075,0.0748825,0.000117,0.00157,0.002,exact
+nbau,Mendelev2022-EAMFS d90 0.25,c_SF,conc,0.1131,0.113173,7.3e-05,0.000645,0.00231,tolerance
+nbau,Mendelev2022-EAMFS d90 0.25,c_far,conc,0.07062,0.070618,2e-06,2.83e-05,0.00142,exact
+nbau,Mendelev2022-EAMFS d90 0.25,a1_core,order,-0.07599,-0.0759839,6.1e-06,8.03e-05,0.01,tolerance
+nbau,Mendelev2022-EAMFS d90 0.25,a1_far,order,-0.07599,-0.0759839,6.1e-06,8.03e-05,0.01,tolerance
+nbau,Mendelev2022-EAMFS d90 0.25,r2_core,order,0.8527,0.848338,0.00436,0.00512,0.0171,tolerance
+nbau,Mendelev2022-EAMFS d90 0.25,r2_far,order,0.1795,0.179477,2.3e-05,0.000128,0.01,exact
+nbau,Mendelev2022-EAMFS d90 0.25,sep,position,116,115.983,0.017,0.000147,1,exact
+nbau,Mendelev2022-EAMFS d90 0.50,N5,count,112.2,112,0.2,0.00178,2.29,tolerance
+nbau,Mendelev2022-EAMFS d90 0.50,c_core,conc,0.08206,0.0818882,0.000172,0.00209,0.00165,tolerance
+nbau,Mendelev2022-EAMFS d90 0.50,c_shell,conc,0.07194,0.0720043,6.43e-05,0.000894,0.00144,tolerance
+nbau,Mendelev2022-EAMFS d90 0.50,c_SF,conc,0.1083,0.1084,0.0001,0.000923,0.00222,tolerance
+nbau,Mendelev2022-EAMFS d90 0.50,c_far,conc,0.06607,0.0660719,1.9e-06,2.88e-05,0.00133,exact
+nbau,Mendelev2022-EAMFS d90 0.50,a1_core,order,-0.07075,-0.0707463,3.7e-06,5.23e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d90 0.50,a1_far,order,-0.07075,-0.0707463,3.7e-06,5.23e-05,0.01,exact
+nbau,Mendelev2022-EAMFS d90 0.50,r2_core,order,0.619,0.62173,0.00273,0.00441,0.0129,tolerance
+nbau,Mendelev2022-EAMFS d90 0.50,r2_far,order,0.169,0.169026,2.6e-05,0.000154,0.0105,exact
+nbau,Mendelev2022-EAMFS d90 0.50,sep,position,115.5,115.514,0.014,0.000121,0.55,exact
+nbau,Mendelev2022-EAMFS d90 1.00,N5,count,105.2,105.25,0.05,0.000475,2.15,exact
+nbau,Mendelev2022-EAMFS d90 1.00,c_core,conc,0.07752,0.0774346,8.54e-05,0.0011,0.00156,tolerance
+nbau,Mendelev2022-EAMFS d90 1.00,c_shell,conc,0.06179,0.0617196,7.04e-05,0.00114,0.00124,tolerance
+nbau,Mendelev2022-EAMFS d90 1.00,c_SF,conc,0.1008,0.10083,3e-05,0.000298,0.00207,exact
+nbau,Mendelev2022-EAMFS d90 1.00,c_far,conc,0.05747,0.0574616,8.4e-06,0.000146,0.00115,tolerance
+nbau,Mendelev2022-EAMFS d90 1.00,a1_core,order,-0.06097,-0.0609647,5.3e-06,8.69e-05,0.01,tolerance
+nbau,Mendelev2022-EAMFS d90 1.00,a1_far,order,-0.06097,-0.0609647,5.3e-06,8.69e-05,0.01,tolerance
+nbau,Mendelev2022-EAMFS d90 1.00,r2_core,order,0.531,0.53142,0.00042,0.000791,0.0111,exact
+nbau,Mendelev2022-EAMFS d90 1.00,r2_far,order,0.1457,0.145778,7.8e-05,0.000535,0.01,tolerance
+nbau,Mendelev2022-EAMFS d90 1.00,sep,position,99.93,99.9284,0.0016,1.6e-05,0.505,exact

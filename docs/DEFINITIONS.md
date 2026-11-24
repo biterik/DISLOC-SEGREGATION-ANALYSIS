@@ -39,6 +39,8 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
   positions, a-CNA and PTM labels bit-identical; DXA finds the same segments and Burgers vectors, one partial identical, the other
   displaced by 0.09 A on average (max 0.5 A, mean position 0.22 A, length 0.13 A). Line positions are therefore reproducible to a few
   tenths of an A; core concentrations of a single snapshot to ~1-2 %. Regression tests compare DXA-derived numbers with a tolerance.
+  On ONE machine DXA is deterministic: four Stage-1 runs of the same snapshot on the M5 (23 and 24 Nov) gave bit-identical
+  lines, so the cross-machine difference is floating-point arithmetic (x86_64 vs arm64), not thread order.
 - Extra per-atom label, stored for every snapshot but NOT used for regions: PTM with the fcc, hcp, bcc and icosahedral templates,
   RMSD (root-mean-square deviation from the ideal template) cut-off 0.12. It distinguishes a core state with a definite local structure
   (e.g. the icosahedral Cu layer of the Cu-Zr complexion, which a-CNA calls "other") from a disordered core. [from TURLO-REDO feedback]

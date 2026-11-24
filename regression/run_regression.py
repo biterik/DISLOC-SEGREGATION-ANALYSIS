@@ -239,6 +239,7 @@ def nicu_old_recipe(snap):
         out[f"n{lo}_{hi}"] = (int(cu[m].sum()), int(m.sum()))
     far = inner & (dist >= 80)
     out["c_far"] = cu[far].sum() / max(far.sum(), 1)
+    out["n_far"] = int(far.sum())
     ys = sorted(p[:, 1].mean() for p in snap.polylines())
     if len(ys) == 2:
         out["sep"] = min(ys[1] - ys[0], ly - (ys[1] - ys[0]))
@@ -275,7 +276,10 @@ def nicu(out_dir: Path):
             "Gamma20_D1": rec(res, "Gamma", "20", "r"), "Gamma40_D1": rec(res, "Gamma", "40", "r"),
             "sep_old": sep, "sep_old_recipe": o.get("sep", float("nan")), "sep_D1": rec(res, "partial_separation_mean"),
             "mode": res.info["mode"], "f_cov": res.info["f_cov"], "b_total": res.info.get("b_total_label", ""),
-            "segments": json.dumps(res.info["segments"])})
+            "segments": json.dumps(res.info["segments"]),
+            # atoms per bin of the old recipe, for the one-solute-atom floor of the tolerance check (check_tolerance.py)
+            "N0_5_old_recipe": o["n0_5"][1], "N5_10_old_recipe": o["n5_10"][1], "N10_20_old_recipe": o["n10_20"][1],
+            "Nfar_old_recipe": o["n_far"]})
     write(out_dir / "nicu_comparison.csv", rows)
 
 
