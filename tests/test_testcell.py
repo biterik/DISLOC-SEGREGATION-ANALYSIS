@@ -35,7 +35,9 @@ def test_dissociated_into_two_shockley_partials(result):
     assert res.info["segments"] == {"1/6<112>": 2}
     angles = sorted(round(r["character_angle"]) for r in res.info["segment_table"])
     assert abs(angles[0] - 30) <= 3 and abs(angles[1] - 90) <= 3
-    assert res.info["b_total_label"] == "1/2[1 -1 0]"
+    # DXA b with xi along +X is the NEGATIVE of the builder's nominal b (make_test_cell.py: 1/2[1 -1 0]); the production
+    # d60 cells show the same relation (nominal 1/2[-1 1 0] -> DXA 1/2[1 -1 0]). DEFINITIONS 1; not an analysis error.
+    assert res.info["b_total_label"] == "1/2[-1 1 0]"
     assert res.info["b_total_character_angle"] == pytest.approx(60.0, abs=1.0)
 
 
