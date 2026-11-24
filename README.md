@@ -14,7 +14,7 @@ From quenched LAMMPS snapshots with one dissociated dislocation: the distance of
 (OVITO's dislocation extraction algorithm, DXA, with exact periodic images of triclinic cells, plus a structural fallback
 when DXA finds only part of the line), exclusive regions (core, stacking fault, shell, transition, far field), solute
 concentrations and the line excess Gamma(R), chemical short-range order (Warren-Cowley parameters), solute clusters,
-time averages with block-averaging errors and drift tests, and comparisons across runs.
+time averages with block-averaging errors and drift tests, and one tidy results table across runs (cross-run diagnostics follow in v0.2).
 
 ## Install
 Reproducible conda environment (macOS arm64 and Linux x86_64):

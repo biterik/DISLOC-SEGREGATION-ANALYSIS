@@ -6,6 +6,9 @@ the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 ## [Unreleased]
 ### Added
 - Zenodo DOIs in README.md and CITATION.cff: concept 10.5281/zenodo.24513776, v0.1.0 10.5281/zenodo.24513777.
+### Changed
+- CITATION.cff abstract and README: state that v0.1 covers one run at a time plus the results table across runs;
+  cross-run diagnostics (uptake exponent, McLean, bulk-control and hysteresis comparisons) are planned for v0.2.
 
 ## [0.1.0] - 2026-11-24
 First release. Definition set **D1, rev. 4 (final)**: every number quoted with this version carries the label D1.
