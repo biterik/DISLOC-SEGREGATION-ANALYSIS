@@ -30,6 +30,10 @@ block-averaging errors and drift tests), `<run_id>_gammaR_D1.csv` (the Gamma(R) 
 each with a `.provenance.json` (tool version, definition set, SHA-256 of the dumps, the manifest). Across runs:
 `disegreg table <folders> --out results_D1.csv`.
 
+**Copy (rsync) the MC stream together with the dumps**, always in the same rsync call. Stage 3 takes the averaging window from
+the stream; snapshots later than the end of the stream are not used. Since v0.1.1 `disegreg analyse` prints a WARNING with
+their number (`snapshots_after_window_signal` in the Stage-3 provenance); v0.1.0 dropped them silently.
+
 Columns to know: `basis` = distance used (`r` the one actually used, `r_dxa` DXA only); `ref` = reference composition of
 E, Gamma and alpha_xref (`c_B` the snapshot's own far field, `x_iso` the isotherm from the manifest, `x_bc` a bulk-control
 value given with `--x-ref`). Without a bulk control every such number exists for both `c_B` and `x_iso` (DEFINITIONS 5).

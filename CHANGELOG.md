@@ -4,6 +4,22 @@ All notable changes to `disegreg` are listed here. Versions follow semantic vers
 the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 
 ## [Unreleased]
+
+## [0.1.1] - 2026-11-25
+Definition set **D1, rev. 4** (unchanged). Bug-fix release: no number computed by v0.1.0 changes; only the column
+`tool_version` and the provenance differ.
+### Fixed
+- Stage 3: snapshots later than the end of the window signal (the MC stream) lie outside every averaging window and were
+  dropped without a message. They are still not used (D1 unchanged), but are now counted (`snapshots_after_window_signal`,
+  `snapshots_total` in the Stage-3 provenance) and `disegreg analyse` prints a WARNING. Seen on Mac copies of MC streams
+  that were rsynced before the dumps (Nb-Au thread 07: about half of the snapshots of every run unused).
+- `results.write_table` writes numpy scalars as plain numbers (numpy >= 2 would have written "np.float64(...)"); v0.1.0
+  always passed Python floats, so no v0.1.0 table differs.
+- `paper_flag` ("no paper number before bulk control", ACE Ni-Cu) is lifted only when x_bc is actually given
+  (`--x-ref` with `x_ref_source: bulk_control`), not already when the manifest names a bulk control. No v0.1.0 manifest
+  names one, so no v0.1.0 output differs.
+### Changed
+- docs/HOWTO_PROJECTS.md: rsync the MC stream together with the dumps.
 ### Added
 - Zenodo DOIs in README.md and CITATION.cff: concept 10.5281/zenodo.24513776, v0.1.0 10.5281/zenodo.24513777.
 ### Changed

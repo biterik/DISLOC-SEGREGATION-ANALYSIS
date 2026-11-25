@@ -40,7 +40,8 @@ def write_table(path, rows, provenance: dict, columns=COLUMNS) -> Path:
         w = csv.DictWriter(f, fieldnames=columns, extrasaction="raise")
         w.writeheader()
         for r in rows:
-            w.writerow({k: (repr(v) if isinstance(v, float) else v) for k, v in r.items()})
+            # float(v): numpy scalars are floats too, but their repr is "np.float64(...)" (numpy >= 2)
+            w.writerow({k: (repr(float(v)) if isinstance(v, float) else v) for k, v in r.items()})
     os.replace(tmp, path)
     side = path.with_name(path.name + ".provenance.json")
     tmp = side.with_name(side.name + f".tmp{os.getpid()}")

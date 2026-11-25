@@ -97,7 +97,9 @@ def _cmd_analyse(args) -> int:
                 print(f"{m['run_id']}: no bulk control and no {missing} in the manifest -- reported against c_B only")
         rule_text = ("x_bc (bulk control), c_B and x_iso as diagnostics" if has_bc else
                      "no bulk control: reported against both c_B and x_iso (DEFINITIONS 5, rev. 4)")
-        hold = paper_hold(m.data, ref_rule.get("paper_hold_without_bulk_control"))
+        # the hold is lifted only when x_bc is actually given, not when the manifest merely names a bulk control
+        hold = "" if has_bc else paper_hold({**m.data, "bulk_control": None},
+                                            ref_rule.get("paper_hold_without_bulk_control"))
         dumps = m.dump_files()
         if args.last:
             dumps = dumps[-args.last:]
@@ -154,6 +156,10 @@ def _cmd_analyse(args) -> int:
         curve = gamma_curve(rows3, hr, cr)
         outg = Path(args.out).expanduser() / f"{m['run_id']}_gammaR_{d.label}.csv"
         write_table(outg, curve, {**prov, "stage3": info3}, columns=GAMMA_CURVE_COLUMNS)
+        if info3.get("snapshots_after_window_signal"):
+            print(f"  WARNING: {info3['snapshots_after_window_signal']} of {info3['snapshots_total']} snapshots are later "
+                  f"than the end of the {info3['window_source']} signal and are NOT used (is the MC stream copy older than "
+                  "the dumps?)")
         verdict = "converged" if info3["converged"] else "NOT converged"
         if not info3["signal_plateau"]:
             verdict += " (block averaging without plateau: error bar is a lower bound, verdict uncertain)"
