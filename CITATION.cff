@@ -29,8 +29,8 @@ authors:
 repository-code: "https://github.com/biterik/DISLOC-SEGREGATION-ANALYSIS"
 url: "https://github.com/biterik/DISLOC-SEGREGATION-ANALYSIS"
 license: BSD-3-Clause
-version: "0.1.0"
-date-released: "2026-11-24"
+version: "0.1.1"
+date-released: "2026-11-25"
 doi: 10.5281/zenodo.24513776
 identifiers:
   - type: doi
@@ -39,6 +39,9 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.24513777
     description: "DOI of version 0.1.0 (definition set D1 rev. 4)"
+  - type: doi
+    value: 10.5281/zenodo.24535067
+    description: "DOI of version 0.1.1 (definition set D1 rev. 4; numbers identical to 0.1.0)"
 keywords:
   - materials science
   - atomistic simulation

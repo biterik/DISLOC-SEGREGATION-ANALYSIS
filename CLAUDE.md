@@ -95,6 +95,12 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - Zenodo DOIs: concept 10.5281/zenodo.24513776 (all versions), v0.1.0 10.5281/zenodo.24513777 (cite this one in the paper,
   with D1); both in README.md and CITATION.cff.
 
+- 25 Nov: v0.1.1 (Erik's decision 0.1, docs/OPEN-DECISIONS_v0.2.md on v0.2-dev): Stage 3 counts and WARNS about snapshots
+  later than the end of the MC stream (still not used, D1 unchanged); write_table plain floats; paper_flag lifted only when x_bc
+  is given; HOWTO_PROJECTS: rsync stream + dumps together. Checked: the three example manifests give cell-by-cell identical
+  Stage-2/3/Gamma(R) tables with v0.1.0 and v0.1.1 (only tool_version differs). 104 tests pass. Tagged v0.1.1, GitHub release; Zenodo DOI v0.1.1 10.5281/zenodo.24535067
+  (README, CITATION.cff).
+
 ## State v0.2 (branch v0.2-dev, worktree ~/DEVEL/DISLOC-SEGREGATION-ANALYSIS-v0.2, env disegreg-dev; unattended session)
 - Rules: docs/PLAN_v0.2.md. Decisions for Erik: docs/OPEN-DECISIONS_v0.2.md (the one page). D1 unchanged (D1.yaml byte-identical);
   D2 (25 Nov) = D1 + sections 12-16 in docs/DEFINITIONS.md and disegreg/definitions/D2.yaml; the one open proposal (P5) in
@@ -109,7 +115,8 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - 25 Nov (Erik's decisions, OPEN-DECISIONS section 5; Erik authorised work on main for v0.1.1 only): v0.1.1 released from
   main (Stage-3 WARNING + count, two robustness fixes, HOWTO rsync line; D1 unchanged, outputs cell-by-cell identical to v0.1.0;
   Zenodo DOI v0.1.1 10.5281/zenodo.24535067). On the branch: definition set D2 = D1 rev. 4 unchanged + DEFINITIONS sections
-  12-16 (P1-P4, E1); D2.yaml, default D2, P5 stays in proposals_v0.2.yaml. v0.2-dev NOT merged with main, v0.2 NOT tagged.
+  12-16 (P1-P4, E1); D2.yaml, default D2, P5 stays in proposals_v0.2.yaml. v0.2 NOT tagged, NOT merged into main.
+- 25 Nov (Erik, N2): main (v0.1.1 + DOIs) merged INTO v0.2-dev; still no merge into main.
 
 ## Next steps
 1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing

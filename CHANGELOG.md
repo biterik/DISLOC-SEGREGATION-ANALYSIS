@@ -8,8 +8,7 @@ v0.2 development on branch v0.2-dev (docs/PLAN_v0.2.md). **New definition set D2
 sections 12-16 of docs/DEFINITIONS.md (from proposals P1-P4 and question E1); D2 is the default of this branch, D1 stays
 selectable (`--definitions D1`) and gives the v0.1 outputs. The ordered-domain sizes (P5) stay a proposal
 (disegreg/definitions/proposals_v0.2.yaml), marked `status = proposal` in every table. Open decisions:
-docs/OPEN-DECISIONS_v0.2.md. (v0.1.1 was released from main on 25 Nov: the Stage-3 WARNING below plus the two robustness
-fixes, D1 unchanged; see the CHANGELOG on main.)
+docs/OPEN-DECISIONS_v0.2.md. (v0.1.1 was released from main on 25 Nov, see [0.1.1] below; main merged into v0.2-dev the same day.)
 ### Added (D2, 25 Nov)
 - `disegreg/definitions/D2.yaml`: every D1 parameter value for value (`extends: D1`) + sections `mclean` (12: core sites
   r < 5 A of the 0 K DXA line, tabulated sites only, coverage < 90 % flagged), `hysteresis` (13: different if
@@ -63,9 +62,27 @@ fixes, D1 unchanged; see the CHANGELOG on main.)
 - McLean sites: line period from the 0 K cell's own lattice parameter (the run's a_cell gave 39 instead of 40 periods for
   Mendelev); periodic copies merged; the "more than one period" flag looks at the distinct sites.
 - `plotting.save` keeps names with dots (run ids such as ..._0.10kT...); `with_suffix` cut them and files overwrote each other.
-- `results.write_table` writes numpy numbers as plain numbers (numpy >= 2 repr was "np.float64(...)").
-- `paper_flag` is dropped only when x_bc is actually used, not as soon as a bulk control is named.
-### Added (docs, on main before v0.2)
+- `results.write_table` writes numpy numbers as plain numbers (numpy >= 2 repr was "np.float64(...)"); also in 0.1.1.
+- `paper_flag` is dropped only when x_bc is actually used, not as soon as a bulk control is named; also in 0.1.1.
+### Added (main, after v0.1.1)
+- Zenodo DOI of v0.1.1 (10.5281/zenodo.24535067) in README.md and CITATION.cff.
+
+## [0.1.1] - 2026-11-25
+Definition set **D1, rev. 4** (unchanged). Bug-fix release: no number computed by v0.1.0 changes; only the column
+`tool_version` and the provenance differ.
+### Fixed
+- Stage 3: snapshots later than the end of the window signal (the MC stream) lie outside every averaging window and were
+  dropped without a message. They are still not used (D1 unchanged), but are now counted (`snapshots_after_window_signal`,
+  `snapshots_total` in the Stage-3 provenance) and `disegreg analyse` prints a WARNING. Seen on Mac copies of MC streams
+  that were rsynced before the dumps (Nb-Au thread 07: about half of the snapshots of every run unused).
+- `results.write_table` writes numpy scalars as plain numbers (numpy >= 2 would have written "np.float64(...)"); v0.1.0
+  always passed Python floats, so no v0.1.0 table differs.
+- `paper_flag` ("no paper number before bulk control", ACE Ni-Cu) is lifted only when x_bc is actually given
+  (`--x-ref` with `x_ref_source: bulk_control`), not already when the manifest names a bulk control. No v0.1.0 manifest
+  names one, so no v0.1.0 output differs.
+### Changed
+- docs/HOWTO_PROJECTS.md: rsync the MC stream together with the dumps.
+### Added
 - Zenodo DOIs in README.md and CITATION.cff: concept 10.5281/zenodo.24513776, v0.1.0 10.5281/zenodo.24513777.
 ### Changed
 - CITATION.cff abstract and README: state that v0.1 covers one run at a time plus the results table across runs;
