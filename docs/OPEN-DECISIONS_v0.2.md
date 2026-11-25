@@ -250,16 +250,38 @@ parameter: Mendelev cells were first given 39 instead of 40 periods because the 
   swap rate is not in the data: the project states it in `notes` (docs/HOWTO_PROJECTS.md).
 - `mclean.min_coverage: 0.90` is a D2 parameter (the value that was hard-coded in the code as the flag threshold).
 ### 6.4 New open points
-- **N1. Diagnostic (iv) is not implemented** (since D1 rev. 2). DEFINITIONS section 5 says "for Delta > 0 without a bulk control
-  the results table marks diagnostic (iv) as 'not tested'"; neither v0.1.0/v0.1.1 nor v0.2 has such a column (found while
-  writing D2 section 15). No number is affected. Options: (a) v0.2 adds a results-table column `diagnostic_iv` = "not tested"
-  (Delta > 0, no bulk control) / "not usable" (bulk control smaller, D2 section 15) / "tested" (same-size bulk control; the test
-  itself = the bulk control's largest solute cluster vs the dislocation cell's far field, to be defined); (b) only the text in
-  the provenance (state now). Recommendation: (a) with "not tested" / "not usable" now, the test itself defined when the first
-  same-size bulk control exists.
-- **N2. v0.2-dev is not merged with main** (your instruction). main now has v0.1.1 and the DOIs in README / CITATION.cff; the
+- **N1. Diagnostic (iv) is not implemented** (since D1 rev. 2). DECIDED 25 Nov: option (a), with "not tested" for EVERY run
+  without a bulk control, whatever Delta (ACE clusters in the perfect crystal below coexistence) -> done, section 6.5.
+- **N2. v0.2-dev is not merged with main**. DONE 25 Nov: main merged into v0.2-dev (section 6.5). main now has v0.1.1 and the DOIs in README / CITATION.cff; the
   branch has the same code fixes. Before a v0.2 release main has to be merged into v0.2-dev (conflicts expected only in
   CHANGELOG.md, CITATION.cff, README.md, CLAUDE.md). Nothing to decide now, a reminder.
 - Still open from before: P5 (until Ni-Al data), the corrected EAM-X d90 0 K site table (Nb-Au project, via you), the Ni-Cu
   bulk controls (thread 11) to be harvested.
+
+### 6.5 Erik's answers to N1 / N2 (25 Nov), done
+- N2: main (v0.1.1 + Zenodo DOIs) merged INTO v0.2-dev (commit "Merge main ... into v0.2-dev"). Conflicts in cli.py (kept the
+  branch's bulk-control block, same paper_flag rule as v0.1.1), timeseries.py and its test (main's wording + extra assertion),
+  CHANGELOG ([Unreleased] above [0.1.1]), CLAUDE.md (both notes). 150 tests passed after the merge. No merge into main, no tag.
+- N1 -> D2 rev. 2, section 17 (label stays D2: not released, no paper number made with it; no D1 quantity changed): results-table
+  column `diagnostic_iv` = "not tested" (no bulk control, any Delta; with D1 tables the D1 rule, Delta > 0 only) / "not usable:
+  bulk control smaller than the dislocation cell" / "bulk control available; test not yet defined ([PROPOSAL v0.2] P6)"; the
+  bulk control's own rows: empty. Code: `results.diagnostic_iv()`, written into the Stage-2 and Stage-3 provenance by
+  `disegreg analyse`. 151 tests pass.
+- **P6 (new proposal, your note): the diagnostic-(iv) test** (docs/DEFINITIONS.md, [PROPOSAL v0.2] P6; text only, no code yet):
+  (a) the bulk control's 1st-shell clusters against a random alloy of the same composition in the same cell (>= 200
+  realisations; fraction isolated, mean cluster size, largest cluster), NOT against the dislocation cell's far field; (b) the
+  drift test of section 8 on x_bc(t). Verdict "no precipitation" only if (a) random-like and (b) flat.
+  Random-alloy reference, 32 000-atom fcc cell (the Ni-Cu thread-11 size), 200 realisations:
+
+  | x | isolated solute | mean cluster size per solute | largest cluster: median / 99th percentile |
+  |---|---|---|---|
+  | 0.0079 (Lee-Shim, -0.10 kT) | 0.907 | 1.10 | 2 / 4 |
+  | 0.02 | 0.786 | 1.28 | 4 / 7 |
+  | 0.05 | 0.540 | 1.90 | 8 / 13 |
+  | 0.10 | 0.284 | 4.21 | 23 / 41 |
+
+  The largest cluster grows with N, so the reference must be built for the bulk control's own cell (a 570 000-atom cell gives
+  larger values). Options: thresholds 99th / 1st percentile (recommended) or 95th / 5th; largest cluster (recommended) or the
+  number of clusters >= 5 atoms; 1st-shell clusters only (recommended) or also alpha2 for ordering solutes (Ni-Al).
+  Blocked for demo numbers: no harvested bulk control yet (Ni-Cu thread 11).
 

@@ -5,7 +5,7 @@ the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 
 ## [Unreleased]
 v0.2 development on branch v0.2-dev (docs/PLAN_v0.2.md). **New definition set D2** (25 Nov, Erik): D1 rev. 4 unchanged +
-sections 12-16 of docs/DEFINITIONS.md (from proposals P1-P4 and question E1); D2 is the default of this branch, D1 stays
+sections 12-17 of docs/DEFINITIONS.md (from proposals P1-P4 and questions E1, N1); D2 is the default of this branch, D1 stays
 selectable (`--definitions D1`) and gives the v0.1 outputs. The ordered-domain sizes (P5) stay a proposal
 (disegreg/definitions/proposals_v0.2.yaml), marked `status = proposal` in every table. Open decisions:
 docs/OPEN-DECISIONS_v0.2.md. (v0.1.1 was released from main on 25 Nov, see [0.1.1] below; main merged into v0.2-dev the same day.)
@@ -23,6 +23,10 @@ docs/OPEN-DECISIONS_v0.2.md. (v0.1.1 was released from main on 25 Nov, see [0.1.
   Stage 4 with D1 tables = uptake + hysteresis differences only, bulk-control size / run-length check (150 tests).
 - regression/check_d2_vs_d1.py: the 59 demo runs give identical tables under D1 (+ proposals) and D2 (2 318 883 cells; Stage 4
   identical except `status`); regression/results/v0.2-demo/ regenerated from D2.
+- D2 rev. 2 (Erik 25 Nov, N1): section 17 / YAML section `diagnostic_iv`; results-table column `diagnostic_iv` (last
+  column): "not tested" for every run without a bulk control (any Delta; with D1 the D1 rule: Delta > 0 only), "not usable"
+  with a smaller bulk control, "test not yet defined" with a same-size one. The test itself: [PROPOSAL v0.2] P6 in
+  docs/DEFINITIONS.md (bulk-control clusters vs a random alloy of the same composition + drift of x_bc), text only.
 ### Changed (D2, 25 Nov)
 - Status: along-line quantities, McLean, the hysteresis verdict and Gamma_error_total are `definition` in D2 tables
   (along-line quantities in D1-labelled tables, e.g. the 24 Nov demo, stay `proposal`); only `domain_*` (P5) is `proposal`.

@@ -62,7 +62,7 @@ value given with `--x-ref`). Without a bulk control every such number exists for
 
 ## v0.2 additions (branch v0.2-dev, not released -- for information; use v0.1.1 for numbers)
 - **Definition set D2** (25 Nov) is the default on the branch: D1 unchanged + McLean core sites, hysteresis criterion, x_bc
-  error, smaller bulk controls, along-line spectrum (docs/DEFINITIONS.md sections 12-16). Output files are then
+  error, smaller bulk controls, along-line spectrum, diagnostic-(iv) column (docs/DEFINITIONS.md sections 12-17). Output files are then
   `<run_id>_stage2_D2.csv` etc.; every D1 quantity in them equals the D1 value. `--definitions D1` gives the v0.1 outputs.
 - **Bulk control runs**: write a manifest for the bulk-control cell itself with `cell_type: bulk_control` and `n_atoms: <atoms
   in the cell>` (character, frame, frame_source, z_gp, z_gp_source, x_ref_source, start_type are not needed) and name its run_id
@@ -76,3 +76,5 @@ value given with `--x-ref`). Without a bulk control every such number exists for
 - Across runs: `disegreg across <folder with *_stage3_D2.csv> --out stage4.csv [--sites sites.yaml]` (uptake exponent, McLean,
   bottom-up vs top-down). Plots: `disegreg plot gamma | timeseries | delta | uptake | regions | alongline ...`.
 - Rows with `status = proposal` depend on the still undecided proposal P5 (ordered domains): do not quote them in the paper.
+- Column `diagnostic_iv` of the results table (D2 section 17): "not tested" for every run without a bulk control -- then you
+  cannot say whether the perfect crystal itself clusters or precipitates at that dmu; "not usable" with a smaller bulk control.

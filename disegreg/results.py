@@ -55,6 +55,27 @@ def quantity_status(quantity: str, definition_set: str | None = None) -> str:
     return STATUS_DEFINITION
 
 
+# protocol diagnostic (iv): does the dislocation-free crystal precipitate at this dmu? (DEFINITIONS 5; D2 sections 15, 17)
+DIAG_IV_NOT_TESTED = "not tested"
+DIAG_IV_NOT_USABLE = "not usable: bulk control smaller than the dislocation cell"
+DIAG_IV_PENDING = "bulk control available; test not yet defined ([PROPOSAL v0.2] P6)"
+
+
+def diagnostic_iv(definitions, delta: float, x_bc_info: dict | None) -> str:
+    """Value of the column diagnostic_iv for one run.
+    No bulk-control table (none named, not found, or x_bc only from the command line) or a bulk control of unknown size:
+    "not tested" -- with D2 (section 17) for every Delta, with D1 (section 5) only for Delta > 0 (else empty).
+    Bulk control smaller than the dislocation cell: "not usable" (D2 section 15; also under D1, where it is no bulk control).
+    Same size or larger: the test itself is [PROPOSAL v0.2] P6, not defined yet."""
+    p = getattr(definitions, "params", definitions)
+    if x_bc_info is not None and "enough_solute" in x_bc_info and x_bc_info.get("smaller") is not None:
+        return DIAG_IV_NOT_USABLE if x_bc_info["smaller"] else DIAG_IV_PENDING
+    rule = (p.get("diagnostic_iv") or {}).get("not_tested_without_bulk_control", "delta_positive")
+    if rule == "all" or float(delta) > 0:
+        return DIAG_IV_NOT_TESTED
+    return ""
+
+
 class ProposalAsHeadline(ValueError):
     pass
 
@@ -158,7 +179,7 @@ def gamma_curve(stage3_rows, headline_radius: float, check_radius: float) -> lis
 RESULTS_COLUMNS = ("project", "run_id", "potential", "host", "solute", "character", "temperature", "delta", "start_type",
                    "quantity", "region", "basis", "ref", "role", "value", "error", "n_samples", "flat", "flat_rev3_sem",
                    "run_converged", "window_fraction", "drift_criterion", "check_required", "paper_flag", "bulk_control",
-                   "x_ref_source", "definition_set", "tool_version", "status")
+                   "x_ref_source", "definition_set", "tool_version", "status", "diagnostic_iv")
 RUN_FIELDS = {"project": "project", "potential": "potential", "host": "host_element", "solute": "solute_element",
               "character": "character", "temperature": "temperature", "delta": "delta", "start_type": "start_type"}
 
@@ -190,7 +211,8 @@ def collect_runs(stage3_files) -> tuple[list[dict], dict]:
                          "drift_criterion": s3.get("criterion", ""), "check_required": s3.get("check_required", ""),
                          "paper_flag": s3.get("paper_flag", ""), "bulk_control": man.get("bulk_control") or "",
                          "x_ref_source": man.get("x_ref_source", ""), "definition_set": r["definition_set"],
-                         "tool_version": r["tool_version"], "status": quantity_status(r["quantity"], r["definition_set"])})
+                         "tool_version": r["tool_version"], "status": quantity_status(r["quantity"], r["definition_set"]),
+                         "diagnostic_iv": s3.get("diagnostic_iv", "")})
         sources.append({"file": str(f), "run_id": man.get("run_id"), "tool_version": prov.get("tool_version"),
                         "manifest": prov.get("manifest")})
     if len(labels) > 1:

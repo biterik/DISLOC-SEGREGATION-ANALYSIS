@@ -51,13 +51,15 @@ def test_d2_is_d1_plus_new_sections():
     for k, v in d1.params.items():
         if k not in ("label", "status"):
             assert d2[k] == v, k                                   # every D1 parameter, value for value
-    assert set(d2.params) - set(d1.params) == {"extends", "mclean", "hysteresis", "bulk_control", "alongline"}
+    assert set(d2.params) - set(d1.params) == {"extends", "mclean", "hysteresis", "bulk_control", "alongline",
+                                                    "diagnostic_iv"}
     assert "ordered_domains" not in d2.params                      # P5 stays a proposal
     assert d2["mclean"] == {"core_site_radius": 5.0, "missing_sites": "tabulated_only", "min_coverage": 0.9}
     assert d2["hysteresis"] == {"factor": 2.0, "quantities": [["Gamma", "20", "r"], ["c", "C", ""]]}
     assert d2["bulk_control"] == {"propagate_x_ref_error": True, "smaller_cell_allowed": True,
                                   "smaller_cell_for_diagnostic_iv": False}
     assert d2["alongline"] == {"regions": ["C"], "bin_width": 5.0, "p_threshold": 0.01}
+    assert d2["diagnostic_iv"] == {"not_tested_without_bulk_control": "all"}       # section 17 (Erik 25 Nov, N1)
     # D1.yaml itself is the released file (v0.1.0), byte for byte
     import hashlib
     from pathlib import Path

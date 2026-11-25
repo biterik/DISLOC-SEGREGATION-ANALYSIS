@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-DEFAULT_LABEL = "D2"   # v0.2: D2 = D1 rev. 4 unchanged + sections 12-16 (Erik 25 Nov 2026)
+DEFAULT_LABEL = "D2"   # v0.2: D2 = D1 rev. 4 unchanged + sections 12-17 (Erik 25 Nov 2026)
 _DIR = Path(__file__).resolve().parent
 
 

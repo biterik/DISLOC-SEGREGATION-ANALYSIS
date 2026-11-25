@@ -94,23 +94,23 @@ def bulk_control_check(x_bc_info: dict, n_atoms_run: int, last_md_step_run, defi
     Same size or larger: yes. Smaller: D2 (smaller_cell_allowed) yes, but not for protocol diagnostic (iv); D1 no (x_bc is
     then reported as a diagnostic only). Unknown size (table without n_atoms): no. The run length (last MD step) is compared
     and a difference flagged; the per-atom swap rate is not in the data and stays the project's responsibility."""
+    from .results import DIAG_IV_NOT_TESTED, DIAG_IV_NOT_USABLE, DIAG_IV_PENDING
+
     bc = (definitions.params if hasattr(definitions, "params") else definitions).get("bulk_control") or {}
     n_bc = x_bc_info.get("n_atoms")
     out = {"n_atoms_run": int(n_atoms_run), "flags": []}
     if n_bc is None:
-        out.update(size_ratio=float("nan"), smaller=None, accepted=False,
-                   diagnostic_iv="not usable: size of the bulk control unknown")
+        out.update(size_ratio=float("nan"), smaller=None, accepted=False, diagnostic_iv=DIAG_IV_NOT_TESTED)
         out["flags"].append("bulk-control size unknown (no n_atoms in its Stage-3 provenance): x_bc reported as a diagnostic")
     else:
         smaller = int(n_bc) < int(n_atoms_run)
         allowed = bool(bc.get("smaller_cell_allowed", False))
         out.update(size_ratio=int(n_bc) / int(n_atoms_run), smaller=smaller, accepted=(not smaller) or allowed)
         if not smaller:
-            out["diagnostic_iv"] = "usable"
+            out["diagnostic_iv"] = DIAG_IV_PENDING
         else:
             iv = bool(bc.get("smaller_cell_for_diagnostic_iv", False))
-            out["diagnostic_iv"] = ("usable" if iv else
-                                    f"not usable: bulk control smaller than the dislocation cell ({n_bc} < {n_atoms_run} atoms)")
+            out["diagnostic_iv"] = DIAG_IV_PENDING if iv else DIAG_IV_NOT_USABLE
             if not allowed:
                 out["flags"].append(f"bulk control smaller than the dislocation cell ({n_bc} < {n_atoms_run} atoms): "
                                     f"not a bulk control under {getattr(definitions, 'label', '?')} (same size), x_bc "
@@ -189,7 +189,8 @@ def _cmd_analyse(args) -> int:
     from .cache import default_cache_root, get_snapshot
     from .manifest import load_manifest
     from .provenance import environment
-    from .results import GAMMA_CURVE_COLUMNS, STAGE3_COLUMNS, gamma_curve, paper_hold, tool_version, write_table
+    from .results import (GAMMA_CURVE_COLUMNS, STAGE3_COLUMNS, diagnostic_iv, gamma_curve, paper_hold, tool_version,
+                          write_table)
     from .stage2 import analyse_snapshot
     from .timeseries import read_mc_stream, run_stage3
 
@@ -278,12 +279,13 @@ def _cmd_analyse(args) -> int:
                      "no bulk control: reported against both c_B and x_iso (DEFINITIONS 5, rev. 4)")
         hold = "" if has_bc else paper_hold({**m.data, "bulk_control": None},
                                             ref_rule.get("paper_hold_without_bulk_control"))
+        diag_iv = diagnostic_iv(d, float(m["delta"]), x_bc_info)   # DEFINITIONS 5; D2 sections 15, 17
         out = Path(args.out).expanduser() / f"{m['run_id']}_stage2_{d.label}.csv"
         prov = {"environment": env, "tool_version": tv, "definition_set": d.label, "definitions_sha256": d.sha256,
                 "definitions_status": d.status, "manifest": str(m.path), "manifest_data": m.data,
                 "proposal_set": props.label if props else None, "proposals_sha256": props.sha256 if props else None,
                 "x_ref": refs, "x_ref_source": m["x_ref_source"], "reference_rule": rule_text, "paper_flag": hold,
-                "x_bc": x_bc_info, "snapshots": snaps}
+                "diagnostic_iv": diag_iv, "x_bc": x_bc_info, "snapshots": snaps}
         write_table(out, rows, prov)
         print(f"  -> {out} ({len(rows)} rows)")
         # ---- Stage 3: averaging window (from the MC stream if there is one), window means, drift tests
@@ -302,7 +304,7 @@ def _cmd_analyse(args) -> int:
             r.update(run_id=m["run_id"], definition_set=d.label, tool_version=tv)
         fa = next((r["mean"] for r in rows3 if r["quantity"] == "fallback_active"), 0.0)
         info3.update(headline_radius=hr, check_radius=cr, fallback_active_fraction=fa, check_required=bool(fa > 0),
-                     paper_flag=hold)
+                     paper_flag=hold, diagnostic_iv=diag_iv)
         out3 = Path(args.out).expanduser() / f"{m['run_id']}_stage3_{d.label}.csv"
         write_table(out3, rows3, {**prov, "stage3": info3}, columns=STAGE3_COLUMNS)
         curve = gamma_curve(rows3, hr, cr)

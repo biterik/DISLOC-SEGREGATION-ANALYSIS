@@ -1,14 +1,15 @@
 # disegreg -- definitions (sets D1 and D2)
 
 - **D1**, rev. 4 of 2026-11-24: final, released with disegreg v0.1.0 (and v0.1.1, same numbers). Sections 1-11.
-- **D2**, rev. 1 of 2026-11-25 (Erik): D1 rev. 4 UNCHANGED + sections 12-16 (McLean core sites, hysteresis criterion, error of
-  Gamma vs x_bc, smaller bulk-control cells, along-line spectrum). Every D1 quantity is defined and computed identically in D2
+- **D2**, rev. 2 of 2026-11-25 (Erik): D1 rev. 4 UNCHANGED + sections 12-17 (McLean core sites, hysteresis criterion, error of
+  Gamma vs x_bc, smaller bulk-control cells, along-line spectrum, diagnostic-(iv) status). Every D1 quantity is defined and computed identically in D2
   (D2.yaml repeats every D1 parameter value for value; tests/test_definitions.py, tests/test_manifest_stage2.py). Not yet
   released (branch v0.2-dev). Lines in sections 1-11 marked [D2] only point to the new sections.
 
 Every number produced by `disegreg` carries the tool version (git hash) AND the definition-set label (D1, D2, ...).
 A change to anything in this file creates a new label; the paper's Methods section quotes the label it used.
-Open: only [PROPOSAL v0.2] P5 (ordered-domain sizes, end of this file), not part of any definition set.
+Open: [PROPOSAL v0.2] P5 (ordered-domain sizes) and P6 (the diagnostic-(iv) test), end of this file, not part of any
+definition set.
 
 Abbreviations: DXA = dislocation extraction algorithm (OVITO); a-CNA = adaptive common-neighbour analysis (OVITO);
 CNA = common-neighbour analysis; PTM = polyhedral template matching; MD/MC = molecular dynamics / Monte Carlo;
@@ -120,7 +121,7 @@ Order of preference, chosen per run in the manifest and always reported with its
    (b) the bulk control holds too few solute atoms (expected solute count in its interior < 100, e.g. EAM-X Au at x ~ 1e-5).
    Caveat: x_iso gives the reference composition but NOT protocol diagnostic (iv) (does the dislocation-free crystal precipitate at this
    dmu?). For Delta > 0 (supersaturated) without a bulk control the results table marks diagnostic (iv) as "not tested". [rule (a) from
-   TURLO-REDO feedback]
+   TURLO-REDO feedback] [D2] "not tested" for every run without a bulk control, whatever Delta: section 17.
 3. c_B, the in-cell far field: diagnostic only. The ratio c_B / x_ref is reported for every run; a ratio clearly different from 1 is a result
    (e.g. long-range elastic enrichment by the dislocation's pressure field, or a cell-size effect).
 Reporting rule (Erik, 24 Nov): until a run has its bulk control, enrichments and Gamma are reported against BOTH c_B and x_iso,
@@ -238,10 +239,10 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
 
 ---
 
-# Definition set D2 (rev. 1, 25 Nov 2026): D1 rev. 4 + sections 12-16
+# Definition set D2 (rev. 2, 25 Nov 2026): D1 rev. 4 + sections 12-17
 Decided by Erik on 25 Nov 2026 (docs/OPEN-DECISIONS_v0.2.md, section 5) from the v0.2 proposals P1-P4 and the project question
-E1, each as recommended. Sections 1-11 above are D2 too, unchanged. Parameter values: `disegreg/definitions/D2.yaml`
-(sections mclean, hysteresis, bulk_control, alongline). Every number of these sections carries the label D2 and
+E1, each as recommended, and section 17 (question N1). Sections 1-11 above are D2 too, unchanged. Parameter values:
+`disegreg/definitions/D2.yaml` (sections mclean, hysteresis, bulk_control, alongline, diagnostic_iv). Every number of these sections carries the label D2 and
 `status = definition`; computed with D1, the along-line quantities do not exist and Stage 4 gives only the uptake exponents
 and the hysteresis differences.
 
@@ -299,17 +300,31 @@ Question: does the core hold a continuous line state (solute spread evenly along
 - Limit: with L_x ~ 100 A and 5 A bins, wavelengths 10-100 A are resolved (q = 1 .. 10); particle spacings above L_x cannot be seen
   in one cell.
 
+## 17. Diagnostic (iv) status (section 5; question N1, Erik 25 Nov)
+- Diagnostic (iv) asks whether the dislocation-free crystal precipitates (or clusters) at this dmu; only a bulk control can
+  answer it. The results table has a column `diagnostic_iv` (from the run's Stage-3 provenance):
+  - "not tested": the run has no bulk control (none named, its table not found, x_bc only given on the command line, or the
+    bulk control's size unknown) -- for EVERY Delta, not only Delta > 0 as in D1 section 5: ACE Ni-Cu forms Cu clusters in the
+    perfect crystal also below coexistence.
+  - "not usable: bulk control smaller than the dislocation cell" (section 15).
+  - "bulk control available; test not yet defined ([PROPOSAL v0.2] P6)": a bulk control of the same size (or larger).
+- The bulk control's own rows leave the column empty. With D1 the D1 rule applies ("not tested" only for Delta > 0).
+
 ## Revision log of D2
 - rev. 1 (25 Nov 2026, Erik, given in the claude.ai design session): sections 12-16 from proposals P1-P4 and question E1, each
   as recommended on 24 Nov (P1 option 1; P2 factor 2; P3 as proposed; P4 5 A bins, core atoms only, p < 0.01; E1 option a).
   Sections 1-11 = D1 rev. 4, unchanged. P5 (ordered domains) not decided: stays a proposal until Ni-Al MD/MC data exist.
+- rev. 2 (25 Nov, Erik, question N1): section 17, column `diagnostic_iv`, "not tested" for every run without a bulk control
+  (D1: Delta > 0 only); the test itself written as [PROPOSAL v0.2] P6. Still label D2: D2 is not released and no number
+  for the paper has been produced with it. No D1 quantity changed.
 
 ---
 
-# [PROPOSAL v0.2] -- open proposal, NOT part of D1 or D2
-P1-P4 became sections 12-16 of D2 on 25 Nov (see above). Only P5 is still open: every number that depends on it carries
-`status = proposal` in the output tables, and the results table refuses such a number for role "headline". Parameter values:
-`disegreg/definitions/proposals_v0.2.yaml` (label P-v0.2). Options and demo numbers: docs/OPEN-DECISIONS_v0.2.md.
+# [PROPOSAL v0.2] -- open proposals, NOT part of D1 or D2
+P1-P4 became sections 12-16 of D2 on 25 Nov (see above). Still open: P5 (ordered domains) and P6 (the diagnostic-(iv) test).
+Every number that depends on them carries `status = proposal` in the output tables, and the results table refuses such a
+number for role "headline". Parameter values of P5: `disegreg/definitions/proposals_v0.2.yaml` (label P-v0.2); P6 is text
+only (no code yet). Options and demo numbers: docs/OPEN-DECISIONS_v0.2.md.
 
 ## P5. Ordered-domain sizes (section 7, "planned for v0.2"; Ni-Al vs Howard et al. 2025: 2.7 +- 0.6 nm)
 - Ordered solute atom: no solute 1st neighbour and at least 4 of its 6 2nd neighbours solute (L1_2 Ni3Al: 0 and 6; D0_22: 0 and 4;
@@ -319,3 +334,24 @@ P1-P4 became sections 12-16 of D2 on 25 Nov (see above). Only P5 is still open: 
 - Size: equivalent diameter d = (6 n a^3 / pi)^(1/3), n = solute atoms of the domain (L1_2: one solute atom per cube a^3).
 - Region of a domain: the region code (section 4) of the majority of its atoms; per region: number of domains, mean and largest d,
   fraction of the region's solute that is ordered; the same for the bulk control (Howard: no domains away from dislocations).
+
+## P6. The diagnostic-(iv) test: does the dislocation-free crystal precipitate? (section 5, D2 section 17; Erik's note 25 Nov)
+- Input: a bulk control of the same size as the dislocation cell (D2 section 15: a smaller one is not usable), its window
+  (Stage 3 of the bulk control, as for x_bc).
+- (a) Clustering against a RANDOM ALLOY of the same composition -- NOT against the dislocation cell's far field (which may
+  itself be affected by the dislocation, section 5 point 3). Reference: the same cell (same lattice, same N, periodic), solute
+  placed at random with the bulk control's window-mean x_bc, many realisations (>= 200), the same 1st-shell cluster analysis
+  as section 7. Compared per snapshot and over the window: fraction of isolated solute atoms, mean cluster size per solute
+  atom, largest cluster. Proposal: "clusters" if the window-mean largest cluster exceeds the random alloy's 99th percentile, or
+  the isolated fraction lies below its 1st percentile. Random-alloy numbers in a 32 000-atom fcc cell (20 x 20 x 20 cubic
+  cells, 200 realisations): x = 0.0079: isolated 0.907 (= (1 - x)^12), largest cluster 99th percentile 4; x = 0.02: 0.786, 7;
+  x = 0.05: 0.540, 13; x = 0.10: 0.284, 41 atoms. These depend on N (the largest cluster grows with cell size), which is why the
+  reference must be built for the bulk control's own cell.
+- (b) Composition drift of the bulk control: the drift test of section 8 (|change| < 2 SE(change) over the last 30 %) on its
+  interior solute fraction x_bc(t). A bulk control that keeps taking up (or losing) solute has not reached the state that
+  x_bc is meant to describe; precipitation in a supersaturated crystal shows up as a drift long before a cluster is large.
+- Verdict: "no precipitation" only if (a) shows no clustering beyond random AND (b) is flat; "precipitates / clusters" if (a);
+  "not converged" if only (b) fails. The numbers of (a) and (b) are always reported.
+- Open choices: percentiles 99 / 1 (proposal) or 95 / 5; largest cluster or the whole cluster-size distribution (e.g. the
+  number of clusters >= 5 atoms); 1st-shell clusters only (proposal) or also 2nd-shell order (alpha2) for ordering solutes.
+

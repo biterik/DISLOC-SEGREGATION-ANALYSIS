@@ -355,7 +355,7 @@ def test_bulk_control_check_size_and_run_length():
 
     d1 = load_definitions("D1")
     same = bulk_control_check({"n_atoms": 570000, "last_md_step": 800000}, 570000, 800000, D2)
-    assert same["accepted"] and not same["smaller"] and same["diagnostic_iv"] == "usable" and same["flags"] == []
+    assert same["accepted"] and not same["smaller"] and "P6" in same["diagnostic_iv"] and same["flags"] == []
     small = bulk_control_check({"n_atoms": 32000, "last_md_step": 800000}, 570000, 800000, D2)
     assert small["accepted"] and small["smaller"] and small["diagnostic_iv"].startswith("not usable")
     assert small["size_ratio"] == pytest.approx(32000 / 570000) and small["same_run_length"] is True
@@ -363,7 +363,7 @@ def test_bulk_control_check_size_and_run_length():
     assert small_d1["accepted"] is False and "not a bulk control under D1" in small_d1["flags"][0]
     assert bulk_control_check({"n_atoms": 570000, "last_md_step": 800000}, 570000, 800000, d1)["accepted"]
     unknown = bulk_control_check({"n_atoms": None}, 570000, 800000, D2)
-    assert unknown["accepted"] is False and unknown["same_run_length"] is None
+    assert unknown["accepted"] is False and unknown["same_run_length"] is None and unknown["diagnostic_iv"] == "not tested"
     short = bulk_control_check({"n_atoms": 32000, "last_md_step": 400000}, 570000, 800000, D2)
     assert short["accepted"] and short["same_run_length"] is False and "run length differs" in short["flags"][0]
 
@@ -389,3 +389,24 @@ def test_core_sites_merge_periodic_copies():
     assert cs.duplicate.sum() == in_15.sum() - one.sum() > 0
     assert cs.coverage == pytest.approx(1.0) and cs.info["max_dE_periodic_copies"] == 0.0
     assert cs.x_extent == pytest.approx(a, abs=1e-3) and cs.info["x_extent_distinct"] < a
+
+
+def test_diagnostic_iv_column(tmp_path):
+    """DEFINITIONS 5 (D1: "not tested" for Delta > 0 without bulk control); D2 section 17 (Erik 25 Nov): every run without a
+    bulk control, whatever Delta; section 15: a smaller bulk control is "not usable"; same size: test = proposal P6."""
+    from disegreg.results import DIAG_IV_NOT_TESTED, DIAG_IV_NOT_USABLE, DIAG_IV_PENDING, diagnostic_iv
+
+    d1 = load_definitions("D1")
+    for delta in (-2.0, -0.1, 0.0, 1.0):
+        assert diagnostic_iv(D2, delta, None) == DIAG_IV_NOT_TESTED
+        assert diagnostic_iv(D2, delta, {"source": "command line --x-ref", "value": 1e-3}) == DIAG_IV_NOT_TESTED
+    assert diagnostic_iv(d1, -0.1, None) == "" and diagnostic_iv(d1, 0.0, None) == ""
+    assert diagnostic_iv(d1, 1.0, None) == DIAG_IV_NOT_TESTED
+    small = {"enough_solute": True, "smaller": True}
+    assert diagnostic_iv(D2, -0.1, small) == DIAG_IV_NOT_USABLE and diagnostic_iv(d1, 1.0, small) == DIAG_IV_NOT_USABLE
+    assert diagnostic_iv(D2, -0.1, {"enough_solute": True, "smaller": False}) == DIAG_IV_PENDING
+    assert diagnostic_iv(D2, -0.1, {"enough_solute": True, "smaller": None}) == DIAG_IV_NOT_TESTED   # size unknown
+    # the results table carries it from the Stage-3 provenance
+    f = write_run(tmp_path, "a", -0.5, 0.1, 1e-3, 1e-3)
+    rows, _ = collect_runs([f])
+    assert "diagnostic_iv" in rows[0]

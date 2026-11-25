@@ -140,6 +140,7 @@ def test_cli_analyse_end_to_end(tmp_path):
     assert main(["table", str(out), "--out", str(tmp_path / "all.csv")]) == 0
     allrows = read_table(tmp_path / "all.csv")
     assert {r["run_id"] for r in allrows} == {"RUN"} and {r["character"] for r in allrows} == {"d0"}
+    assert {r["diagnostic_iv"] for r in allrows} == {""}       # D1, Delta = 0, no bulk control (D1 section 5)
     head = [r for r in allrows if r["role"] == "headline"]
     assert {(r["quantity"], r["region"], r["basis"]) for r in head} == {("Gamma", "20", "r")}
     assert {r["ref"] for r in head} == {"c_B", "x_iso"} and {r["drift_criterion"] for r in head} == {"change_se"}

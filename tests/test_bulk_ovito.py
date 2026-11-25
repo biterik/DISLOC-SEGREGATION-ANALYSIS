@@ -77,6 +77,8 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     assert prov["x_bc"]["smaller"] and prov["x_bc"]["accepted"] and prov["x_bc"]["diagnostic_iv"].startswith("not usable")
     assert prov["x_bc"]["same_run_length"] is False          # bulk control to step 4000, run to step 2000: flagged
     assert any("run length differs" in f for f in prov["x_bc"]["flags"])
+    prov3s = json.loads((out / "RUN_stage3_D2.csv.provenance.json").read_text())
+    assert prov3s["stage3"]["diagnostic_iv"].startswith("not usable") and prov["diagnostic_iv"] == prov3s["stage3"]["diagnostic_iv"]
     rows = read_table(out / "RUN_stage2_D2.csv")
     assert {r["ref"] for r in rows if r["quantity"] == "Gamma"} == {"c_B", "x_iso", "x_bc"}
     # Stage 4 over both: the bulk control is not part of a run set; x_bc error rows for the dislocation run
@@ -86,6 +88,9 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     # the table still works, with a status column
     assert main(["table", str(out), "--out", str(tmp_path / "all.csv")]) == 0
     allrows = read_table(tmp_path / "all.csv")
+    assert ({r["diagnostic_iv"] for r in allrows if r["run_id"] == "RUN"}
+            == {"not usable: bulk control smaller than the dislocation cell"})
+    assert {r["diagnostic_iv"] for r in allrows if r["run_id"] == "BULK"} == {""}   # the bulk control itself
     from disegreg.results import PROPOSAL_QUANTITIES
     assert {r["status"] for r in allrows if r["quantity"] in PROPOSAL_QUANTITIES} == {"proposal"}
     assert {r["status"] for r in allrows if r["quantity"] not in PROPOSAL_QUANTITIES} == {"definition"}
@@ -101,6 +106,7 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
                  "--definitions", str(strict)]) == 0
     prov2 = json.loads((out2 / "RUN_stage3_D2.csv.provenance.json").read_text())
     assert prov2["x_bc"]["enough_solute"] is False and "no bulk control" in prov2["reference_rule"]
+    assert prov2["stage3"]["diagnostic_iv"].startswith("not usable")   # a bulk control (too few solute), but smaller
     # D1 (bulk control = same size): the smaller cell is not a bulk control, x_bc only as a diagnostic
     out3 = tmp_path / "out3"
     assert main(["analyse", str(fd), str(fb), "--out", str(out3), "--cache", str(tmp_path / "cache"),

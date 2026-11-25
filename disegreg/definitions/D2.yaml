@@ -2,11 +2,11 @@
 # Section numbers refer to docs/DEFINITIONS.md. Lengths in Angstrom unless stated otherwise.
 # D2 = D1 rev. 4 UNCHANGED (sections input ... timeseries below are value-for-value those of D1.yaml; every D1 quantity is
 # computed identically, tests/test_definitions.py) + the v0.2 sections decided by Erik on 25 Nov 2026 (docs/DEFINITIONS.md
-# sections 12-16: McLean core sites, hysteresis criterion, error of Gamma vs x_bc, smaller bulk controls, along-line
-# spectrum). The ordered-domain sizes (P5) are NOT part of D2: they stay a proposal (proposals_v0.2.yaml).
+# sections 12-17: McLean core sites, hysteresis criterion, error of Gamma vs x_bc, smaller bulk controls, along-line
+# spectrum, diagnostic-(iv) status). The ordered-domain sizes (P5) are NOT part of D2: they stay a proposal (proposals_v0.2.yaml).
 # Changing ANY value here creates a new definition set (D3, ...) with a line in the revision log of docs/DEFINITIONS.md.
 label: D2
-status: "rev. 1 (2026-11-25): D1 rev. 4 + sections 12-16 (Erik 25 Nov); not yet released (branch v0.2-dev)"
+status: "rev. 2 (2026-11-25): D1 rev. 4 + sections 12-17 (Erik 25 Nov); not yet released (branch v0.2-dev)"
 extends: D1                              # every section of D1.yaml is here with the same values
 
 input:                                   # section 1
@@ -102,3 +102,7 @@ alongline:                               # section 16 (was P4): along-line core 
   regions: [C]                           # atoms analysed: the core (r < 5 A)
   bin_width: 5.0                         # X bins (actual width L_x / round(L_x / 5))
   p_threshold: 0.01                      # a spectrum peak counts as "periodic" if its binomial-noise p-value < 0.01
+
+diagnostic_iv:                           # section 17 (Erik 25 Nov, N1): column diagnostic_iv of the results table
+  not_tested_without_bulk_control: all   # every run without a bulk control is "not tested", whatever Delta (D1 section 5:
+                                         #   only Delta > 0) -- ACE Ni-Cu clusters in the perfect crystal below coexistence

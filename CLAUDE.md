@@ -103,7 +103,7 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 
 ## State v0.2 (branch v0.2-dev, worktree ~/DEVEL/DISLOC-SEGREGATION-ANALYSIS-v0.2, env disegreg-dev; unattended session)
 - Rules: docs/PLAN_v0.2.md. Decisions for Erik: docs/OPEN-DECISIONS_v0.2.md (the one page). D1 unchanged (D1.yaml byte-identical);
-  D2 (25 Nov) = D1 + sections 12-16 in docs/DEFINITIONS.md and disegreg/definitions/D2.yaml; the one open proposal (P5) in
+  D2 (25 Nov) = D1 + sections 12-17 in docs/DEFINITIONS.md and disegreg/definitions/D2.yaml; the open proposals (P5; P6 text only) in
   "[PROPOSAL v0.2]" + proposals_v0.2.yaml, its outputs carry status = proposal.
 - 24 Nov: item A (Stage 4: across.py, sites.py, bulk-control manifests + automatic x_bc) done with tests; plotting module
   (item B) drafted. disegreg-dev now has the editable install of the worktree (it had none).
@@ -117,6 +117,8 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   Zenodo DOI v0.1.1 10.5281/zenodo.24535067). On the branch: definition set D2 = D1 rev. 4 unchanged + DEFINITIONS sections
   12-16 (P1-P4, E1); D2.yaml, default D2, P5 stays in proposals_v0.2.yaml. v0.2 NOT tagged, NOT merged into main.
 - 25 Nov (Erik, N2): main (v0.1.1 + DOIs) merged INTO v0.2-dev; still no merge into main.
+- 25 Nov (Erik, N1): D2 rev. 2 = + section 17, results column diagnostic_iv ("not tested" for every run without a bulk
+  control); the test itself = [PROPOSAL v0.2] P6 (bulk-control clusters vs random alloy + x_bc drift), text only. 151 tests.
 
 ## Next steps
 1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing
