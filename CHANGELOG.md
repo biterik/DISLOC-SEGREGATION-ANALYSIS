@@ -22,6 +22,8 @@ fixes, D1 unchanged; see the CHANGELOG on main.)
   Under D1 a smaller cell is not accepted (x_bc reported as a diagnostic only, paper_flag kept).
 - Tests: D2 = D1 + new sections (parameters), every D1 Stage-2 record bit-identical under D2 on a synthetic snapshot,
   Stage 4 with D1 tables = uptake + hysteresis differences only, bulk-control size / run-length check (150 tests).
+- regression/check_d2_vs_d1.py: the 59 demo runs give identical tables under D1 (+ proposals) and D2 (2 318 883 cells; Stage 4
+  identical except `status`); regression/results/v0.2-demo/ regenerated from D2.
 ### Changed (D2, 25 Nov)
 - Status: along-line quantities, McLean, the hysteresis verdict and Gamma_error_total are `definition` in D2 tables
   (along-line quantities in D1-labelled tables, e.g. the 24 Nov demo, stay `proposal`); only `domain_*` (P5) is `proposal`.

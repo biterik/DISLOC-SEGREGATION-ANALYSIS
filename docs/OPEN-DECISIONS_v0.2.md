@@ -231,6 +231,12 @@ parameter: Mendelev cells were first given 39 instead of 40 periods because the 
 - Status: along-line, McLean, hysteresis verdict, Gamma_error_total = `definition` in D2 tables; `domain_*` (P5) = `proposal`.
 - Tests: 150 pass (D2 = D1 + new sections; every D1 Stage-2 record bit-identical under D2 on a synthetic snapshot; Stage 4
   with D1 tables; bulk-control size check; the OVITO end-to-end tests with D1 and with D2).
+- Real data (M5): the 59 demo runs re-analysed with D2 (regression/output/v0.2-D2, not in git) against the 24 Nov D1 + proposals
+  analysis (regression/output/v0.2-final): all 177 Stage-2 / Stage-3 / Gamma(R) tables identical, 2 318 883 cells, only
+  definition_set and tool_version differ (`python regression/check_d2_vs_d1.py regression/output/v0.2-final
+  regression/output/v0.2-D2`). Stage 4: the same 412 rows, every value, error and flag identical; only `status` changed
+  (McLean 312 rows and hysteresis verdict 9 rows: proposal -> definition). So every number in section 3 holds for D2 as well.
+  regression/results/v0.2-demo/ regenerated from the D2 analysis (stage4.csv, summary_hysteresis.csv: status column only).
 ### 6.3 Code decisions taken (inside the agreed design, reported)
 - D2 is the default definition set on the branch (`--definitions D1` still gives the v0.1 outputs; tested end to end with OVITO).
   `disegreg across` takes the definition set of the tables it reads. Stage 1 is the same for D1 and D2 (same cache entries).
