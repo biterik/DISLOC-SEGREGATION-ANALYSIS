@@ -23,6 +23,11 @@ docs/OPEN-DECISIONS_v0.2.md. (v0.1.1 was released from main on 25 Nov, see [0.1.
   Stage 4 with D1 tables = uptake + hysteresis differences only, bulk-control size / run-length check (150 tests).
 - regression/check_d2_vs_d1.py: the 59 demo runs give identical tables under D1 (+ proposals) and D2 (2 318 883 cells; Stage 4
   identical except `status`); regression/results/v0.2-demo/ regenerated from D2.
+- D2 rev. 2 (Erik 25 Nov, E1 fix): a smaller bulk control is accepted only if its last MD step >= 0.95 x the run's and its
+  swap attempts per atom per MD step are within 10 % of the run's (new manifest field `swap_attempts_per_atom_per_step`,
+  required for bulk controls and for runs naming one; D2.yaml `smaller_cell_min_run_length_fraction`,
+  `smaller_cell_swap_rate_tolerance`); otherwise not accepted, x_iso (and c_B) used, reasons in `x_bc.reasons` and
+  `reference_rule`.
 - D2 rev. 2 (Erik 25 Nov, N1): section 17 / YAML section `diagnostic_iv`; results-table column `diagnostic_iv` (last
   column): "not tested" for every run without a bulk control (any Delta; with D1 the D1 rule: Delta > 0 only), "not usable"
   with a smaller bulk control, "test not yet defined" with a same-size one. The test itself: [PROPOSAL v0.2] P6 in

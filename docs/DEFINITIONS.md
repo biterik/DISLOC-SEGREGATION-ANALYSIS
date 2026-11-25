@@ -274,15 +274,22 @@ and the hysteresis differences.
 - Total error quoted for Gamma(R) vs x_bc: sqrt(SEM_Gamma^2 + (N(r < R) / L_x x SEM(x_bc))^2) (Stage 4, row "Gamma_error_total";
   column error = the x_bc part alone).
 
-## 15. Bulk-control cell size (section 5; was question E1 from the Ni-Cu project)
-- A bulk-control cell SMALLER than the dislocation cell is accepted for x_bc if it has the same dmu and T, the same per-atom swap
-  rate and the same run length, and at least 100 solute atoms in its interior (section 5, 2b). Its size is recorded in its
-  manifest (field `n_atoms`, required for `cell_type: bulk_control`).
-- It is NOT used for protocol diagnostic (iv) (does the dislocation-free crystal precipitate at this dmu?): a small cell has fewer
-  nucleation sites and fits only smaller clusters. The provenance of every run that takes x_bc from it says
-  "diagnostic (iv): not usable".
-- Checked by disegreg: the size (from the snapshots, against the manifest) and the run length (last MD step of the bulk control vs
-  that of the run; a difference is flagged). Not checkable from the data: the per-atom swap rate -- the project states it.
+## 15. Bulk-control cell size (section 5; was question E1 from the Ni-Cu project; conditions made exact on 25 Nov by Erik)
+- A bulk-control cell SMALLER than the dislocation cell (same dmu and T) is accepted for x_bc only if ALL of:
+  1. its last MD step is >= 0.95 x the last MD step of the run (snapshots of both, Stage 3);
+  2. its swap attempts per atom per MD step agree with the run's within 10 % (|rate_bc / rate_run - 1| <= 0.10). Both
+     manifests state the rate (field `swap_attempts_per_atom_per_step`, required for a bulk control and for every run that
+     names one); a missing rate counts as failed;
+  3. at least 100 solute atoms in its interior (section 5, 2b);
+  and its size is recorded in its manifest (field `n_atoms`, required for `cell_type: bulk_control`; checked against the
+  snapshots).
+- If 1 or 2 fails: not accepted -- x_bc is reported as a diagnostic only, the run is referred to x_iso (and c_B) as without a
+  bulk control (paper_flag where section 5 sets it), and the reason is written into the provenance (`x_bc.reasons`,
+  `reference_rule`). Parameters: D2.yaml `bulk_control.smaller_cell_min_run_length_fraction` 0.95,
+  `smaller_cell_swap_rate_tolerance` 0.10.
+- A bulk control of the same size (or larger) is accepted as in section 5; a different run length is only flagged.
+- A smaller cell is NOT used for protocol diagnostic (iv) (does the dislocation-free crystal precipitate at this dmu?), even
+  when accepted for x_bc: a small cell has fewer nucleation sites and fits only smaller clusters (section 17: "not usable").
 - Under D1 (section 5: "same size") a smaller cell is not a bulk control: x_bc is then reported as a diagnostic only.
 
 ## 16. Along-line core composition and its spectrum (section 7; was P4)
@@ -314,7 +321,8 @@ Question: does the core hold a continuous line state (solute spread evenly along
 - rev. 1 (25 Nov 2026, Erik, given in the claude.ai design session): sections 12-16 from proposals P1-P4 and question E1, each
   as recommended on 24 Nov (P1 option 1; P2 factor 2; P3 as proposed; P4 5 A bins, core atoms only, p < 0.01; E1 option a).
   Sections 1-11 = D1 rev. 4, unchanged. P5 (ordered domains) not decided: stays a proposal until Ni-Al MD/MC data exist.
-- rev. 2 (25 Nov, Erik, question N1): section 17, column `diagnostic_iv`, "not tested" for every run without a bulk control
+- rev. 2 (25 Nov, Erik): section 15 made exact (smaller bulk control: last MD step >= 0.95 x the run's, swap attempts per atom
+  per MD step within 10 %, new manifest field; otherwise not accepted, x_iso, reason written). Question N1: section 17, column `diagnostic_iv`, "not tested" for every run without a bulk control
   (D1: Delta > 0 only); the test itself written as [PROPOSAL v0.2] P6. Still label D2: D2 is not released and no number
   for the paper has been produced with it. No D1 quantity changed.
 

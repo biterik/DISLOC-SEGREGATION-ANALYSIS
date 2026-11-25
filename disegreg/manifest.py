@@ -63,6 +63,8 @@ FIELDS = {
     "cell_type": (False, str, "dislocation (default) | bulk_control: a cell without dislocation that gives x_bc to the runs "
                   "naming it in bulk_control (DEFINITIONS 5)"),
     "n_atoms": (False, int, "number of atoms in the cell; required for a bulk control (D2 section 15: its size is recorded)"),
+    "swap_attempts_per_atom_per_step": (False, (int, float), "MC swap attempts per atom per MD step; required for a bulk "
+                                        "control and for a run naming one (D2 section 15)"),
 }
 # not required in a bulk-control manifest (no line, no glide plane, no reference of its own)
 NOT_REQUIRED_FOR_BULK = ("character", "frame", "frame_source", "z_gp", "z_gp_source", "x_ref_source", "start_type")
@@ -145,6 +147,11 @@ def validate(data: dict) -> list[str]:
             errs.append(f"delta {data['delta']} != (dmu - dmu_coex)/kT = {d:.4f}")
     if "n_atoms" in data and data["n_atoms"] <= 0:
         errs.append("n_atoms must be positive")
+    if "swap_attempts_per_atom_per_step" in data and data["swap_attempts_per_atom_per_step"] <= 0:
+        errs.append("swap_attempts_per_atom_per_step must be positive")
+    if (bulk or data.get("bulk_control")) and "swap_attempts_per_atom_per_step" not in data:
+        errs.append("swap_attempts_per_atom_per_step is required for a bulk control and for a run naming one "
+                    "(D2 section 15)")
     if bulk:
         if data.get("bulk_control"):
             errs.append("a bulk-control manifest cannot name a bulk_control of its own")

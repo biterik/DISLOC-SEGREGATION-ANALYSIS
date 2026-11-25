@@ -289,7 +289,7 @@ def bulk_manifest():
     for k in ("character", "frame", "frame_source", "z_gp", "z_gp_source", "x_ref_source", "start_type",
               "bulk_control", "bulk_control_reason", "mc_stream"):
         d.pop(k, None)
-    d.update(cell_type="bulk_control", run_id="bulk_LeeShim_0.25kT", n_atoms=32000)
+    d.update(cell_type="bulk_control", run_id="bulk_LeeShim_0.25kT", n_atoms=32000, swap_attempts_per_atom_per_step=0.01)
     return d
 
 
@@ -301,6 +301,12 @@ def test_bulk_control_manifest_validation():
     d = bulk_manifest()
     d.pop("n_atoms")                                  # D2 section 15: a bulk control records its size
     assert any("needs n_atoms" in e for e in validate(d))
+    d = bulk_manifest()
+    d.pop("swap_attempts_per_atom_per_step")          # ... and its swap rate
+    assert any("swap_attempts_per_atom_per_step is required" in e for e in validate(d))
+    d = {**demo(), "bulk_control": "bulk_LeeShim_0.25kT", "x_ref_source": "bulk_control"}
+    assert any("swap_attempts_per_atom_per_step is required" in e for e in validate(d))   # a run naming one, too
+    assert validate({**d, "swap_attempts_per_atom_per_step": 0.01}) == []
     d = bulk_manifest()
     d["cell_type"] = "precipitate"
     assert any("cell_type" in e for e in validate(d))
@@ -349,23 +355,41 @@ def test_bulk_snapshot_exact_and_find_x_bc(tmp_path):
     assert find_x_bc("missing", "D1", [tmp_path]) is None
 
 
-def test_bulk_control_check_size_and_run_length():
-    """DEFINITIONS 5 / D2 section 15 (Erik 25 Nov, E1 option a)."""
+def test_bulk_control_check_size_run_length_and_swap_rate():
+    """DEFINITIONS 5 / D2 section 15 (Erik 25 Nov: E1 option a; fix: run length >= 0.95, swap rate within 10 %)."""
     from disegreg.cli import bulk_control_check
 
     d1 = load_definitions("D1")
-    same = bulk_control_check({"n_atoms": 570000, "last_md_step": 800000}, 570000, 800000, D2)
+
+    def bc(n, step, swap=1.0):
+        return {"n_atoms": n, "last_md_step": step, "swap_attempts_per_atom_per_step": swap}
+
+    same = bulk_control_check(bc(570000, 800000), 570000, 800000, D2, 1.0)
     assert same["accepted"] and not same["smaller"] and "P6" in same["diagnostic_iv"] and same["flags"] == []
-    small = bulk_control_check({"n_atoms": 32000, "last_md_step": 800000}, 570000, 800000, D2)
+    small = bulk_control_check(bc(32000, 800000), 570000, 800000, D2, 1.0)
     assert small["accepted"] and small["smaller"] and small["diagnostic_iv"].startswith("not usable")
     assert small["size_ratio"] == pytest.approx(32000 / 570000) and small["same_run_length"] is True
-    small_d1 = bulk_control_check({"n_atoms": 32000, "last_md_step": 800000}, 570000, 800000, d1)
-    assert small_d1["accepted"] is False and "not a bulk control under D1" in small_d1["flags"][0]
-    assert bulk_control_check({"n_atoms": 570000, "last_md_step": 800000}, 570000, 800000, d1)["accepted"]
-    unknown = bulk_control_check({"n_atoms": None}, 570000, 800000, D2)
+    assert small["reasons"] == [] and small["flags"] == []
+    small_d1 = bulk_control_check(bc(32000, 800000), 570000, 800000, d1, 1.0)
+    assert small_d1["accepted"] is False and "not a bulk control under D1" in small_d1["reasons"][0]
+    assert bulk_control_check(bc(570000, 800000), 570000, 800000, d1, 1.0)["accepted"]
+    unknown = bulk_control_check({"n_atoms": None}, 570000, 800000, D2, 1.0)
     assert unknown["accepted"] is False and unknown["same_run_length"] is None and unknown["diagnostic_iv"] == "not tested"
-    short = bulk_control_check({"n_atoms": 32000, "last_md_step": 400000}, 570000, 800000, D2)
-    assert short["accepted"] and short["same_run_length"] is False and "run length differs" in short["flags"][0]
+    # run length: >= 0.95 x the run's last MD step (exact boundary accepted)
+    assert bulk_control_check(bc(32000, 760000), 570000, 800000, D2, 1.0)["accepted"]
+    short = bulk_control_check(bc(32000, 759999), 570000, 800000, D2, 1.0)
+    assert short["accepted"] is False and "too short" in short["reasons"][0] and "NOT accepted" in short["flags"][-1]
+    # swap rate within 10 % of the run's
+    assert bulk_control_check(bc(32000, 800000, 1.10), 570000, 800000, D2, 1.0)["accepted"]
+    assert bulk_control_check(bc(32000, 800000, 0.90), 570000, 800000, D2, 1.0)["accepted"]
+    fast = bulk_control_check(bc(32000, 800000, 1.2), 570000, 800000, D2, 1.0)
+    assert fast["accepted"] is False and "swap rate differs" in fast["reasons"][0]
+    missing = bulk_control_check(bc(32000, 800000, None), 570000, 800000, D2, 1.0)
+    assert missing["accepted"] is False and "missing" in missing["reasons"][0]
+    assert bulk_control_check(bc(32000, 800000), 570000, 800000, D2, None)["accepted"] is False
+    # a same-size bulk control is not held to the 0.95 / 10 % rules (only flagged)
+    same_short = bulk_control_check(bc(570000, 400000, 2.0), 570000, 800000, D2, 1.0)
+    assert same_short["accepted"] and "run length differs" in same_short["flags"][0]
 
 
 def test_proposals_file_holds_only_P5():

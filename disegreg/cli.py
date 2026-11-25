@@ -85,41 +85,65 @@ def find_x_bc(run_id: str, label: str, folders, min_solute: int = 100):
         s3 = (json.loads(side.read_text()).get("stage3") or {}) if side.is_file() else {}
         return {"source": str(f), "value": c["mean"], "sem": c["sem"], "n_samples": c["n_samples"], "flat": c["flat"],
                 "n_solute": n_sol, "min_solute": min_solute, "enough_solute": bool(n_sol >= min_solute),
-                "n_atoms": s3.get("n_atoms"), "last_md_step": s3.get("last_md_step")}
+                "n_atoms": s3.get("n_atoms"), "last_md_step": s3.get("last_md_step"),
+                "swap_attempts_per_atom_per_step": s3.get("swap_attempts_per_atom_per_step")}
     return None
 
 
-def bulk_control_check(x_bc_info: dict, n_atoms_run: int, last_md_step_run, definitions) -> dict:
+def bulk_control_check(x_bc_info: dict, n_atoms_run: int, last_md_step_run, definitions, swap_rate_run=None) -> dict:
     """Is the bulk control acceptable as x_bc for this run (DEFINITIONS 5; D2 section 15)?
-    Same size or larger: yes. Smaller: D2 (smaller_cell_allowed) yes, but not for protocol diagnostic (iv); D1 no (x_bc is
-    then reported as a diagnostic only). Unknown size (table without n_atoms): no. The run length (last MD step) is compared
-    and a difference flagged; the per-atom swap rate is not in the data and stays the project's responsibility."""
+    Same size or larger: yes (a different run length is flagged). Unknown size (table without n_atoms): no.
+    Smaller: D1 no (section 5: same size). D2 only if (i) its last MD step >= min_run_length_fraction (0.95) x the run's
+    and (ii) its swap attempts per atom per MD step agree with the run's within swap_rate_tolerance (10 %, relative to the
+    run's); a missing step or swap rate counts as failed. Never for diagnostic (iv). Not accepted -> x_bc is reported as a
+    diagnostic only and the run is referred to x_iso (and c_B) as without a bulk control; the reasons go to ``reasons``."""
     from .results import DIAG_IV_NOT_TESTED, DIAG_IV_NOT_USABLE, DIAG_IV_PENDING
 
     bc = (definitions.params if hasattr(definitions, "params") else definitions).get("bulk_control") or {}
+    label = getattr(definitions, "label", "?")
     n_bc = x_bc_info.get("n_atoms")
-    out = {"n_atoms_run": int(n_atoms_run), "flags": []}
+    lb, lr = x_bc_info.get("last_md_step"), last_md_step_run
+    sb, sr = x_bc_info.get("swap_attempts_per_atom_per_step"), swap_rate_run
+    out = {"n_atoms_run": int(n_atoms_run), "flags": [], "reasons": [],
+           "last_md_step_bulk_control": lb, "last_md_step_run": lr,
+           "same_run_length": None if lb is None or lr is None else int(lb) == int(lr),
+           "swap_rate_bulk_control": sb, "swap_rate_run": sr,
+           "swap_rate_ratio": float(sb) / float(sr) if sb is not None and sr else float("nan")}
     if n_bc is None:
         out.update(size_ratio=float("nan"), smaller=None, accepted=False, diagnostic_iv=DIAG_IV_NOT_TESTED)
-        out["flags"].append("bulk-control size unknown (no n_atoms in its Stage-3 provenance): x_bc reported as a diagnostic")
+        out["reasons"].append("bulk-control size unknown (no n_atoms in its Stage-3 provenance)")
     else:
         smaller = int(n_bc) < int(n_atoms_run)
-        allowed = bool(bc.get("smaller_cell_allowed", False))
-        out.update(size_ratio=int(n_bc) / int(n_atoms_run), smaller=smaller, accepted=(not smaller) or allowed)
+        out.update(size_ratio=int(n_bc) / int(n_atoms_run), smaller=smaller, accepted=True)
         if not smaller:
             out["diagnostic_iv"] = DIAG_IV_PENDING
         else:
             iv = bool(bc.get("smaller_cell_for_diagnostic_iv", False))
             out["diagnostic_iv"] = DIAG_IV_PENDING if iv else DIAG_IV_NOT_USABLE
-            if not allowed:
-                out["flags"].append(f"bulk control smaller than the dislocation cell ({n_bc} < {n_atoms_run} atoms): "
-                                    f"not a bulk control under {getattr(definitions, 'label', '?')} (same size), x_bc "
-                                    "reported as a diagnostic")
-    lb, lr = x_bc_info.get("last_md_step"), last_md_step_run
-    out.update(last_md_step_bulk_control=lb, last_md_step_run=lr,
-               same_run_length=(None if lb is None or lr is None else int(lb) == int(lr)))
-    if out["same_run_length"] is False:
+            if not bool(bc.get("smaller_cell_allowed", False)):
+                out["reasons"].append(f"bulk control smaller than the dislocation cell ({n_bc} < {n_atoms_run} atoms): not a "
+                                      f"bulk control under {label} (same size)")
+            else:
+                fmin = float(bc.get("smaller_cell_min_run_length_fraction", 0.95))
+                tol = float(bc.get("smaller_cell_swap_rate_tolerance", 0.10))
+                if lb is None or lr is None:
+                    out["reasons"].append("run length of the bulk control or of the run unknown")
+                elif int(lb) < fmin * int(lr):
+                    out["reasons"].append(f"bulk control too short: last MD step {lb} < {fmin:g} x {lr} of the run "
+                                          f"({label} section 15)")
+                if sb is None or not sr:
+                    out["reasons"].append("swap attempts per atom per MD step missing in the manifest of the bulk control "
+                                          "or of the run")
+                elif abs(float(sb) / float(sr) - 1.0) > tol + 1e-9:   # the boundary itself is accepted
+                    out["reasons"].append(f"swap rate differs by more than {tol:.0%}: bulk control {sb:g}, run {sr:g} "
+                                          f"attempts per atom per MD step ({label} section 15)")
+        if out["reasons"]:
+            out["accepted"] = False
+    if out["same_run_length"] is False and out["accepted"]:
         out["flags"].append(f"run length differs: bulk control to step {lb}, run to step {lr}")
+    if not out["accepted"]:
+        out["flags"].append("x_bc NOT accepted (" + "; ".join(out["reasons"]) + "): reported as a diagnostic only, "
+                            "reference x_iso (and c_B) as without a bulk control")
     return out
 
 
@@ -173,7 +197,8 @@ def _analyse_bulk(m, d, root, env, tv, args, props=None) -> int:
     for r in rows3:
         r.update(run_id=m["run_id"], definition_set=d.label, tool_version=tv)
     info3.update(n_atoms=snaps[-1]["n_atoms"], n_atoms_manifest=m.get("n_atoms"),
-                 last_md_step=max(s["md_step"] for s in snaps))   # for the size / run-length check (D2 section 15)
+                 last_md_step=max(s["md_step"] for s in snaps),   # for the size / run-length / swap-rate check (D2 15)
+                 swap_attempts_per_atom_per_step=m.get("swap_attempts_per_atom_per_step"))
     out3 = Path(args.out).expanduser() / f"{m['run_id']}_stage3_{d.label}.csv"
     write_table(out3, rows3, {**prov, "stage3": info3}, columns=STAGE3_COLUMNS)
     c = next(r for r in rows3 if r["quantity"] == "c" and r["region"] == BULK_REGION)
@@ -263,7 +288,8 @@ def _cmd_analyse(args) -> int:
                   f"{flag}  ({time.perf_counter() - t0:.1f} s)")
         # is the bulk control acceptable (size, run length; D2 section 15)? Only for a bulk control found as a table
         if x_bc_info is not None and "enough_solute" in x_bc_info:
-            x_bc_info.update(bulk_control_check(x_bc_info, snap.n_atoms, max(s["md_step"] for s in snaps), d))
+            x_bc_info.update(bulk_control_check(x_bc_info, snap.n_atoms, max(s["md_step"] for s in snaps), d,
+                                                m.get("swap_attempts_per_atom_per_step")))
             for fl in x_bc_info["flags"]:
                 print(f"  bulk control: {fl}")
             if x_bc_info["smaller"] and x_bc_info["accepted"]:
@@ -277,6 +303,8 @@ def _cmd_analyse(args) -> int:
                 print(f"{m['run_id']}: no bulk control and no {missing} in the manifest -- reported against c_B only")
         rule_text = ("x_bc (bulk control), c_B and x_iso as diagnostics" if has_bc else
                      "no bulk control: reported against both c_B and x_iso (DEFINITIONS 5, rev. 4)")
+        if x_bc_info is not None and x_bc_info.get("accepted") is False:
+            rule_text += "; bulk control not accepted: " + "; ".join(x_bc_info.get("reasons", []))
         hold = "" if has_bc else paper_hold({**m.data, "bulk_control": None},
                                             ref_rule.get("paper_hold_without_bulk_control"))
         diag_iv = diagnostic_iv(d, float(m["delta"]), x_bc_info)   # DEFINITIONS 5; D2 sections 15, 17

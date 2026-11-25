@@ -68,9 +68,11 @@ value given with `--x-ref`). Without a bulk control every such number exists for
   in the cell>` (character, frame, frame_source, z_gp, z_gp_source, x_ref_source, start_type are not needed) and name its run_id
   in the `bulk_control` field of every dislocation run at the same dmu. `disegreg analyse` takes bulk controls first and passes
   their x_bc on automatically (`--bulk-dir <folder>` if the bulk control was analysed into another folder).
-  A cell smaller than the dislocation cell (e.g. 32 000 atoms) is accepted for x_bc under D2 if it has the same per-atom swap
-  rate and run length and >= 100 solute atoms in its interior -- state the swap rate in `notes`; disegreg checks the size and
-  the last MD step. It does NOT count for diagnostic (iv) (does the dislocation-free crystal precipitate?).
+  Both the bulk-control manifest and every run naming it state `swap_attempts_per_atom_per_step` (MC swap attempts per atom
+  per MD step). A cell smaller than the dislocation cell (e.g. 32 000 atoms) is accepted for x_bc under D2 only if its last
+  MD step is >= 0.95 x the run's, its swap rate is within 10 % of the run's, and it has >= 100 solute atoms in its interior;
+  otherwise disegreg uses x_iso (and c_B) and writes the reason into the provenance. It does NOT count for diagnostic (iv)
+  (does the dislocation-free crystal precipitate?).
 - **rsync the MC stream together with the dumps.** Stage 3 takes the averaging window from the stream; snapshots later than the
   end of the stream are not used (v0.1.1 and v0.2 print a WARNING with their number).
 - Across runs: `disegreg across <folder with *_stage3_D2.csv> --out stage4.csv [--sites sites.yaml]` (uptake exponent, McLean,

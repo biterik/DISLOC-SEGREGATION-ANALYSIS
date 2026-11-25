@@ -46,6 +46,7 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     mb = base_manifest("BULK", "PROJ/T/BULK/*_quenched_step*.dump")
     mb["cell_type"] = "bulk_control"
     mb["n_atoms"] = len(bpos)
+    mb["swap_attempts_per_atom_per_step"] = 0.0105        # within 10 % of the run's 0.01 (D2 section 15)
     # dislocation run naming the bulk control
     cell, pos, (y0, z0) = screw_dislocation_cell()
     rdir = tmp_path / "PROJ" / "T" / "RUN"
@@ -56,7 +57,8 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
                           timestep=step, pbc=("pp", "ss", "ss"))
     md = {**base_manifest("RUN", "PROJ/T/RUN/*_quenched_step*.dump"), "character": "d0",
           "frame": {"X": [1, -1, 0], "Y": [1, 1, -2], "Z": [1, 1, 1]}, "frame_source": "t", "z_gp": float(z0),
-          "z_gp_source": "t", "bulk_control": "BULK", "x_ref_source": "bulk_control", "start_type": "bottom-up"}
+          "z_gp_source": "t", "bulk_control": "BULK", "x_ref_source": "bulk_control", "start_type": "bottom-up",
+          "swap_attempts_per_atom_per_step": 0.01}
     fb, fd = tmp_path / "bulk.yaml", tmp_path / "run.yaml"
     fb.write_text(yaml.safe_dump(mb))
     fd.write_text(yaml.safe_dump(md))
@@ -107,6 +109,15 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     prov2 = json.loads((out2 / "RUN_stage3_D2.csv.provenance.json").read_text())
     assert prov2["x_bc"]["enough_solute"] is False and "no bulk control" in prov2["reference_rule"]
     assert prov2["stage3"]["diagnostic_iv"].startswith("not usable")   # a bulk control (too few solute), but smaller
+    # swap rate 20 % off (D2 section 15): not accepted, x_iso (and c_B) as without a bulk control, reason written
+    fd_fast = tmp_path / "run_fast.yaml"
+    fd_fast.write_text(yaml.safe_dump({**md, "swap_attempts_per_atom_per_step": 0.0125}))
+    out4 = tmp_path / "out4"
+    assert main(["analyse", str(fd_fast), "--out", str(out4), "--bulk-dir", str(out), "--cache", str(tmp_path / "cache")]) == 0
+    prov4 = json.loads((out4 / "RUN_stage3_D2.csv.provenance.json").read_text())
+    assert prov4["x_bc"]["accepted"] is False and "swap rate differs" in prov4["x_bc"]["reasons"][0]
+    assert "no bulk control" in prov4["reference_rule"] and "swap rate differs" in prov4["reference_rule"]
+    assert prov4["x_ref"]["x_iso"] == 0.05
     # D1 (bulk control = same size): the smaller cell is not a bulk control, x_bc only as a diagnostic
     out3 = tmp_path / "out3"
     assert main(["analyse", str(fd), str(fb), "--out", str(out3), "--cache", str(tmp_path / "cache"),
@@ -124,7 +135,8 @@ def test_missing_bulk_control_table_is_reported(tmp_path, capsys):
                       pos, timestep=1000, pbc=("pp", "ss", "ss"))
     md = {**base_manifest("RUN", "PROJ/T/RUN/*_quenched_step*.dump"), "character": "d0", "potential": "CuNi-ACE",
           "frame": {"X": [1, -1, 0], "Y": [1, 1, -2], "Z": [1, 1, 1]}, "frame_source": "t", "z_gp": float(z0),
-          "z_gp_source": "t", "bulk_control": "BULK", "x_ref_source": "bulk_control", "start_type": "bottom-up"}
+          "z_gp_source": "t", "bulk_control": "BULK", "x_ref_source": "bulk_control", "start_type": "bottom-up",
+          "swap_attempts_per_atom_per_step": 0.01}
     fd = tmp_path / "run.yaml"
     fd.write_text(yaml.safe_dump(md))
     out = tmp_path / "out"
