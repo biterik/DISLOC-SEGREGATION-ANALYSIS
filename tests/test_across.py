@@ -19,6 +19,7 @@ from disegreg.stage2 import BULK_REGION, analyse_bulk_snapshot
 from helpers import fcc_in_cell
 from test_manifest_stage2 import demo
 
+D2 = load_definitions("D2")
 PROPS = load_proposals()
 KB = 8.617333262e-5
 
@@ -114,13 +115,13 @@ def test_hysteresis_pairs_and_verdict(tmp_path):
              write_run(tmp_path, "up2", -0.5, 0.30, 2e-3, 2e-3, gamma20=4.0)]
     runs, _ = across.load_runs(files)
     (key, rs), = across.run_sets(runs).items()
-    rows = across.hysteresis_rows(key, rs, PROPS["hysteresis"])
+    rows = across.hysteresis_rows(key, rs, D2["hysteresis"])
     assert {r["runs"] for r in rows} == {"up|down"}                       # same Delta only
     g = {(r["quantity"], r["ref"]): r for r in rows if r["region"] == "20"}
     d = g[("Gamma_up_minus_down", "x_iso")]
     assert d["value"] == pytest.approx(-0.5) and d["error"] == pytest.approx(0.1 * np.sqrt(2))
     v = g[("Gamma_hysteresis", "x_iso")]
-    assert v["value"] == 1.0 and v["status"] == "proposal" and v["error"] == pytest.approx(0.5 / (0.1 * np.sqrt(2)))
+    assert v["value"] == 1.0 and v["status"] == "definition" and v["error"] == pytest.approx(0.5 / (0.1 * np.sqrt(2)))
     c = [r for r in rows if r["quantity"] == "c_hysteresis"]
     assert c and c[0]["value"] == 0.0                                     # equal c_C: not different
 
@@ -147,7 +148,7 @@ def test_stage4_driver_and_x_bc_error(tmp_path):
     files = [write_run(tmp_path, "a", -0.5, 0.1, 1e-3, 1e-3, x_bc=(1.1e-3, 2e-5)),
              write_run(tmp_path, "b", -0.25, 0.3, 2e-3, 2e-3, x_bc=(2.1e-3, 3e-5))]
     runs, _ = across.load_runs(files)
-    rows = across.stage4(runs, PROPS)
+    rows = across.stage4(runs, D2)
     xr = {r["ref"] for r in rows if r["analysis"] == "uptake"}
     assert xr == {"c_B", "x_iso", "x_bc"}
     up = next(r for r in rows if r["analysis"] == "uptake" and r["ref"] == "x_bc")
@@ -155,7 +156,23 @@ def test_stage4_driver_and_x_bc_error(tmp_path):
     assert up["value"] == pytest.approx(n) and up["error"] == pytest.approx(e) and e > 0
     xe = next(r for r in rows if r["analysis"] == "x_bc_error" and r["runs"] == "a" and r["region"] == "20")
     assert xe["error"] == pytest.approx(18000 / 100 * 2e-5)
-    assert xe["value"] == pytest.approx(np.hypot(0.1, 18000 / 100 * 2e-5)) and xe["status"] == "proposal"
+    assert xe["value"] == pytest.approx(np.hypot(0.1, 18000 / 100 * 2e-5)) and xe["status"] == "definition"
+    assert {r["status"] for r in rows} == {"definition"}                  # D2: no Stage-4 row depends on a proposal
+    # tables of D1: only what D1 defines (uptake exponents, hysteresis differences); no x_bc error, no verdict
+    d1_rows = across.stage4(runs, load_definitions("D1"))
+    assert {r["analysis"] for r in d1_rows} == {"uptake"}
+    assert [r["value"] for r in d1_rows] == [r["value"] for r in rows if r["analysis"] == "uptake"]
+
+
+def test_hysteresis_with_D1_gives_differences_only(tmp_path):
+    files = [write_run(tmp_path, "up", -0.25, 0.30, 2e-3, 2e-3, gamma20=4.0),
+             write_run(tmp_path, "down", -0.25, 0.30, 2e-3, 2e-3, start="top-down", gamma20=4.5)]
+    runs, _ = across.load_runs(files)
+    rows = [r for r in across.stage4(runs, load_definitions("D1")) if r["analysis"] == "hysteresis"]
+    assert rows and all(r["quantity"].endswith("_up_minus_down") for r in rows)
+    rows2 = [r for r in across.stage4(runs, D2) if r["analysis"] == "hysteresis"]
+    assert {r["quantity"] for r in rows2} == {"Gamma_up_minus_down", "Gamma_hysteresis", "c_up_minus_down", "c_hysteresis"}
+    assert ([r["value"] for r in rows2 if r["quantity"].endswith("_up_minus_down")] == [r["value"] for r in rows])
 
 
 # --------------------------------------------------------------------------------------------------- McLean
@@ -262,7 +279,7 @@ def test_mclean_rows_against_measured(tmp_path):
     assert r[("c_C_mclean", "x_iso")]["value"] == pytest.approx(c_pred)
     assert r[("c_C_measured_over_mclean", "x_iso")]["value"] == pytest.approx(2.0)
     assert r[("c_C_mclean", "x_iso")]["error"] == 0.0                   # x_iso carries no error
-    assert all(q["status"] == "proposal" for q in rows)
+    assert all(q["status"] == "definition" for q in rows)                # D2 section 12
     assert r[("n_up_mclean", "c_B")]["value"] <= 1.0
 
 
@@ -272,7 +289,7 @@ def bulk_manifest():
     for k in ("character", "frame", "frame_source", "z_gp", "z_gp_source", "x_ref_source", "start_type",
               "bulk_control", "bulk_control_reason", "mc_stream"):
         d.pop(k, None)
-    d.update(cell_type="bulk_control", run_id="bulk_LeeShim_0.25kT")
+    d.update(cell_type="bulk_control", run_id="bulk_LeeShim_0.25kT", n_atoms=32000)
     return d
 
 
@@ -281,6 +298,9 @@ def test_bulk_control_manifest_validation():
     d = bulk_manifest()
     d["bulk_control"] = "other"
     assert any("cannot name a bulk_control" in e for e in validate(d))
+    d = bulk_manifest()
+    d.pop("n_atoms")                                  # D2 section 15: a bulk control records its size
+    assert any("needs n_atoms" in e for e in validate(d))
     d = bulk_manifest()
     d["cell_type"] = "precipitate"
     assert any("cell_type" in e for e in validate(d))
@@ -319,17 +339,42 @@ def test_bulk_snapshot_exact_and_find_x_bc(tmp_path):
     write_table(tmp_path / "bulk_stage3_D1.csv", rows, {"definition_set": "D1"}, columns=STAGE3_COLUMNS)
     info = find_x_bc("bulk", "D1", [tmp_path / "nothing", tmp_path])
     assert info["value"] == 0.0301 and info["sem"] == 0.0004 and info["enough_solute"]
+    assert info["n_atoms"] is None                    # table without size: not accepted (bulk_control_check)
+    write_table(tmp_path / "bulk_stage3_D2.csv", rows, {"definition_set": "D2", "stage3": {"n_atoms": 32000,
+                                                                                         "last_md_step": 10 ** 6}},
+                columns=STAGE3_COLUMNS)
+    info2 = find_x_bc("bulk", "D2", [tmp_path])
+    assert info2["n_atoms"] == 32000 and info2["last_md_step"] == 10 ** 6
     assert find_x_bc("bulk", "D1", [tmp_path], min_solute=1000)["enough_solute"] is False
     assert find_x_bc("missing", "D1", [tmp_path]) is None
 
 
-def test_proposals_file_is_separate_from_D1():
+def test_bulk_control_check_size_and_run_length():
+    """DEFINITIONS 5 / D2 section 15 (Erik 25 Nov, E1 option a)."""
+    from disegreg.cli import bulk_control_check
+
+    d1 = load_definitions("D1")
+    same = bulk_control_check({"n_atoms": 570000, "last_md_step": 800000}, 570000, 800000, D2)
+    assert same["accepted"] and not same["smaller"] and same["diagnostic_iv"] == "usable" and same["flags"] == []
+    small = bulk_control_check({"n_atoms": 32000, "last_md_step": 800000}, 570000, 800000, D2)
+    assert small["accepted"] and small["smaller"] and small["diagnostic_iv"].startswith("not usable")
+    assert small["size_ratio"] == pytest.approx(32000 / 570000) and small["same_run_length"] is True
+    small_d1 = bulk_control_check({"n_atoms": 32000, "last_md_step": 800000}, 570000, 800000, d1)
+    assert small_d1["accepted"] is False and "not a bulk control under D1" in small_d1["flags"][0]
+    assert bulk_control_check({"n_atoms": 570000, "last_md_step": 800000}, 570000, 800000, d1)["accepted"]
+    unknown = bulk_control_check({"n_atoms": None}, 570000, 800000, D2)
+    assert unknown["accepted"] is False and unknown["same_run_length"] is None
+    short = bulk_control_check({"n_atoms": 32000, "last_md_step": 400000}, 570000, 800000, D2)
+    assert short["accepted"] and short["same_run_length"] is False and "run length differs" in short["flags"][0]
+
+
+def test_proposals_file_holds_only_P5():
     d1 = load_definitions("D1")
     assert d1.status.startswith("rev. 4") and "mclean" not in d1.params
-    assert PROPS.label == "P-v0.2" and PROPS["mclean"]["core_site_radius"] == 5.0
-    assert PROPS["hysteresis"]["factor"] == 2.0
+    assert PROPS.label == "P-v0.2" and set(PROPS.params) == {"label", "status", "ordered_domains"}
+    assert D2["mclean"]["core_site_radius"] == 5.0 and D2["hysteresis"]["factor"] == 2.0
     from disegreg.definitions import available
-    assert available() == ["D1"]                       # a proposal file is not a definition set
+    assert available() == ["D1", "D2"]                 # a proposal file is not a definition set
 
 
 def test_core_sites_merge_periodic_copies():

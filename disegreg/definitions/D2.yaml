@@ -1,0 +1,104 @@
+# Definition set D2 -- every numerical parameter of docs/DEFINITIONS.md, machine-readable.
+# Section numbers refer to docs/DEFINITIONS.md. Lengths in Angstrom unless stated otherwise.
+# D2 = D1 rev. 4 UNCHANGED (sections input ... timeseries below are value-for-value those of D1.yaml; every D1 quantity is
+# computed identically, tests/test_definitions.py) + the v0.2 sections decided by Erik on 25 Nov 2026 (docs/DEFINITIONS.md
+# sections 12-16: McLean core sites, hysteresis criterion, error of Gamma vs x_bc, smaller bulk controls, along-line
+# spectrum). The ordered-domain sizes (P5) are NOT part of D2: they stay a proposal (proposals_v0.2.yaml).
+# Changing ANY value here creates a new definition set (D3, ...) with a line in the revision log of docs/DEFINITIONS.md.
+label: D2
+status: "rev. 1 (2026-11-25): D1 rev. 4 + sections 12-16 (Erik 25 Nov); not yet released (branch v0.2-dev)"
+extends: D1                              # every section of D1.yaml is here with the same values
+
+input:                                   # section 1
+  snapshots: quenched                    # energy-minimised snapshots only
+  type_host: 1
+  type_solute: 2
+
+structure:                               # section 2
+  regions_from: adaptive-CNA             # a-CNA, parameter-free
+  dxa:                                   # line detection; OVITO 3.17.2 defaults, recorded explicitly (DXA uses its own internal
+    input_structure: fcc                 #   structure identification -- verified 2026-11-22 on Ni-Cu d60: lines identical with or
+    trial_circuit_length: 14             #   without a preceding PTM / a-CNA)
+    circuit_stretchability: 9
+    line_smoothing_level: 1
+    line_coarsening: true
+    defect_mesh_smoothing_level: 8
+    only_perfect_dislocations: false
+  ptm_extra_label:                       # stored, NOT used for regions
+    templates: [fcc, hcp, bcc, ico]      # OVITO default would be fcc, hcp, bcc and RMSD cut-off 0.1
+    rmsd_cutoff: 0.12
+
+distance:                                # section 3
+  polyline_spacing: 0.25                 # 3.1: densify DXA polylines; max error < 0.02 A at r >= 0.5 A
+  periodic_images: 1                     # 3.1: neighbouring images in each periodic direction (exact for LAMMPS tilt limits)
+  fallback_axis:                         # 3.3 / 3.4 (rev. 3)
+    slab_width: 5.0                      # X slabs (actual width = L_x / round(L_x / 5))
+    smoothing_slabs: 3                   # running mean, periodic in X
+    connectivity_cutoff_a: 0.854         # 1st-shell connectivity, in units of a_cell
+    min_slab_fraction: 0.5               # a cluster counts as a line if its core atoms fill >= 50 % of the slabs (Erik 23 Nov)
+    dxa_assign_cutoff_a: 0.854           # DXA point -> cluster of nearest non-fcc atom if closer than this (units of a_cell)
+    active_below_dxa_coverage: 0.5       # axis used in slab k of cluster m only if DXA covers < 50 % of it (Erik 23 Nov)
+  z_gp_tolerance_planes: 1.0             # 3.4: flag if |z_gp(metadata) - z_gp(lines)| > 1 (111) spacing = a/sqrt(3)
+
+regions:                                 # section 4
+  surface_exclusion: 15.0                # X: within 15 A of lowest / highest atom in Z
+  core_radius: 5.0                       # C: r < 5
+  shell_radius: 10.0                     # S: 5 <= r < 10
+  fault_half_width: 4.0                  # F: a-CNA hcp, |z - z_gp| < 4, r >= 5
+  far_field_radius: 60.0                 # B: r >= 60, a-CNA fcc  (O: r >= 60, not fcc)
+  far_slab40_half_width: 40.0            # optional column far_slab40: fcc, |z - z_gp| > 40, not X
+  radial_bins: [0, 5, 10, 20, 40, 60, 80, 100]   # last bin open: >= 100
+
+reference:                               # section 5
+  preference: [bulk_control, isotherm, far_field_diagnostic]
+  min_solute_in_bulk_control: 100        # expected solute count in the control interior below this -> isotherm
+  # rev. 4 (Erik 24 Nov): until a run has its bulk control, E, Gamma and alpha vs x_ref are reported against BOTH the
+  # in-cell far field c_B (of the same snapshot) and the isotherm x_iso; the table names the reference in column "ref".
+  without_bulk_control_report_against: [c_B, x_iso]
+  paper_hold_without_bulk_control:       # runs whose enrichments must not be quoted in the paper before the bulk control
+    - {potential_contains: ACE, host: Ni, solute: Cu}   # ACE Ni-Cu: c_B / x_iso = 0.5-2.6 (regression 23 Nov)
+
+composition:                             # section 6
+  headline_radius: 20.0                  # Gamma(20 A): the headline number (Erik 24 Nov)
+  check_radius: 40.0                     # Gamma(40 A): the robust check, quoted where the fallback axis is active
+  gamma_curve_radii: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]   # Gamma(R) curve for the supplement
+  partial_separation_bin: 5.0            # X bins for the Y distance between two Shockley partials
+  partial_merge_distance: 2.0            # Shockley pieces closer than this (Y-Z plane, within a bin) = same partial (Erik 24 Nov)
+
+order:                                   # section 7
+  shell1_cutoff_a: 0.854                 # 1st shell: r < 0.854 a
+  shell2_cutoff_a: 1.112                 # 2nd shell: 0.854 a <= r < 1.112 a
+  shell1_coordination: 12
+  shell2_coordination: 6
+
+timeseries:                              # section 8
+  drift_final_fraction: 0.30             # drift test over the last 30 % of the run
+  drift_criterion: change_se             # rev. 4 (Erik 24 Nov): "flat" if |change| < drift_factor x SE(change);
+                                         #   the rev. 3 rule "sem" (|change| < 2 SEM) is kept as an extra column
+  drift_factor: 2.0
+  min_window_fraction: 0.30              # averaging window >= 30 % of the run
+
+# ---------------------------------------------------------------------------------------- new in D2 (Erik 25 Nov 2026)
+mclean:                                  # section 12 (was [PROPOSAL v0.2] P1): which 0 K sites count as core sites
+  core_site_radius: 5.0                  # a tabulated site is a core site if r_DXA < 5 A in the relaxed 0 K cell (= D1 core radius)
+  missing_sites: tabulated_only          # c_C(McLean) = mean theta over the tabulated core sites (core sites without a table
+                                         #   entry are left out); the coverage is always reported
+  min_coverage: 0.90                     # rows flagged if the table covers < 90 % of the core sites per line period
+
+hysteresis:                              # section 13 (was P2): when are bottom-up and top-down "different"
+  factor: 2.0                            # different if |v_up - v_down| > 2 x sqrt(SEM_up^2 + SEM_down^2)
+  quantities:                            # (quantity, region, basis) compared; Gamma for every reference both runs have
+    - [Gamma, "20", r]
+    - [c, C, ""]
+
+bulk_control:                            # sections 14 (was P3) and 15 (was E1)
+  propagate_x_ref_error: true            # 14: error of Gamma vs x_bc includes N(r < R) / L_x x SEM(x_bc), in quadrature
+  smaller_cell_allowed: true             # 15: a bulk-control cell smaller than the dislocation cell gives x_bc (same per-atom
+                                         #   swap rate and run length, >= min_solute_in_bulk_control solute atoms in its
+                                         #   interior, its size recorded in the manifest: field n_atoms) ...
+  smaller_cell_for_diagnostic_iv: false  # ... but NOT protocol diagnostic (iv) (does the dislocation-free crystal precipitate?)
+
+alongline:                               # section 16 (was P4): along-line core composition + spectrum vs binomial noise
+  regions: [C]                           # atoms analysed: the core (r < 5 A)
+  bin_width: 5.0                         # X bins (actual width L_x / round(L_x / 5))
+  p_threshold: 0.01                      # a spectrum peak counts as "periodic" if its binomial-noise p-value < 0.01

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """v0.2 demo: Stage 4 + summary tables + figures from the final demo analysis (M5).
 
-    python regression/v02_demo_summary.py [--in regression/output/v0.2-final] [--out regression/results/v0.2-demo]
+    python regression/v02_demo_summary.py [--in regression/output/v0.2-D2] [--out regression/results/v0.2-demo] [--label D2]
 
-Input: the Stage-2/3 tables written by
-    disegreg analyse examples/stage4/manifests/{nbau,nicu,turlo}/*.yaml --out regression/output/v0.2-final
+Input: the Stage-2/3 tables written by (definition set D2, the default since 25 Nov; the 24 Nov demo used D1 + proposals,
+regression/output/v0.2-final)
+    disegreg analyse examples/stage4/manifests/{nbau,nicu,turlo}/*.yaml --out regression/output/v0.2-D2
 Output (small, committed): stage4.csv (+ provenance), results.csv is NOT copied (large); summary_*.csv; fig/*.png.
 """
 
@@ -42,8 +43,9 @@ def write(path, rows, keys=None):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--in", dest="inp", default=str(ROOT / "regression/output/v0.2-final"))
+    ap.add_argument("--in", dest="inp", default=str(ROOT / "regression/output/v0.2-D2"))
     ap.add_argument("--out", default=str(ROOT / "regression/results/v0.2-demo"))
+    ap.add_argument("--label", default="D2", help="definition set of the input tables (file names <run>_stage2_<label>.csv)")
     a = ap.parse_args()
     inp, out = Path(a.inp), Path(a.out)
     (out / "fig").mkdir(parents=True, exist_ok=True)
@@ -136,11 +138,11 @@ def main():
                 "mdmc300K_d0_Mendelev2022-EAMFS_0.50kT-below-coex_dmu-3.0234",
                 "t51_U20_d90-SGC-dmu-3.5598-fromCu_Mendelev2009-EAMFS_800K",
                 "t51_D20_d90-SGC-dmu-3.5598-fromR3_Mendelev2009-EAMFS_800K"):
-        s2 = inp / f"{rid}_stage2_D1.csv"
+        s2 = inp / f"{rid}_stage2_{a.label}.csv"
         if s2.is_file():
             run("plot", "alongline", s2, "--out", fig / f"alongline_{rid[:40]}")
             run("plot", "timeseries", s2, "--quantity", "c:C", "--out", fig / f"timeseries_cC_{rid[:40]}")
-            run("plot", "gamma", inp / f"{rid}_gammaR_D1.csv", "--out", fig / f"gammaR_{rid[:40]}")
+            run("plot", "gamma", inp / f"{rid}_gammaR_{a.label}.csv", "--out", fig / f"gammaR_{rid[:40]}")
 
 
 if __name__ == "__main__":

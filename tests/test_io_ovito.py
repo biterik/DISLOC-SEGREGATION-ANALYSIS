@@ -123,7 +123,8 @@ def test_cli_analyse_end_to_end(tmp_path):
     mf.write_text(yaml.safe_dump(m))
     out = tmp_path / "out"
     assert main(["manifest", "check", str(mf)]) == 0
-    assert main(["analyse", str(mf), "--out", str(out), "--cache", str(tmp_path / "cache")]) == 0
+    # the v0.1 path, explicitly with D1 (default since v0.2: D2, which gives the same D1 quantities)
+    assert main(["analyse", str(mf), "--out", str(out), "--cache", str(tmp_path / "cache"), "--definitions", "D1"]) == 0
     rows = read_table(out / "RUN_stage2_D1.csv")
     assert [r["timestep"] for r in rows if r["quantity"] == "f_cov"] == [1000, 2000]  # sorted by step
     n = {r["region"]: r["value"] for r in rows if r["quantity"] == "N" and r["timestep"] == 1000}

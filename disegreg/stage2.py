@@ -58,9 +58,10 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
              None -> counts and local quantities only.
     c_B_ref: also use this snapshot's own far-field concentration c_B as a reference (ref label "c_B").
     frame_matrix : rows = crystal directions of X, Y, Z (Manifest.frame_matrix()); None -> no crystal-frame segment table.
-    proposals : the v0.2 proposal parameters (definitions.load_proposals()); None -> D1 quantities only. With them, the
-             proposal quantities are added (status proposal in the results table): along-line core spectrum (P4),
-             ordered-domain sizes (P5).
+    proposals : the parameters of the still open v0.2 proposals (definitions.load_proposals()); None -> quantities of the
+             definition set only. With them, the proposal quantities are added (status proposal in the results table):
+             ordered-domain sizes (P5). The along-line core spectrum (D2 section 16, was P4) comes from the definition set
+             itself: computed with D2, not with D1.
     """
     t0 = time.perf_counter()
     res = Stage2Result()
@@ -170,9 +171,9 @@ def analyse_snapshot(snap: Snapshot, definitions, a_cell: float, z_gp=None, x_re
     res.add("partial_separation_valid_bins", ps.n_valid)
     res.info.update(partial_separation_bins=ps.n_bins, n_shockley_polylines=ps.n_partials)
 
-    # ---- [PROPOSAL v0.2] P4: along-line core composition and spectrum
-    if proposals is not None and "alongline" in proposals.params:
-        pa = proposals["alongline"]
+    # ---- along-line core composition and spectrum (D2 section 16; not in D1)
+    if "alongline" in definitions.params:
+        pa = definitions["alongline"]
         sel = np.isin(codes, [regions.code_index(c) for c in pa["regions"]])
         al = alongline.profile(cell, pos, solute, sel, float(pa["bin_width"]))
         alongline.records(al, res.add)

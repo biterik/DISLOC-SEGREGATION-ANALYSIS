@@ -62,6 +62,7 @@ FIELDS = {
     # v0.2 (optional, schema 1 unchanged: every v0.1 manifest stays valid)
     "cell_type": (False, str, "dislocation (default) | bulk_control: a cell without dislocation that gives x_bc to the runs "
                   "naming it in bulk_control (DEFINITIONS 5)"),
+    "n_atoms": (False, int, "number of atoms in the cell; required for a bulk control (D2 section 15: its size is recorded)"),
 }
 # not required in a bulk-control manifest (no line, no glide plane, no reference of its own)
 NOT_REQUIRED_FOR_BULK = ("character", "frame", "frame_source", "z_gp", "z_gp_source", "x_ref_source", "start_type")
@@ -142,9 +143,13 @@ def validate(data: dict) -> list[str]:
         d = (data["dmu"] - data["dmu_coex"]) / (K_B * data["temperature"])
         if abs(d - data["delta"]) > DELTA_TOLERANCE:
             errs.append(f"delta {data['delta']} != (dmu - dmu_coex)/kT = {d:.4f}")
+    if "n_atoms" in data and data["n_atoms"] <= 0:
+        errs.append("n_atoms must be positive")
     if bulk:
         if data.get("bulk_control"):
             errs.append("a bulk-control manifest cannot name a bulk_control of its own")
+        if "n_atoms" not in data:
+            errs.append("a bulk-control manifest needs n_atoms (its cell size, D2 section 15)")
         return errs + (["x_iso given without x_iso_source"] if "x_iso" in data and not data.get("x_iso_source") else [])
     if not data.get("bulk_control") and not data.get("bulk_control_reason"):
         errs.append("bulk_control is empty: bulk_control_reason is required")

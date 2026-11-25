@@ -3,13 +3,17 @@
 State: 24 Nov 2026, written by the unattended Claude Code session (docs/PLAN_v0.2.md). Nothing here is merged into main,
 nothing is tagged, D1 rev. 4 is unchanged (D1.yaml byte-identical). All proposals live in docs/DEFINITIONS.md, section
 "[PROPOSAL v0.2]", their parameters in disegreg/definitions/proposals_v0.2.yaml (label P-v0.2).
+**Update 25 Nov:** Erik decided (section 5). Done: v0.1.1 released from main (0.1); P1-P4 and E1 are definition set D2
+(docs/DEFINITIONS.md sections 12-16, disegreg/definitions/D2.yaml); P5 stays a proposal. What was done, the code decisions
+taken on the way and the two new open points (N1, N2): section 6. Sections 0-4 below are the record of 24 Nov.
 
 Abbreviations: SEM = standard error of the mean (from block averaging); DXA = dislocation extraction algorithm (OVITO);
 Delta = offset (dmu - dmu_coex) / kT, negative = below coexistence; c_C = solute fraction in the core (r < 5 A);
 x_ref = reference solute fraction: c_B (in-cell far field), x_iso (isotherm), x_bc (bulk-control cell).
 
 ## 0. Bugs in v0.1.0 (may need a v0.1.1 on main, with Erik)
-**0.1 Snapshots after the end of the MC stream are silently dropped (v0.1.0 behaviour, needs your decision).**
+**0.1 Snapshots after the end of the MC stream are silently dropped (v0.1.0 behaviour).** DECIDED 25 Nov: option (a),
+released as v0.1.1 (section 6).
 Stage 3 takes the averaging window from the MC stream; a snapshot later than the last stream line lies outside every window
 and is not used -- without any message. Found on the Mac copies of the Nb-Au Mendelev runs: the stream ends at 1.53 ns
 (rsynced earlier), the dumps go to 3.01 ns, so about half of the snapshots are ignored. No number is wrong for the snapshots
@@ -57,9 +61,9 @@ Two robustness points, fixed on the branch only (no v0.1.0 number affected):
   a bulk control periodic in Z has no excluded layer, one with z faces excludes 15 A as in D1; two runs of one family at the same
   Delta are both used (every combination, flagged), never silently one.
 
-## 2. Decisions needed
+## 2. Decisions needed (24 Nov) -- P1-P4 and E1 DECIDED 25 Nov as recommended -> D2 sections 12-16; P5 still open
 
-### P1. McLean: which 0 K sites count as core sites?  (DEFINITIONS [PROPOSAL v0.2] P1)
+### P1. McLean: which 0 K sites count as core sites?  (DECIDED: option 1 -> D2 section 12)
 Proposal: a tabulated site is a core site if its atom lies within 5 A (the D1 core radius) of a DXA line of the relaxed 0 K
 cell; table entries that repeat a site one line period further along X count once.
 Demo, all 16 tables on the Mac (sites with r < 5 A of the 0 K DXA line, per line period):
@@ -83,17 +87,17 @@ Options:
    not comparable with the measured c_C (r < 5 A).
 Demo numbers (measured / McLean per run): section 3.
 
-### P2. Hysteresis: when are bottom-up and top-down "different"?  (P2)
+### P2. Hysteresis: when are bottom-up and top-down "different"?  (DECIDED: factor 2 -> D2 section 13)
 Proposal: |difference| > 2 x sqrt(SEM_up^2 + SEM_down^2), for Gamma(20 A) (every reference) and c_C. Recommended. Alternative:
 3 x (fewer false alarms, ~0.3 %), or a verdict only from Gamma(20 A). No demo numbers: no top-down run on the Mac (Lee-Shim
 top-down "A2" approved 22 Nov, not yet run).
 
-### P3. Error bar of Gamma vs x_bc  (P3)
+### P3. Error bar of Gamma vs x_bc  (DECIDED: as proposed -> D2 section 14)
 Proposal: total error = sqrt(SEM_Gamma^2 + (N(r < R) / L_x x SEM(x_bc))^2), row `Gamma_error_total`. Recommended (otherwise the
 bulk-control uncertainty is silently dropped). For Gamma(20 A), N(r < 20 A) / L_x ~ 180 atoms per A, so SEM(x_bc) = 1e-5 adds
 0.0018 atoms/A.
 
-### P4. Along-line core composition: continuous line state or periodic particles?  (P4)
+### P4. Along-line core composition: continuous line state or periodic particles?  (DECIDED: 5 A, C only, p < 0.01 -> D2 section 16)
 Proposal (DEFINITIONS P4): core atoms (r < 5 A) in X bins of ~5 A; dispersion index D (1 = random, >> 1 = particles,
 < 1 = more even than random); spectrum S(q) normalised to binomial noise (mean 1), window-averaged; "periodic" if the highest
 peak has p < 0.01 under binomial noise. Synthetic checks: a particle array with 25 A spacing in a 100 A cell gives q = 4,
@@ -103,7 +107,7 @@ Options: bins 5 A (recommended: ~40 core atoms per bin in the Ni cells, waveleng
 d0/d60, noisier); atoms C only (recommended) or C + S; threshold p < 0.01 (recommended) or 0.05.
 Demo numbers: section 3.
 
-### P5. Ordered-domain sizes (Ni-Al vs 2.7 +- 0.6 nm)  (P5)
+### P5. Ordered-domain sizes (Ni-Al vs 2.7 +- 0.6 nm)  (OPEN: stays a proposal until Ni-Al data exist)
 Proposal (DEFINITIONS P5): ordered solute = no solute 1st neighbour and >= 4 of 6 solute 2nd neighbours; domain = 2nd-shell-
 connected ordered solute atoms (>= 4) plus their solute 2nd neighbours (the surface); d = (6 n a^3 / pi)^(1/3).
 Synthetic test, L1_2 Ni3Al sphere of diameter D in fcc Ni (a = 3.52 A), measured d / D:
@@ -123,7 +127,7 @@ No docs/FEEDBACK_from-*.md and no feedback file in the project folders after 24 
 its first manifest (Ni-Cu d60 Lee-Shim -0.10 kT, Nb-Au d60 Mendelev -0.25 kT, TURLO t51 D20) -- all three pass
 `disegreg manifest check` with the v0.2 code; TURLO-REDO has a manifest generator (52_.../DISEGREG/make-manifests.py) that
 the v0.2 demo reuses read-only (our copy of D20 is identical to theirs). No bug report. Points that need you:
-- **E1. Is a SMALL bulk control a bulk control?** Ni-Cu thread 11 (Lee-Shim, prepared 24 Nov) and thread 10 (ACE) are 32 000-atom
+- **E1. Is a SMALL bulk control a bulk control?** (DECIDED: option (a) -> D2 section 15) Ni-Cu thread 11 (Lee-Shim, prepared 24 Nov) and thread 10 (ACE) are 32 000-atom
   periodic cells; D1 section 5 defines the bulk control as "same size, same dmu, same run length" as the ~570 000-atom dislocation
   cell. Its manifest notes "switch x_ref_source to bulk_control when thread 11 is harvested". Options: (a) accept a smaller cell
   for x_bc if it has the same per-atom swap rate and run length and >= 100 solute atoms in its interior (Lee-Shim at -0.10 kT:
@@ -192,3 +196,64 @@ parameter: Mendelev cells were first given 39 instead of 40 periods because the 
 - Hysteresis demo: needs a top-down run (Lee-Shim A2) on the Mac.
 - x_bc demo: needs a harvested same-size bulk control (Ni-Cu thread 11 prepared 24 Nov; ACE thread 10 cells are 32 000-atom
   isotherm cells with Cu-only dumps, not usable as x_bc input).
+
+## 5. Erik's decisions (25 Nov 2026, 15:24, given in the claude.ai design session)
+- 0.1: release v0.1.1 on main with option (a): WARNING + count only (`snapshots_after_window_signal`), no v0.1.0 number changes;
+  plus one line in docs/HOWTO_PROJECTS.md: rsync the MC stream together with the dumps. Port only that fix (and the two
+  robustness fixes if they do not change any v0.1.0 output) from v0.2-dev to main; tag v0.1.1, GitHub release (Zenodo makes the
+  new version DOI automatically), CITATION.cff version/date/DOIs updated afterwards.
+- P1: option 1 (r < 5 A of the 0 K DXA line, tabulated sites only, coverage reported, < 90 % flagged). EAM-X d90 flagged;
+  ask the Nb-Au instance (via Erik) for a corrected 0 K site table.
+- P2: |difference| > 2 x sqrt(SEM_up^2 + SEM_down^2), for Gamma(20 A) and c_C.
+- P3: Gamma_error_total including the x_bc uncertainty, as proposed.
+- P4: as recommended: 5 A bins, core atoms (C) only, "periodic" if p < 0.01.
+- E1: option (a): a smaller bulk-control cell is accepted for x_bc (same per-atom swap rate and run length, >= 100 solute atoms in
+  its interior, size recorded in the manifest), but NOT for diagnostic (iv).
+- P5: NOT decided -- stays [PROPOSAL v0.2] until Ni-Al MD/MC data exist; its columns keep status = proposal.
+- Label for the new definitions: still open (Erik asked in the same session: D2 recommended = D1 rev. 4 unchanged + sections
+  P1-P4 / E1; every D1 quantity identical in D2).
+
+## 6. Done on 25 Nov (Claude Code session, after Erik's decisions)
+### 6.1 v0.1.1 (main; Erik authorised work on main for this release only)
+- Ported from v0.2-dev: the Stage-3 count `snapshots_after_window_signal` / `snapshots_total` + the WARNING in `disegreg analyse`;
+  `write_table` plain floats; `paper_flag` lifted only when x_bc is actually given (no v0.1.0 manifest names a bulk control,
+  checked also in the three project manifests in the project folders). docs/HOWTO_PROJECTS.md: rsync the stream with the dumps.
+- Checked: the three example manifests (Ni-Cu d60 Lee-Shim, Nb-Au d60 Mendelev, TURLO t50 R3) analysed with v0.1.0 (from the
+  tag) and with v0.1.1 give identical Stage-2, Stage-3 and Gamma(R) tables, 141 470 cells, only `tool_version` differs. The
+  Nb-Au run prints "WARNING: 8 of 17 snapshots are later than the end of the mc_stream:nSol_interior signal and are NOT used".
+  104 tests pass; GitHub Actions green on main and on the tag.
+- Tag v0.1.1, GitHub release https://github.com/biterik/DISLOC-SEGREGATION-ANALYSIS/releases/tag/v0.1.1, Zenodo DOI of v0.1.1:
+  10.5281/zenodo.24535067 (concept DOI unchanged), now in CITATION.cff (version 0.1.1, 2026-11-25) and README.md.
+### 6.2 D2 (branch v0.2-dev; not merged, not tagged)
+- disegreg/definitions/D2.yaml = every D1 section value for value (tested) + sections `mclean`, `hysteresis`, `bulk_control`,
+  `alongline`; docs/DEFINITIONS.md: header (D1 and D2), pointer lines [D2] in sections 5, 7, 9, new sections 12-16 and a D2
+  revision log; the [PROPOSAL v0.2] part holds only P5. proposals_v0.2.yaml holds only `ordered_domains`.
+- Status: along-line, McLean, hysteresis verdict, Gamma_error_total = `definition` in D2 tables; `domain_*` (P5) = `proposal`.
+- Tests: 150 pass (D2 = D1 + new sections; every D1 Stage-2 record bit-identical under D2 on a synthetic snapshot; Stage 4
+  with D1 tables; bulk-control size check; the OVITO end-to-end tests with D1 and with D2).
+### 6.3 Code decisions taken (inside the agreed design, reported)
+- D2 is the default definition set on the branch (`--definitions D1` still gives the v0.1 outputs; tested end to end with OVITO).
+  `disegreg across` takes the definition set of the tables it reads. Stage 1 is the same for D1 and D2 (same cache entries).
+- With D1 tables Stage 4 computes only what D1 defines: uptake exponents and hysteresis differences (Gamma(20 A), c_C), no
+  verdict, no McLean (`--sites` ignored with a message), no x_bc error. Along-line rows in D1-labelled tables (the 24 Nov demo)
+  keep `status = proposal`.
+- E1 in code: a bulk-control manifest must state `n_atoms` (schema stays 1; `disegreg manifest check` says so); the snapshots
+  are checked against it. A run taking x_bc records `n_atoms_run`, `size_ratio`, `smaller`, `accepted`, `diagnostic_iv`
+  ("usable" / "not usable: bulk control smaller ..."), the last MD step of both runs and `same_run_length` (equal last MD step;
+  a difference is flagged, not refused). A bulk-control table without size (made before 25 Nov) is not accepted. The per-atom
+  swap rate is not in the data: the project states it in `notes` (docs/HOWTO_PROJECTS.md).
+- `mclean.min_coverage: 0.90` is a D2 parameter (the value that was hard-coded in the code as the flag threshold).
+### 6.4 New open points
+- **N1. Diagnostic (iv) is not implemented** (since D1 rev. 2). DEFINITIONS section 5 says "for Delta > 0 without a bulk control
+  the results table marks diagnostic (iv) as 'not tested'"; neither v0.1.0/v0.1.1 nor v0.2 has such a column (found while
+  writing D2 section 15). No number is affected. Options: (a) v0.2 adds a results-table column `diagnostic_iv` = "not tested"
+  (Delta > 0, no bulk control) / "not usable" (bulk control smaller, D2 section 15) / "tested" (same-size bulk control; the test
+  itself = the bulk control's largest solute cluster vs the dislocation cell's far field, to be defined); (b) only the text in
+  the provenance (state now). Recommendation: (a) with "not tested" / "not usable" now, the test itself defined when the first
+  same-size bulk control exists.
+- **N2. v0.2-dev is not merged with main** (your instruction). main now has v0.1.1 and the DOIs in README / CITATION.cff; the
+  branch has the same code fixes. Before a v0.2 release main has to be merged into v0.2-dev (conflicts expected only in
+  CHANGELOG.md, CITATION.cff, README.md, CLAUDE.md). Nothing to decide now, a reminder.
+- Still open from before: P5 (until Ni-Al data), the corrected EAM-X d90 0 K site table (Nb-Au project, via you), the Ni-Cu
+  bulk controls (thread 11) to be harvested.
+

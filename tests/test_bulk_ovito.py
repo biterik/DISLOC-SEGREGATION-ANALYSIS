@@ -29,8 +29,9 @@ def base_manifest(run_id, dumps):
 
 def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     rng = np.random.default_rng(11)
-    # bulk control: perfect fcc, free z faces, ~8 % solute (> 100 solute atoms in the interior), new types per snapshot
-    bcell = Cell(np.diag([8 * A, 8 * A, 16 * A]), pbc=(True, True, False))
+    # bulk control: perfect fcc, free z faces, ~15 % solute (> 100 solute atoms in the interior), new types per snapshot;
+    # smaller than the dislocation cell (2304 < 3360 atoms) as allowed by D2 section 15
+    bcell = Cell(np.diag([6 * A, 6 * A, 16 * A]), pbc=(True, True, False))
     bpos = fcc_in_cell(bcell, A) + 1e-3
     bdir = tmp_path / "PROJ" / "T" / "BULK"
     bdir.mkdir(parents=True)
@@ -38,12 +39,13 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     interior = (z - z.min() >= 15) & (z.max() - z >= 15)
     x_steps = []
     for step in (1000, 2000, 3000, 4000):
-        btypes = np.where(rng.random(len(bpos)) < 0.08, 2, 1)
+        btypes = np.where(rng.random(len(bpos)) < 0.15, 2, 1)
         x_steps.append((btypes[interior] == 2).mean())
         write_lammps_dump(bdir / f"bulk_quenched_step{step}.dump", bcell, np.arange(1, len(bpos) + 1), btypes, bpos,
                           timestep=step, pbc=("pp", "pp", "ss"))
     mb = base_manifest("BULK", "PROJ/T/BULK/*_quenched_step*.dump")
     mb["cell_type"] = "bulk_control"
+    mb["n_atoms"] = len(bpos)
     # dislocation run naming the bulk control
     cell, pos, (y0, z0) = screw_dislocation_cell()
     rdir = tmp_path / "PROJ" / "T" / "RUN"
@@ -62,14 +64,20 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     out = tmp_path / "out"
     # the dislocation manifest first on the command line: the bulk control is still analysed first
     assert main(["analyse", str(fd), str(fb), "--out", str(out), "--cache", str(tmp_path / "cache")]) == 0
-    s3b = {(r["quantity"], r["region"]): r for r in read_table(out / "BULK_stage3_D1.csv")}
+    s3b = {(r["quantity"], r["region"]): r for r in read_table(out / "BULK_stage3_D2.csv")}
     n_win = s3b[("c", "interior")]["n_samples"]
     x_bc = float(np.mean(x_steps[-n_win:]))   # window mean (Stage 3 picks the final stretch)
     assert s3b[("c", "interior")]["mean"] == pytest.approx(x_bc) and s3b[("N_sol", "interior")]["mean"] > 100
-    prov = json.loads((out / "RUN_stage3_D1.csv.provenance.json").read_text())
+    prov = json.loads((out / "RUN_stage3_D2.csv.provenance.json").read_text())
     assert prov["x_bc"]["value"] == pytest.approx(x_bc) and prov["x_ref"]["x_bc"] == pytest.approx(x_bc)
     assert prov["x_bc"]["enough_solute"] and "x_bc (bulk control)" in prov["reference_rule"]
-    rows = read_table(out / "RUN_stage2_D1.csv")
+    # D2 section 15: the bulk control is smaller than the dislocation cell -> x_bc accepted, but not for diagnostic (iv)
+    assert len(bpos) < len(pos)
+    assert prov["x_bc"]["n_atoms"] == len(bpos) and prov["x_bc"]["n_atoms_run"] == len(pos)
+    assert prov["x_bc"]["smaller"] and prov["x_bc"]["accepted"] and prov["x_bc"]["diagnostic_iv"].startswith("not usable")
+    assert prov["x_bc"]["same_run_length"] is False          # bulk control to step 4000, run to step 2000: flagged
+    assert any("run length differs" in f for f in prov["x_bc"]["flags"])
+    rows = read_table(out / "RUN_stage2_D2.csv")
     assert {r["ref"] for r in rows if r["quantity"] == "Gamma"} == {"c_B", "x_iso", "x_bc"}
     # Stage 4 over both: the bulk control is not part of a run set; x_bc error rows for the dislocation run
     assert main(["across", str(out), "--out", str(tmp_path / "s4.csv")]) == 0
@@ -81,17 +89,25 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     from disegreg.results import PROPOSAL_QUANTITIES
     assert {r["status"] for r in allrows if r["quantity"] in PROPOSAL_QUANTITIES} == {"proposal"}
     assert {r["status"] for r in allrows if r["quantity"] not in PROPOSAL_QUANTITIES} == {"definition"}
-    assert {r["quantity"] for r in allrows if r["status"] == "proposal"} >= {"alongline_S", "domain_n"}
+    assert {r["quantity"] for r in allrows if r["status"] == "proposal"} >= {"domain_n"}
+    assert {r["status"] for r in allrows if r["quantity"] == "alongline_S"} == {"definition"}      # D2 section 16
     # a bulk control with too few solute atoms (DEFINITIONS 5, 2b): x_bc only as a diagnostic, x_iso stays the reference
     defs = load_definitions()
     params = {**defs.params, "reference": {**defs.params["reference"], "min_solute_in_bulk_control": 10 ** 6}}
     strict = tmp_path / "strict.yaml"
-    strict.write_text(yaml.safe_dump({**params, "label": "D1"}))
+    strict.write_text(yaml.safe_dump({**params, "label": "D2"}))
     out2 = tmp_path / "out2"
     assert main(["analyse", str(fd), "--out", str(out2), "--bulk-dir", str(out), "--cache", str(tmp_path / "cache"),
                  "--definitions", str(strict)]) == 0
-    prov2 = json.loads((out2 / "RUN_stage3_D1.csv.provenance.json").read_text())
+    prov2 = json.loads((out2 / "RUN_stage3_D2.csv.provenance.json").read_text())
     assert prov2["x_bc"]["enough_solute"] is False and "no bulk control" in prov2["reference_rule"]
+    # D1 (bulk control = same size): the smaller cell is not a bulk control, x_bc only as a diagnostic
+    out3 = tmp_path / "out3"
+    assert main(["analyse", str(fd), str(fb), "--out", str(out3), "--cache", str(tmp_path / "cache"),
+                 "--definitions", "D1"]) == 0
+    prov3 = json.loads((out3 / "RUN_stage3_D1.csv.provenance.json").read_text())
+    assert prov3["x_bc"]["accepted"] is False and "no bulk control" in prov3["reference_rule"]
+    assert not any(r["quantity"].startswith("alongline") for r in read_table(out3 / "RUN_stage2_D1.csv"))
 
 
 def test_missing_bulk_control_table_is_reported(tmp_path, capsys):
@@ -108,7 +124,7 @@ def test_missing_bulk_control_table_is_reported(tmp_path, capsys):
     out = tmp_path / "out"
     assert main(["analyse", str(fd), "--out", str(out), "--cache", str(tmp_path / "cache")]) == 0
     assert "analyse it first" in capsys.readouterr().out
-    prov = json.loads((out / "RUN_stage2_D1.csv.provenance.json").read_text())
+    prov = json.loads((out / "RUN_stage2_D2.csv.provenance.json").read_text())
     # ACE Ni-Cu that names a bulk control without having its x_bc yet stays held back (v0.2)
     assert prov["x_bc"] is None and prov["paper_flag"] == "no paper number before bulk control"
 

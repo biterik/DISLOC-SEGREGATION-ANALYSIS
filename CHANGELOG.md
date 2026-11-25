@@ -4,9 +4,32 @@ All notable changes to `disegreg` are listed here. Versions follow semantic vers
 the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 
 ## [Unreleased]
-v0.2 development on branch v0.2-dev (docs/PLAN_v0.2.md). Definition set D1 rev. 4 unchanged; new quantities are proposals
-(docs/DEFINITIONS.md "[PROPOSAL v0.2]", disegreg/definitions/proposals_v0.2.yaml), marked `status = proposal` in every table.
-Open decisions: docs/OPEN-DECISIONS_v0.2.md.
+v0.2 development on branch v0.2-dev (docs/PLAN_v0.2.md). **New definition set D2** (25 Nov, Erik): D1 rev. 4 unchanged +
+sections 12-16 of docs/DEFINITIONS.md (from proposals P1-P4 and question E1); D2 is the default of this branch, D1 stays
+selectable (`--definitions D1`) and gives the v0.1 outputs. The ordered-domain sizes (P5) stay a proposal
+(disegreg/definitions/proposals_v0.2.yaml), marked `status = proposal` in every table. Open decisions:
+docs/OPEN-DECISIONS_v0.2.md. (v0.1.1 was released from main on 25 Nov: the Stage-3 WARNING below plus the two robustness
+fixes, D1 unchanged; see the CHANGELOG on main.)
+### Added (D2, 25 Nov)
+- `disegreg/definitions/D2.yaml`: every D1 parameter value for value (`extends: D1`) + sections `mclean` (12: core sites
+  r < 5 A of the 0 K DXA line, tabulated sites only, coverage < 90 % flagged), `hysteresis` (13: different if
+  |d| > 2 sqrt(SEM_up^2 + SEM_down^2), Gamma(20 A) and c_C), `bulk_control` (14: Gamma_error_total incl. SEM(x_bc);
+  15: smaller bulk-control cells accepted for x_bc, not for diagnostic (iv)), `alongline` (16: 5 A bins, core atoms,
+  periodic if p < 0.01). Default definition set = D2 (`DEFAULT_LABEL`); `disegreg across` takes the tables' own set.
+- Bulk controls (D2 section 15): manifest field `n_atoms` (required for `cell_type: bulk_control`; schema stays 1);
+  `disegreg analyse` checks the snapshots against it and records size and last MD step; a run taking x_bc gets
+  `n_atoms_run`, `size_ratio`, `smaller`, `accepted`, `diagnostic_iv`, `same_run_length` and flags in its provenance.
+  Under D1 a smaller cell is not accepted (x_bc reported as a diagnostic only, paper_flag kept).
+- Tests: D2 = D1 + new sections (parameters), every D1 Stage-2 record bit-identical under D2 on a synthetic snapshot,
+  Stage 4 with D1 tables = uptake + hysteresis differences only, bulk-control size / run-length check (150 tests).
+### Changed (D2, 25 Nov)
+- Status: along-line quantities, McLean, the hysteresis verdict and Gamma_error_total are `definition` in D2 tables
+  (along-line quantities in D1-labelled tables, e.g. the 24 Nov demo, stay `proposal`); only `domain_*` (P5) is `proposal`.
+- `stage4()` takes the definition set instead of the proposals; `load_site_cores()` reads `definitions["mclean"]`
+  (new parameter `min_coverage` 0.90, the value that was hard-coded); Stage-4 rows have an empty `proposal_set`.
+- `disegreg analyse`: the along-line spectrum comes from the definition set (D2), no longer from the proposals file;
+  `--no-proposals` now only leaves out P5.
+- proposals_v0.2.yaml holds only `ordered_domains` (P5).
 ### Added (v0.2)
 - Stage 4, `disegreg across` (`disegreg.across`): run sets ordered by Delta (up = bottom-up + seeded, down = top-down), uptake
   exponent n_up = Delta ln c_C / Delta ln x_ref between neighbouring offsets for every shared reference with propagated errors,

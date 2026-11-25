@@ -39,4 +39,36 @@ def test_unknown_label():
 
 def test_cli_version(capsys):
     assert main(["version"]) == 0
-    assert "definition set D1" in capsys.readouterr().out
+    assert "definition set D2" in capsys.readouterr().out
+
+
+def test_d2_is_d1_plus_new_sections():
+    """D2 (Erik 25 Nov 2026) = D1 rev. 4 unchanged + the sections decided from P1-P4 and E1; P5 is not in D2."""
+    import yaml
+
+    d1, d2 = load_definitions("D1"), load_definitions("D2")
+    assert d2.label == "D2" and d2["extends"] == "D1" and available() == ["D1", "D2"]
+    for k, v in d1.params.items():
+        if k not in ("label", "status"):
+            assert d2[k] == v, k                                   # every D1 parameter, value for value
+    assert set(d2.params) - set(d1.params) == {"extends", "mclean", "hysteresis", "bulk_control", "alongline"}
+    assert "ordered_domains" not in d2.params                      # P5 stays a proposal
+    assert d2["mclean"] == {"core_site_radius": 5.0, "missing_sites": "tabulated_only", "min_coverage": 0.9}
+    assert d2["hysteresis"] == {"factor": 2.0, "quantities": [["Gamma", "20", "r"], ["c", "C", ""]]}
+    assert d2["bulk_control"] == {"propagate_x_ref_error": True, "smaller_cell_allowed": True,
+                                  "smaller_cell_for_diagnostic_iv": False}
+    assert d2["alongline"] == {"regions": ["C"], "bin_width": 5.0, "p_threshold": 0.01}
+    # D1.yaml itself is the released file (v0.1.0), byte for byte
+    import hashlib
+    from pathlib import Path
+
+    import disegreg.definitions as dd
+    raw = (Path(dd.__file__).parent / "D1.yaml").read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == d1.sha256 and yaml.safe_load(raw)["label"] == "D1"
+
+
+def test_default_is_d2():
+    from disegreg.definitions import DEFAULT_LABEL, label_number
+
+    assert DEFAULT_LABEL == "D2" and load_definitions().label == "D2"
+    assert label_number("D2") == 2 and label_number("D10") == 10 and label_number("P-v0.2") is None

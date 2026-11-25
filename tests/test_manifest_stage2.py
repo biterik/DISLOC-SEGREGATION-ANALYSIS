@@ -225,3 +225,25 @@ def test_gamma_roles_and_paper_hold():
     m = demo()
     m.update(potential="Mendelev2022-ACE", host_element="Ni", solute_element="Au")
     assert paper_hold(m, rules) == ""             # the rule is for Ni-Cu only
+
+
+def test_d2_gives_every_d1_quantity_identically():
+    """D2 = D1 + new sections: on a synthetic snapshot every Stage-2 record of D1 comes out bit-identical under D2; D2 adds
+    only the along-line records (section 16)."""
+    import dataclasses
+
+    snap, cell, pos, r_true, solute, z0 = synthetic_snapshot()
+    recs = {}
+    for label in ("D1", "D2"):
+        d0 = load_definitions(label)
+        params = copy.deepcopy(d0.params)
+        params["regions"]["far_field_radius"] = 12.0  # synthetic cell too small for R_far = 60 A (test copy, both sets)
+        d = dataclasses.replace(d0, params=params)
+        res = analyse_snapshot(snap, d, A, z_gp=z0, x_ref={"x_iso": 0.008}, c_B_ref=True)
+        recs[label] = {(r["quantity"], r["region"], r["basis"], r["ref"]): r["value"] for r in res.records}
+    d1, d2 = recs["D1"], recs["D2"]
+    assert len(d1) > 300
+    for k, v in d1.items():
+        assert k in d2 and (d2[k] == v or (np.isnan(v) and np.isnan(d2[k]))), k
+    assert {k[0] for k in d2 if k not in d1} <= {q for q in __import__("disegreg.alongline", fromlist=["x"]).QUANTITIES}
+    assert any(k[0] == "alongline_S" for k in d2)

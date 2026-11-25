@@ -9,13 +9,15 @@
                   SE(n)^2 = [(s1/c1)^2 + (s2/c2)^2 + n^2 ((sx1/x1)^2 + (sx2/x2)^2)] / (ln x2 - ln x1)^2.
                   Independent-site (McLean) segregation gives n_up <= 1; n_up > 1 indicates cooperative uptake.
     hysteresis    bottom-up vs top-down runs at the same Delta: difference of Gamma(20 A) (every reference) and of c_C,
-                  error sqrt(SEM_up^2 + SEM_down^2); verdict "different" [PROPOSAL v0.2 P2]: |difference| > 2 x error.
+                  error sqrt(SEM_up^2 + SEM_down^2) (section 9); verdict "different" (D2 section 13): |difference| > 2 x error.
     McLean        predicted c_C from the 0 K site energies (disegreg.sites) for every reference, vs the measured c_C
-                  [PROPOSAL v0.2 P1: which sites are core sites].
+                  (section 9; which sites are core sites: D2 section 12).
+    x_bc error    total error of Gamma vs x_bc incl. SEM(x_bc) (D2 section 14).
 
 Output: one tidy long table (STAGE4_COLUMNS), one row per (analysis, set, offset pair or run, quantity, ref). Every row
-carries ``status``: "definition" (D1 section 9 as decided) or "proposal" (depends on a [PROPOSAL v0.2] item); the table
-refuses a proposal row with role "headline" (docs/PLAN_v0.2.md, rule 3).
+carries ``status`` (all Stage-4 rows are "definition" since D2; the column stays for the open proposal P5 and the table
+still refuses a proposal row with role "headline", docs/PLAN_v0.2.md rule 3). With tables of definition set D1 only what
+D1 defines is computed: uptake exponents and the hysteresis differences (no verdict, no McLean, no x_bc error).
 """
 
 from __future__ import annotations
@@ -190,7 +192,7 @@ def hysteresis_rows(set_key, runs, params: dict) -> list[dict]:
     """bottom-up vs top-down at the same Delta (seeded runs are not compared: their history is neither)."""
     up = [r for r in runs if r["start_type"] == "bottom-up"]
     down = [r for r in runs if r["start_type"] == "top-down"]
-    factor = float(params["factor"])
+    factor = float(params["factor"]) if params.get("factor") is not None else None   # None: D1, differences only
     rows = []
     for a in up:
         for b in down:
@@ -206,11 +208,13 @@ def hysteresis_rows(set_key, runs, params: dict) -> list[dict]:
                                   ref=ref, runs=f"{a.run_id}|{b.run_id}", flags=_flags(a, b), paper_flag=_paper(a, b))
                     rows.append(_base(set_key, quantity=f"{q}_up_minus_down", value=diff, error=err,
                                       status=STATUS_DEFINITION, **common))
+                    if factor is None:
+                        continue
                     # 1 = different, 0 = not different, NaN = undecidable (a value or its error missing)
                     verdict = float(abs(diff) > factor * err) if np.isfinite(diff) and np.isfinite(err) else float("nan")
                     rows.append(_base(set_key, quantity=f"{q}_hysteresis", value=verdict,
                                       error=abs(diff) / err if err > 0 else float("nan"),
-                                      status=STATUS_PROPOSAL, **common))
+                                      status=STATUS_DEFINITION, **common))
     return rows
 
 
@@ -232,7 +236,7 @@ def mclean_rows(set_key, runs, energy_core, n_missing: float, site_info: dict) -
             sr = ratio * np.hypot(sc / c if c > 0 else np.nan, sp / p.c_C if np.isfinite(sp) else 0.0)
             common = dict(analysis="mclean", family=r.family, delta=r.delta, region="C", ref=ref, runs=r.run_id,
                           flags="; ".join(x for x in (_flags(r), site_info.get("flags", "")) if x),
-                          paper_flag=_paper(r), status=STATUS_PROPOSAL)
+                          paper_flag=_paper(r), status=STATUS_DEFINITION)
             rows.append(_base(set_key, quantity="c_C_mclean", value=p.c_C, error=sp, **common))
             rows.append(_base(set_key, quantity="c_C_measured_over_mclean", value=ratio, error=sr, **common))
             rows.append(_base(set_key, quantity="n_up_mclean", value=p.n_up, error=float("nan"), **common))
@@ -241,7 +245,7 @@ def mclean_rows(set_key, runs, energy_core, n_missing: float, site_info: dict) -
 
 # ---------------------------------------------------------------------------------------------- x_bc error (P3)
 def xbc_error_rows(set_key, runs, radii) -> list[dict]:
-    """Contribution of SEM(x_bc) to the error of Gamma(R) vs x_bc: N(r < R) / L_x x SEM(x_bc) [PROPOSAL v0.2 P3].
+    """Contribution of SEM(x_bc) to the error of Gamma(R) vs x_bc: N(r < R) / L_x x SEM(x_bc) (D2 section 14).
     The Stage-3 SEM of Gamma vs x_bc holds the time scatter only (x_bc is one number for the whole run)."""
     rows = []
     for r in runs:
@@ -255,22 +259,28 @@ def xbc_error_rows(set_key, runs, radii) -> list[dict]:
             e_x = n_in / L * sx if np.isfinite(sx) else float("nan")
             rows.append(_base(set_key, analysis="x_bc_error", family=r.family, delta=r.delta, quantity="Gamma_error_total",
                               region=f"{float(R):g}", basis="r", ref="x_bc", value=float(np.hypot(sg, e_x)),
-                              error=e_x, status=STATUS_PROPOSAL, runs=r.run_id, flags=_flags(r), paper_flag=_paper(r)))
+                              error=e_x, status=STATUS_DEFINITION, runs=r.run_id, flags=_flags(r), paper_flag=_paper(r)))
     return rows
 
 
 # -------------------------------------------------------------------------------------------------------- driver
-def stage4(runs, proposals, site_cores: dict | None = None, gamma_radii=(20.0, 40.0)) -> list[dict]:
-    """All Stage-4 rows. ``site_cores``: {(project, potential, character): (E of core sites, n_missing, info)}."""
+def stage4(runs, definitions, site_cores: dict | None = None, gamma_radii=(20.0, 40.0)) -> list[dict]:
+    """All Stage-4 rows. ``definitions``: the definition set of the tables (Definitions or its params dict); D2 sections
+    hysteresis / bulk_control switch on the verdict and the x_bc error. ``site_cores``: {(project, potential, character):
+    (E of core sites, n_missing, info)} (from D2 section 12; the caller loads them only with D2)."""
+    p = getattr(definitions, "params", definitions)
+    hy = p.get("hysteresis") or {"factor": None,                      # D1: differences of the headline and c_C only
+                                 "quantities": [["Gamma", f"{float(gamma_radii[0]):g}", "r"], ["c", "C", ""]]}
+    bc = p.get("bulk_control") or {}
     rows = []
     for key, rs in run_sets(runs).items():
         rows += uptake_rows(key, rs)
-        rows += hysteresis_rows(key, rs, proposals["hysteresis"])
+        rows += hysteresis_rows(key, rs, hy)
         meta = dict(zip(SET_KEYS, key))
         sc = (site_cores or {}).get((meta["project"], meta["potential"], meta["character"]))
         if sc is not None:
             rows += mclean_rows(key, rs, sc[0], sc[1], sc[2])
-        if proposals["bulk_control"].get("propagate_x_ref_error", True):
+        if bc.get("propagate_x_ref_error", False):
             rows += xbc_error_rows(key, rs, gamma_radii)
     check_headline_status(rows)
     return rows

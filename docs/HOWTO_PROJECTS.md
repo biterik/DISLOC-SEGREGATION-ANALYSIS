@@ -56,14 +56,19 @@ value given with `--x-ref`). Without a bulk control every such number exists for
 | Nb-Au-AT-DISLOCS-Ni-ACE-EAM | `nSol_interior` | +1 (DMU = mu_Nb - mu_Ni) | EAM-X Au counts are tiny (x ~ 1e-5): x_ref from the isotherm (dilute law), not from a bulk control |
 | TURLO-REDO (Cu-Zr) | `NZr_mcgroup` | -1 (fix sgcmc: DMU_SGC = -dmu) | free (111) z faces; complexion runs are `mixed`; PTM label 4 = icosahedral |
 
-## v0.2 additions (branch v0.2-dev, not released -- for information; use v0.1.0 for numbers)
-- **Bulk control runs**: write a manifest for the bulk-control cell itself with `cell_type: bulk_control` (character, frame,
-  frame_source, z_gp, z_gp_source, x_ref_source, start_type are not needed) and name its run_id in the `bulk_control` field of
-  every dislocation run at the same dmu. `disegreg analyse` takes bulk controls first and passes their x_bc on automatically
-  (`--bulk-dir <folder>` if the bulk control was analysed into another folder). Whether a 32 000-atom cell counts as a bulk
-  control is open (docs/OPEN-DECISIONS_v0.2.md, E1).
+## v0.2 additions (branch v0.2-dev, not released -- for information; use v0.1.1 for numbers)
+- **Definition set D2** (25 Nov) is the default on the branch: D1 unchanged + McLean core sites, hysteresis criterion, x_bc
+  error, smaller bulk controls, along-line spectrum (docs/DEFINITIONS.md sections 12-16). Output files are then
+  `<run_id>_stage2_D2.csv` etc.; every D1 quantity in them equals the D1 value. `--definitions D1` gives the v0.1 outputs.
+- **Bulk control runs**: write a manifest for the bulk-control cell itself with `cell_type: bulk_control` and `n_atoms: <atoms
+  in the cell>` (character, frame, frame_source, z_gp, z_gp_source, x_ref_source, start_type are not needed) and name its run_id
+  in the `bulk_control` field of every dislocation run at the same dmu. `disegreg analyse` takes bulk controls first and passes
+  their x_bc on automatically (`--bulk-dir <folder>` if the bulk control was analysed into another folder).
+  A cell smaller than the dislocation cell (e.g. 32 000 atoms) is accepted for x_bc under D2 if it has the same per-atom swap
+  rate and run length and >= 100 solute atoms in its interior -- state the swap rate in `notes`; disegreg checks the size and
+  the last MD step. It does NOT count for diagnostic (iv) (does the dislocation-free crystal precipitate?).
 - **rsync the MC stream together with the dumps.** Stage 3 takes the averaging window from the stream; snapshots later than the
-  end of the stream are not used (v0.2 prints a WARNING with their number).
-- Across runs: `disegreg across <folder with *_stage3_D1.csv> --out stage4.csv [--sites sites.yaml]` (uptake exponent, McLean,
+  end of the stream are not used (v0.1.1 and v0.2 print a WARNING with their number).
+- Across runs: `disegreg across <folder with *_stage3_D2.csv> --out stage4.csv [--sites sites.yaml]` (uptake exponent, McLean,
   bottom-up vs top-down). Plots: `disegreg plot gamma | timeseries | delta | uptake | regions | alongline ...`.
-- Rows with `status = proposal` depend on an undecided v0.2 proposal: do not quote them in the paper.
+- Rows with `status = proposal` depend on the still undecided proposal P5 (ordered domains): do not quote them in the paper.

@@ -1,28 +1,10 @@
-# Parameters of the v0.2 PROPOSALS (docs/DEFINITIONS.md sections marked [PROPOSAL v0.2]) -- NOT part of any definition set.
-# D1 (D1.yaml, rev. 4) is unchanged. Every number computed with a value from this file carries status = proposal in the
-# output tables, and the results table refuses such a number for role "headline". When Erik decides a proposal, its value
-# moves into a definition set (D1 extension or D2, his choice) and out of this file.
+# Parameters of the v0.2 PROPOSALS that are still open (docs/DEFINITIONS.md sections marked [PROPOSAL v0.2]) -- NOT part
+# of any definition set. Every number computed with a value from this file carries status = proposal in the output tables,
+# and the results table refuses such a number for role "headline".
+# 25 Nov 2026 (Erik): P1-P4 and E1 became definition set D2 (D2.yaml, sections mclean, hysteresis, bulk_control,
+# alongline) and left this file. Only P5 is still open: it stays a proposal until Ni-Al MD/MC data exist.
 label: P-v0.2
-status: "proposal (2026-11-24), waiting for Erik -- see docs/OPEN-DECISIONS_v0.2.md"
-
-mclean:                                  # DEFINITIONS 9 + [PROPOSAL v0.2] P1: which 0 K sites count as core sites
-  core_site_radius: 5.0                  # a tabulated site is a core site if r_DXA < 5 A in the relaxed 0 K cell (= D1 core radius)
-  missing_sites: tabulated_only          # tabulated_only: c_C(McLean) = mean theta over the tabulated core sites;
-                                         # bulk: core sites of the 0 K cell without a table entry count with E = 0 (theta = x_ref)
-
-hysteresis:                              # DEFINITIONS 9 + [PROPOSAL v0.2] P2: when are bottom-up and top-down "different"
-  factor: 2.0                            # different if |v_up - v_down| > 2 x sqrt(SEM_up^2 + SEM_down^2)
-  quantities:                            # (quantity, region, basis) compared; Gamma for every reference
-    - [Gamma, "20", r]
-    - [c, C, ""]
-
-bulk_control:                            # [PROPOSAL v0.2] P3 (code side of DEFINITIONS 5, x_bc)
-  propagate_x_ref_error: true            # Stage 4: error of Gamma vs x_bc includes N_inside / L_x x SEM(x_bc), in quadrature
-
-alongline:                               # [PROPOSAL v0.2] P4: along-line core composition + Fourier spectrum vs binomial noise
-  regions: [C]                           # atoms analysed: the core (r < 5 A); option [C, S] = r < 10 A
-  bin_width: 5.0                         # X bins (actual width L_x / round(L_x / 5))
-  p_threshold: 0.01                      # a spectrum peak counts as "periodic" if its binomial-noise p-value < 0.01
+status: "proposal (2026-11-24; P5 only since 25 Nov), waiting for Ni-Al data -- see docs/OPEN-DECISIONS_v0.2.md"
 
 ordered_domains:                         # [PROPOSAL v0.2] P5: L1_2-ordered domains (Ni-Al vs Howard et al. 2025, 2.7 +- 0.6 nm)
   max_solute_1st: 0                      # an ordered solute atom has no solute 1st neighbour ...

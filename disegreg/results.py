@@ -24,23 +24,35 @@ PAPER_HOLD = "no paper number before bulk control"
 
 # v0.2 (docs/PLAN_v0.2.md, rule 3): quantities that depend on an undecided [PROPOSAL v0.2] carry status "proposal" in the
 # results table, and the table refuses them for role "headline". Modules that compute such quantities register them here.
+# Quantities that became definitions in a later set (D2, Erik 25 Nov 2026) are registered with that set's number: in a table
+# of an older set (e.g. a v0.2 demo table labelled D1) they are still proposals.
 STATUS_DEFINITION, STATUS_PROPOSAL = "definition", "proposal"
 PROPOSAL_QUANTITIES: set[str] = set()
+DEFINED_SINCE: dict[str, int] = {}
 
 
 def _register_proposals():
-    from .alongline import QUANTITIES as alongline_q  # P4
-    from .domains import QUANTITIES as domain_q        # P5
+    from .alongline import QUANTITIES as alongline_q  # D2 section 16 (was P4)
+    from .domains import QUANTITIES as domain_q        # P5, still a proposal
 
-    PROPOSAL_QUANTITIES.update(alongline_q)
+    DEFINED_SINCE.update({q: 2 for q in alongline_q})
     PROPOSAL_QUANTITIES.update(domain_q)
 
 
 _register_proposals()
 
 
-def quantity_status(quantity: str) -> str:
-    return STATUS_PROPOSAL if quantity in PROPOSAL_QUANTITIES else STATUS_DEFINITION
+def quantity_status(quantity: str, definition_set: str | None = None) -> str:
+    """"proposal" for a P5 quantity, and for a quantity defined only in a later set than ``definition_set``."""
+    from .definitions import label_number
+
+    if quantity in PROPOSAL_QUANTITIES:
+        return STATUS_PROPOSAL
+    since = DEFINED_SINCE.get(quantity)
+    n = label_number(definition_set) if definition_set is not None else None
+    if since is not None and n is not None and n < since:
+        return STATUS_PROPOSAL
+    return STATUS_DEFINITION
 
 
 class ProposalAsHeadline(ValueError):
@@ -178,7 +190,7 @@ def collect_runs(stage3_files) -> tuple[list[dict], dict]:
                          "drift_criterion": s3.get("criterion", ""), "check_required": s3.get("check_required", ""),
                          "paper_flag": s3.get("paper_flag", ""), "bulk_control": man.get("bulk_control") or "",
                          "x_ref_source": man.get("x_ref_source", ""), "definition_set": r["definition_set"],
-                         "tool_version": r["tool_version"], "status": quantity_status(r["quantity"])})
+                         "tool_version": r["tool_version"], "status": quantity_status(r["quantity"], r["definition_set"])})
         sources.append({"file": str(f), "run_id": man.get("run_id"), "tool_version": prov.get("tool_version"),
                         "manifest": prov.get("manifest")})
     if len(labels) > 1:

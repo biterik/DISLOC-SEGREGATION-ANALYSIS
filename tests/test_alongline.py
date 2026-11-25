@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from disegreg import alongline
-from disegreg.definitions import load_definitions, load_proposals
+from disegreg.definitions import load_definitions
 from disegreg.geometry import Cell
 from disegreg.results import PROPOSAL_QUANTITIES, quantity_status
 from disegreg.stage2 import analyse_snapshot
@@ -66,17 +66,20 @@ def test_even_spread_and_degenerate_cores():
     assert alongline.binomial_peak_p(4.0, 0, 1) == pytest.approx(erfc(np.sqrt(2.0)))
 
 
-def test_stage2_writes_alongline_with_proposal_status():
+def test_stage2_writes_alongline_with_D2():
     snap, cell, pos, r_true, solute, z0 = synthetic_snapshot()
-    d = load_definitions()
-    res = analyse_snapshot(snap, d, A, z_gp=z0, proposals=load_proposals())
+    d = load_definitions("D2")
+    res = analyse_snapshot(snap, d, A, z_gp=z0)
     q = {r["quantity"] for r in res.records}
     assert {"alongline_S", "alongline_dispersion", "alongline_N_bin"} <= q
     # the synthetic core is entirely solute: c = 1, no spectrum
     assert res.value("alongline_c", region="C") == 1.0
-    assert all(quantity_status(x) == "proposal" for x in alongline.QUANTITIES)
-    assert quantity_status("Gamma") == "definition" and "alongline_S" in PROPOSAL_QUANTITIES
+    # D2 section 16: a definition in D2 tables, still a proposal in tables of D1 (the v0.2 demo of 24 Nov)
+    assert all(quantity_status(x, "D2") == "definition" for x in alongline.QUANTITIES)
+    assert all(quantity_status(x, "D1") == "proposal" for x in alongline.QUANTITIES)
+    assert quantity_status("Gamma", "D1") == "definition" and "alongline_S" not in PROPOSAL_QUANTITIES
+    assert quantity_status("domain_n", "D2") == "proposal"                       # P5 stays a proposal
     n_bins = int(res.value("alongline_n_bins", region="C"))
     assert sum(res.value("alongline_N_bin", region=f"x{k}") for k in range(n_bins)) == res.value("N", region="C")
-    plain = analyse_snapshot(snap, d, A, z_gp=z0)                  # without proposals: D1 quantities only
+    plain = analyse_snapshot(snap, load_definitions("D1"), A, z_gp=z0)   # D1: no along-line quantities
     assert not any(r["quantity"].startswith("alongline") for r in plain.records)

@@ -96,8 +96,9 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   with D1); both in README.md and CITATION.cff.
 
 ## State v0.2 (branch v0.2-dev, worktree ~/DEVEL/DISLOC-SEGREGATION-ANALYSIS-v0.2, env disegreg-dev; unattended session)
-- Rules: docs/PLAN_v0.2.md. Decisions for Erik: docs/OPEN-DECISIONS_v0.2.md (the one page). D1 unchanged; proposals in
-  docs/DEFINITIONS.md "[PROPOSAL v0.2]" + disegreg/definitions/proposals_v0.2.yaml, outputs carry status = proposal.
+- Rules: docs/PLAN_v0.2.md. Decisions for Erik: docs/OPEN-DECISIONS_v0.2.md (the one page). D1 unchanged (D1.yaml byte-identical);
+  D2 (25 Nov) = D1 + sections 12-16 in docs/DEFINITIONS.md and disegreg/definitions/D2.yaml; the one open proposal (P5) in
+  "[PROPOSAL v0.2]" + proposals_v0.2.yaml, its outputs carry status = proposal.
 - 24 Nov: item A (Stage 4: across.py, sites.py, bulk-control manifests + automatic x_bc) done with tests; plotting module
   (item B) drafted. disegreg-dev now has the editable install of the worktree (it had none).
 - 24 Nov: items C (alongline.py, P4) and D (domains.py, P5) done with synthetic tests; item B plots checked by eye on the Nb-Au
@@ -105,6 +106,10 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - Demo outputs: Stage 2/3 (not in git) regression/output/v0.2-final/ (59 runs); summaries + figures (in git)
   regression/results/v0.2-demo/ (regression/v02_demo_summary.py). Findings in docs/OPEN-DECISIONS_v0.2.md section 3:
   Lee-Shim n_up 5.6 (60 deg) / 4.8 (edge) at -0.25 -> -0.10 kT; TURLO hysteresis different only at +2 kT; ACE core = particles.
+- 25 Nov (Erik's decisions, OPEN-DECISIONS section 5; Erik authorised work on main for v0.1.1 only): v0.1.1 released from
+  main (Stage-3 WARNING + count, two robustness fixes, HOWTO rsync line; D1 unchanged, outputs cell-by-cell identical to v0.1.0;
+  Zenodo DOI v0.1.1 10.5281/zenodo.24535067). On the branch: definition set D2 = D1 rev. 4 unchanged + DEFINITIONS sections
+  12-16 (P1-P4, E1); D2.yaml, default D2, P5 stays in proposals_v0.2.yaml. v0.2-dev NOT merged with main, v0.2 NOT tagged.
 
 ## Next steps
 1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing

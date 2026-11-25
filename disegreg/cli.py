@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .definitions import load_definitions
+from .definitions import DEFAULT_LABEL, load_definitions
 
 
 def _cmd_version(_args) -> int:
@@ -66,6 +66,7 @@ def _md_step(dump, fallback) -> int:
 def find_x_bc(run_id: str, label: str, folders, min_solute: int = 100):
     """x_bc of a bulk control from its Stage-3 table <run_id>_stage3_<label>.csv (first folder that has it):
     window mean and block-averaging SEM of the interior solute fraction. None if no table is found."""
+    import json
     from pathlib import Path
 
     from .results import read_table
@@ -80,9 +81,46 @@ def find_x_bc(run_id: str, label: str, folders, min_solute: int = 100):
         if c is None:
             raise ValueError(f"{f}: no interior solute fraction -- is this a bulk-control table?")
         n_sol = ns["mean"] if ns else float("nan")
+        side = f.with_name(f.name + ".provenance.json")
+        s3 = (json.loads(side.read_text()).get("stage3") or {}) if side.is_file() else {}
         return {"source": str(f), "value": c["mean"], "sem": c["sem"], "n_samples": c["n_samples"], "flat": c["flat"],
-                "n_solute": n_sol, "min_solute": min_solute, "enough_solute": bool(n_sol >= min_solute)}
+                "n_solute": n_sol, "min_solute": min_solute, "enough_solute": bool(n_sol >= min_solute),
+                "n_atoms": s3.get("n_atoms"), "last_md_step": s3.get("last_md_step")}
     return None
+
+
+def bulk_control_check(x_bc_info: dict, n_atoms_run: int, last_md_step_run, definitions) -> dict:
+    """Is the bulk control acceptable as x_bc for this run (DEFINITIONS 5; D2 section 15)?
+    Same size or larger: yes. Smaller: D2 (smaller_cell_allowed) yes, but not for protocol diagnostic (iv); D1 no (x_bc is
+    then reported as a diagnostic only). Unknown size (table without n_atoms): no. The run length (last MD step) is compared
+    and a difference flagged; the per-atom swap rate is not in the data and stays the project's responsibility."""
+    bc = (definitions.params if hasattr(definitions, "params") else definitions).get("bulk_control") or {}
+    n_bc = x_bc_info.get("n_atoms")
+    out = {"n_atoms_run": int(n_atoms_run), "flags": []}
+    if n_bc is None:
+        out.update(size_ratio=float("nan"), smaller=None, accepted=False,
+                   diagnostic_iv="not usable: size of the bulk control unknown")
+        out["flags"].append("bulk-control size unknown (no n_atoms in its Stage-3 provenance): x_bc reported as a diagnostic")
+    else:
+        smaller = int(n_bc) < int(n_atoms_run)
+        allowed = bool(bc.get("smaller_cell_allowed", False))
+        out.update(size_ratio=int(n_bc) / int(n_atoms_run), smaller=smaller, accepted=(not smaller) or allowed)
+        if not smaller:
+            out["diagnostic_iv"] = "usable"
+        else:
+            iv = bool(bc.get("smaller_cell_for_diagnostic_iv", False))
+            out["diagnostic_iv"] = ("usable" if iv else
+                                    f"not usable: bulk control smaller than the dislocation cell ({n_bc} < {n_atoms_run} atoms)")
+            if not allowed:
+                out["flags"].append(f"bulk control smaller than the dislocation cell ({n_bc} < {n_atoms_run} atoms): "
+                                    f"not a bulk control under {getattr(definitions, 'label', '?')} (same size), x_bc "
+                                    "reported as a diagnostic")
+    lb, lr = x_bc_info.get("last_md_step"), last_md_step_run
+    out.update(last_md_step_bulk_control=lb, last_md_step_run=lr,
+               same_run_length=(None if lb is None or lr is None else int(lb) == int(lr)))
+    if out["same_run_length"] is False:
+        out["flags"].append(f"run length differs: bulk control to step {lb}, run to step {lr}")
+    return out
 
 
 def _analyse_bulk(m, d, root, env, tv, args, props=None) -> int:
@@ -111,7 +149,9 @@ def _analyse_bulk(m, d, root, env, tv, args, props=None) -> int:
             rows.append({"run_id": m["run_id"], "snapshot": Path(dump).name, "timestep": ts, **r,
                          "definition_set": d.label, "tool_version": tv})
         snaps.append({"dump": str(dump), "source_sha256": snap.meta.get("source_sha256"), "md_step": ts,
-                      "info": dict(res.info)})
+                      "n_atoms": int(snap.n_atoms), "info": dict(res.info)})
+        if m.get("n_atoms") is not None and int(snap.n_atoms) != int(m["n_atoms"]):
+            print(f"  WARNING: {snap.n_atoms} atoms in the snapshot, manifest n_atoms = {m['n_atoms']}")
         print(f"{m['run_id']} (bulk control) step {ts}: x_bc {res.value('c', region=BULK_REGION):.5g} "
               f"({res.info['n_solute_interior']} of {res.info['n_interior']} interior atoms)  "
               f"({time.perf_counter() - t0:.1f} s)")
@@ -132,6 +172,8 @@ def _analyse_bulk(m, d, root, env, tv, args, props=None) -> int:
         return 0
     for r in rows3:
         r.update(run_id=m["run_id"], definition_set=d.label, tool_version=tv)
+    info3.update(n_atoms=snaps[-1]["n_atoms"], n_atoms_manifest=m.get("n_atoms"),
+                 last_md_step=max(s["md_step"] for s in snaps))   # for the size / run-length check (D2 section 15)
     out3 = Path(args.out).expanduser() / f"{m['run_id']}_stage3_{d.label}.csv"
     write_table(out3, rows3, {**prov, "stage3": info3}, columns=STAGE3_COLUMNS)
     c = next(r for r in rows3 if r["quantity"] == "c" and r["region"] == BULK_REGION)
@@ -161,7 +203,7 @@ def _cmd_analyse(args) -> int:
     hr, cr = float(comp["headline_radius"]), float(comp["check_radius"])
     from .definitions import load_proposals
 
-    props = None if args.no_proposals else load_proposals()  # v0.2 proposal quantities (status proposal)
+    props = None if args.no_proposals else load_proposals()  # open proposals (P5; status proposal)
     # bulk controls first, so the runs naming one find its x_bc (v0.2: automatic x_bc)
     manifests = sorted((load_manifest(mf) for mf in args.manifests), key=lambda m: not m.is_bulk_control)
     bulk_dirs = [Path(args.out).expanduser()] + [Path(b).expanduser() for b in (args.bulk_dir or [])]
@@ -191,16 +233,6 @@ def _cmd_analyse(args) -> int:
                          "reference (DEFINITIONS 5, 2b), x_bc reported as a diagnostic]"))
         if m.get("x_iso") is not None:
             refs["x_iso"] = float(m["x_iso"])
-        has_bc = (bool(m.get("bulk_control")) and "x_bc" in refs
-                  and (x_bc_info is None or x_bc_info.get("enough_solute", True)))
-        if not has_bc:
-            missing = [r for r in ref_rule["without_bulk_control_report_against"] if r != "c_B" and r not in refs]
-            if missing:
-                print(f"{m['run_id']}: no bulk control and no {missing} in the manifest -- reported against c_B only")
-        rule_text = ("x_bc (bulk control), c_B and x_iso as diagnostics" if has_bc else
-                     "no bulk control: reported against both c_B and x_iso (DEFINITIONS 5, rev. 4)")
-        hold = "" if has_bc else paper_hold({**m.data, "bulk_control": None},
-                                            ref_rule.get("paper_hold_without_bulk_control"))
         dumps = m.dump_files()
         if args.last:
             dumps = dumps[-args.last:]
@@ -228,6 +260,24 @@ def _cmd_analyse(args) -> int:
             print(f"{m['run_id']} step {ts}: mode {res.info['mode']}, f_cov {res.info['f_cov']:.3f}, "
                   f"c_C {res.value('c', region='C'):.4f}, c_B {res.value('c', region='B'):.5f}"
                   f"{flag}  ({time.perf_counter() - t0:.1f} s)")
+        # is the bulk control acceptable (size, run length; D2 section 15)? Only for a bulk control found as a table
+        if x_bc_info is not None and "enough_solute" in x_bc_info:
+            x_bc_info.update(bulk_control_check(x_bc_info, snap.n_atoms, max(s["md_step"] for s in snaps), d))
+            for fl in x_bc_info["flags"]:
+                print(f"  bulk control: {fl}")
+            if x_bc_info["smaller"] and x_bc_info["accepted"]:
+                print(f"  bulk control: {x_bc_info['n_atoms']} atoms < {snap.n_atoms} in this cell -- x_bc accepted "
+                      f"({d.label} section 15), diagnostic (iv) {x_bc_info['diagnostic_iv']}")
+        has_bc = (bool(m.get("bulk_control")) and "x_bc" in refs
+                  and (x_bc_info is None or (x_bc_info.get("enough_solute", True) and x_bc_info.get("accepted", True))))
+        if not has_bc:
+            missing = [r for r in ref_rule["without_bulk_control_report_against"] if r != "c_B" and r not in refs]
+            if missing:
+                print(f"{m['run_id']}: no bulk control and no {missing} in the manifest -- reported against c_B only")
+        rule_text = ("x_bc (bulk control), c_B and x_iso as diagnostics" if has_bc else
+                     "no bulk control: reported against both c_B and x_iso (DEFINITIONS 5, rev. 4)")
+        hold = "" if has_bc else paper_hold({**m.data, "bulk_control": None},
+                                            ref_rule.get("paper_hold_without_bulk_control"))
         out = Path(args.out).expanduser() / f"{m['run_id']}_stage2_{d.label}.csv"
         prov = {"environment": env, "tool_version": tv, "definition_set": d.label, "definitions_sha256": d.sha256,
                 "definitions_status": d.status, "manifest": str(m.path), "manifest_data": m.data,
@@ -297,9 +347,9 @@ def _cmd_table(args) -> int:
     return 0
 
 
-def load_site_cores(config_path, runs, definitions, proposals, cache_root=None, verbose=True):
-    """Core sites + energies for every (project, potential, character) of the runs that the site configuration covers.
-    Returns ({key: (E_core, n_missing, info)}, list of summary dicts)."""
+def load_site_cores(config_path, runs, definitions, cache_root=None, verbose=True):
+    """Core sites + energies for every (project, potential, character) of the runs that the site configuration covers
+    (core sites: D2 section 12, ``definitions["mclean"]``). Returns ({key: (E_core, n_missing, info)}, list of summaries)."""
     import numpy as np
     import yaml
 
@@ -308,7 +358,8 @@ def load_site_cores(config_path, runs, definitions, proposals, cache_root=None, 
 
     cfg = yaml.safe_load(Path(config_path).expanduser().read_text())
     base = Path(config_path).expanduser().resolve().parent
-    mc = proposals["mclean"]
+    mc = definitions["mclean"]
+    min_cov = float(mc.get("min_coverage", 0.9))
     wanted = {}
     for r in runs:
         if not r.is_bulk_control:
@@ -335,7 +386,7 @@ def load_site_cores(config_path, runs, definitions, proposals, cache_root=None, 
                 n_missing = max(0.0, cs.n_core_expected - cs.n_core_tabulated) if mc["missing_sites"] == "bulk" else 0.0
                 e_core = table.energy[cs.is_core]
                 flags = []
-                if cs.coverage < 0.9:
+                if cs.coverage < min_cov:
                     flags.append(f"site table covers {cs.coverage:.0%} of the core sites")
                 if cs.info["x_extent_distinct"] > cs.info["period"] + 0.5:
                     flags.append(f"distinct sites span {cs.info['x_extent_distinct']:.1f} A along X > one period "
@@ -364,7 +415,6 @@ def load_site_cores(config_path, runs, definitions, proposals, cache_root=None, 
 
 def _cmd_across(args) -> int:
     from .across import STAGE4_COLUMNS, load_runs, stage4
-    from .definitions import load_proposals
     from .provenance import environment
     from .results import tool_version, write_table
 
@@ -373,22 +423,25 @@ def _cmd_across(args) -> int:
         print("no Stage-3 tables (*_stage3_*.csv) found")
         return 1
     runs, label = load_runs(files)
-    d = load_definitions(args.definitions)
+    d = load_definitions(args.definitions or label or DEFAULT_LABEL)
     if label and label != d.label:
         print(f"Stage-3 tables are {label}, --definitions is {d.label}")
         return 1
-    props = load_proposals()
     env = environment()
     tv = tool_version(env)
     site_cores, site_summary = ({}, [])
-    if args.sites:
-        site_cores, site_summary = load_site_cores(args.sites, runs, d, props, cache_root=args.cache)
+    if args.sites and "mclean" not in d.params:
+        print(f"definition set {d.label} has no McLean core-site rule (D2 section 12) -- --sites ignored")
+    elif args.sites:
+        site_cores, site_summary = load_site_cores(args.sites, runs, d, cache_root=args.cache)
+    if "hysteresis" not in d.params:
+        print(f"definition set {d.label}: uptake exponents and hysteresis differences only (verdict, McLean, x_bc error: D2)")
     comp = d["composition"]
-    rows = stage4(runs, props, site_cores, gamma_radii=(comp["headline_radius"], comp["check_radius"]))
-    for r in rows:
-        r.update(definition_set=d.label, proposal_set=props.label, tool_version=tv)
+    rows = stage4(runs, d, site_cores, gamma_radii=(comp["headline_radius"], comp["check_radius"]))
+    for r in rows:   # since D2 no Stage-4 row depends on an open proposal (P5 is not used here): proposal_set stays empty
+        r.update(definition_set=d.label, proposal_set="", tool_version=tv)
     prov = {"environment": env, "tool_version": tv, "definition_set": d.label, "definitions_sha256": d.sha256,
-            "proposal_set": props.label, "proposals_sha256": props.sha256, "proposals": props.params,
+            "proposal_set": None,
             "inputs": [{"file": r.file, "run_id": r.run_id, "tool_version": r.prov.get("tool_version")} for r in runs],
             "site_tables": site_summary, "sites_config": str(args.sites) if args.sites else None}
     write_table(args.out, rows, prov, columns=STAGE4_COLUMNS)
@@ -558,7 +611,7 @@ def main(argv=None) -> int:
     p1 = sub.add_parser("stage1", help="read dumps with OVITO (a-CNA, PTM, DXA) and write the Stage-1 cache")
     p1.add_argument("dumps", nargs="+", help="LAMMPS dump files (quenched snapshots), plain or .gz")
     p1.add_argument("--cache", help="cache folder (default: $DISEGREG_CACHE or the agreed location for this machine)")
-    p1.add_argument("--definitions", default="D1", help="definition set label or YAML path (default D1)")
+    p1.add_argument("--definitions", default=DEFAULT_LABEL, help=f"definition set label or YAML path (default {DEFAULT_LABEL})")
     p1.add_argument("--recompute", action="store_true", help="recompute even if a valid cache entry exists")
     p1.set_defaults(func=_cmd_stage1)
     pm = sub.add_parser("manifest", help="Stage 0: print a manifest template or check manifests")
@@ -572,13 +625,13 @@ def main(argv=None) -> int:
                     "if the manifest says bulk_control); c_B and the manifest's x_iso are always used")
     pa.add_argument("--last", type=int, help="only the last N dumps of each run")
     pa.add_argument("--cache", help="cache folder (default: $DISEGREG_CACHE or the agreed location for this machine)")
-    pa.add_argument("--definitions", default="D1", help="definition set label or YAML path (default D1)")
+    pa.add_argument("--definitions", default=DEFAULT_LABEL, help=f"definition set label or YAML path (default {DEFAULT_LABEL})")
     pa.add_argument("--drift-criterion", choices=("change_se", "sem"), default=None,
                     help="change_se: |change| < 2 SE(change) (default, D1 rev. 4); sem: |change| < 2 SEM (rev. 3 / old "
                     "scripts); the other verdict is always stored as well")
     pa.add_argument("--bulk-dir", nargs="*", help="extra folders with bulk-control Stage-3 tables (default: --out only); "
                     "a run whose manifest names a bulk_control takes x_bc from <bulk_control>_stage3_<D>.csv")
-    pa.add_argument("--no-proposals", action="store_true", help="D1 quantities only (no v0.2 proposal quantities)")
+    pa.add_argument("--no-proposals", action="store_true", help="quantities of the definition set only (no open-proposal quantities, i.e. no P5 ordered domains)")
     pa.add_argument("--verbose", action="store_true")
     pa.set_defaults(func=_cmd_analyse)
     ps = sub.add_parser("slurm", help="write a Slurm job array for Stage 1 (cmmg); prints the sbatch command")
@@ -593,7 +646,7 @@ def main(argv=None) -> int:
     ps.add_argument("--mem", default="16G")
     ps.add_argument("--time", default="02:00:00")
     ps.add_argument("--max-parallel", type=int, default=20, help="array tasks running at once")
-    ps.add_argument("--definitions", default="D1")
+    ps.add_argument("--definitions", default=DEFAULT_LABEL)
     ps.set_defaults(func=_cmd_slurm)
     pt = sub.add_parser("table", help="merge the Stage-3 tables of many runs into one tidy results table")
     pt.add_argument("stage3", nargs="+", help="*_stage3_<D>.csv files or folders containing them")
@@ -604,7 +657,7 @@ def main(argv=None) -> int:
     px.add_argument("--out", required=True, help="output CSV (a .provenance.json is written next to it)")
     px.add_argument("--sites", help="site-energy configuration YAML for the McLean prediction (examples/stage4/sites.yaml)")
     px.add_argument("--cache", help="Stage-1 cache folder for the 0 K cells (default: $DISEGREG_CACHE or the agreed location)")
-    px.add_argument("--definitions", default="D1", help="definition set label or YAML path (default D1)")
+    px.add_argument("--definitions", default=None, help="definition set label or YAML path (default: the tables' own)")
     px.set_defaults(func=_cmd_across)
     pp = sub.add_parser("plot", help="plots in the house style: gamma | timeseries | delta | uptake | regions | alongline")
     pp.add_argument("kind", choices=("gamma", "timeseries", "delta", "uptake", "regions", "alongline"))
