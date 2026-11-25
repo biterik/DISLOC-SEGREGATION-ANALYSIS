@@ -179,9 +179,10 @@ is the signal. ACE -0.10 kT 2.5-15 (paper hold, nominal x_iso).
 This is TURLO-REDO's own thread-51 finding (top-down: the complexion dissolves at 0 / +1 kT and persists at +2 kT), now with D1
 definitions and an error criterion. The verdict does not depend on the factor 2 vs 3.
 
-**Along-line spectrum (P4)** (summary_alongline_domains.csv, fig/alongline_*): ACE Ni-Cu: dispersion D = 4.5-9.4 and spectrum peaks
-far above noise (p < 1e-5; d60 -0.10 kT: S = 36 at q = 2, i.e. two Cu-rich stretches 50 A apart) -> particles along the line
-(single snapshots). Lee-Shim: D = 0.8-2.2, at -0.10 kT no significant peak (d0-d90: p = 0.09-0.58) -> an evenly filled
+**Along-line spectrum (P4)** (summary_alongline_domains.csv, fig/alongline_*; updated 25 Nov with the section-16 window test,
+see 6.6): ACE Ni-Cu: dispersion D = 4.4-9.4 and spectrum peaks far above noise in 7 of 8 runs (p = 1e-13 to 2e-3; d60 -0.10 kT:
+S = 36 at q = 2, i.e. two Cu-rich stretches 50 A apart; d30 -0.50 kT: D = 0.75, no peak) -> particles along the line
+(single snapshots). Lee-Shim: D = 0.8-2.2, at -0.10 kT no significant peak (d0-d90: p = 0.10-0.58) -> an evenly filled
 core, the continuous line state. Mendelev Nb: D = 0.24-0.57 -> MORE even than random (Nb-Nb avoidance along the core). EAM-X Au:
 D ~ 1 (random). TURLO D20 complexion: D = 0.65, no peak -> continuous. Two TURLO runs with an empty core in some snapshots give
 D = NaN (window mean over NaN); a note, not a bug.
@@ -303,5 +304,16 @@ parameter: Mendelev cells were first given 39 instead of 40 periods because the 
   section-15 thresholds, P5 status, Stage-3 time units. 152 tests pass.
 - Effect on the demo numbers of section 3: only the along-line peak verdicts can change (the demo summary had already used a
   window-averaged test, but without the one-degree-of-freedom mode); no Ni-Cu / Nb-Au / Cu-Zr run has a bulk control, so 1, 3,
-  4 change nothing there. The 59 runs are being re-analysed to confirm (regression/output/v0.2-D2r2).
+  4 change nothing there. Re-analysed (regression/output/v0.2-D2r2): every D1 quantity identical to the D1 analysis
+  (1 800 408 cells); Stage 4 identical except tool_version; along-line: one verdict flips (Lee-Shim d60 -0.50 kT, 2 snapshots:
+  p 0.007 -> 0.014, now "not periodic"); p-values are larger than in the 24 Nov summary because the q = n/2 mode (one degree
+  of freedom, heavier tail) is now included, exactly as for the per-snapshot p.
+- **N3 (new, needs you): snapshot correlation in the section-16 window test.** The test treats the n_s snapshots of the window
+  as independent. On the demo, 5 of the 51 runs outside ACE come out "periodic" at p = 0.004-0.01 (EAM-X Au d0 -1.0 / -0.5,
+  d30 -1.0 kT with D = 0.93-1.17, i.e. random-like; Lee-Shim d90 -1.0 kT) where ~0.5 false alarms are expected -- consistent
+  with correlated snapshots (Nb-Au: 8-9 snapshots per window, not independent). Lee-Shim d90 -0.25 kT (p = 6e-5, D = 2.1) is
+  probably real. Options: (a) keep D2 as is (assumption stated, p slightly too small for correlated windows); (b) D2 rev. 3:
+  use an effective number of snapshots n_eff = n_s x (SEM_naive / SEM_block)^2 of the core concentration's block averaging in
+  the Gamma distributions (no new parameter, more conservative); (c) test only the snapshot with the highest S_max, with a
+  Bonferroni factor n_s. Recommendation: (b).
 
