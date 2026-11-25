@@ -98,7 +98,8 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - 25 Nov: v0.1.1 (Erik's decision 0.1, docs/OPEN-DECISIONS_v0.2.md on v0.2-dev): Stage 3 counts and WARNS about snapshots
   later than the end of the MC stream (still not used, D1 unchanged); write_table plain floats; paper_flag lifted only when x_bc
   is given; HOWTO_PROJECTS: rsync stream + dumps together. Checked: the three example manifests give cell-by-cell identical
-  Stage-2/3/Gamma(R) tables with v0.1.0 and v0.1.1 (only tool_version differs). 104 tests pass.
+  Stage-2/3/Gamma(R) tables with v0.1.0 and v0.1.1 (only tool_version differs). 104 tests pass. Tagged v0.1.1, GitHub release; Zenodo DOI v0.1.1 10.5281/zenodo.24535067
+  (README, CITATION.cff).
 
 ## Next steps
 1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing

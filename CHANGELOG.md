@@ -4,6 +4,8 @@ All notable changes to `disegreg` are listed here. Versions follow semantic vers
 the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 
 ## [Unreleased]
+### Added
+- Zenodo DOI of v0.1.1 (10.5281/zenodo.24535067) in README.md and CITATION.cff.
 
 ## [0.1.1] - 2026-11-25
 Definition set **D1, rev. 4** (unchanged). Bug-fix release: no number computed by v0.1.0 changes; only the column
