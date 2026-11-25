@@ -288,6 +288,11 @@ and the hysteresis differences.
   `reference_rule`). Parameters: D2.yaml `bulk_control.smaller_cell_min_run_length_fraction` 0.95,
   `smaller_cell_swap_rate_tolerance` 0.10.
 - A bulk control of the same size (or larger) is accepted as in section 5; a different run length is only flagged.
+- Every bulk control (any size): its manifest dmu and T must equal the run's (section 5: "same dmu"; compared within 1e-6 eV
+  and 1e-6 K); otherwise, or if unknown, not accepted.
+- A bulk control that is not accepted (any of the above, or fewer than 100 solute atoms, section 5 2b): its x_bc appears in the
+  tables only under the reference label `x_bc_diagnostic` -- never role headline or check (role "diagnostic"), not used by
+  Stage 4 (uptake exponent, McLean, hysteresis, x_bc error).
 - A smaller cell is NOT used for protocol diagnostic (iv) (does the dislocation-free crystal precipitate at this dmu?), even
   when accepted for x_bc: a small cell has fewer nucleation sites and fits only smaller clusters (section 17: "not usable").
 - Under D1 (section 5: "same size") a smaller cell is not a bulk control: x_bc is then reported as a diagnostic only.
@@ -303,7 +308,11 @@ Question: does the core hold a continuous line state (solute spread evenly along
   for binomial placement. A periodic array of particles with spacing lambda gives a peak at q = L_x / lambda.
 - Peak test: p = probability that binomial noise alone gives a peak this high, over the m modes (S(q) ~ exponential with mean 1
   for 0 < q < n/2; the mode q = n/2 of an even n has one degree of freedom, chi-squared with 1 degree of freedom);
-  "periodic" if p < 0.01 in the window-averaged spectrum (Stage 3 averages S(q) over the snapshots).
+  "periodic" if p < 0.01 in the WINDOW-AVERAGED spectrum: Stage 3 averages S(q) over the n_s snapshots of the window, takes the
+  highest mode and its p under binomial noise for the mean of n_s independent snapshots (Gamma(n_s, 1/n_s) per mode,
+  Gamma(n_s/2, 2/n_s) for q = n/2). Stage-3 rows alongline_window_S_max, _q_peak, _lambda_peak, _p_peak, _periodic (1/0).
+  The per-snapshot peak values (alongline_S_max, _q_peak, _lambda_peak, _p_peak) stay in Stage 2 only; their window means
+  are not reported. Assumption: snapshots of the window independent (correlated snapshots make p too small).
 - Limit: with L_x ~ 100 A and 5 A bins, wavelengths 10-100 A are resolved (q = 1 .. 10); particle spacings above L_x cannot be seen
   in one cell.
 
@@ -321,6 +330,9 @@ Question: does the core hold a continuous line state (solute spread evenly along
 - rev. 1 (25 Nov 2026, Erik, given in the claude.ai design session): sections 12-16 from proposals P1-P4 and question E1, each
   as recommended on 24 Nov (P1 option 1; P2 factor 2; P3 as proposed; P4 5 A bins, core atoms only, p < 0.01; E1 option a).
   Sections 1-11 = D1 rev. 4, unchanged. P5 (ordered domains) not decided: stays a proposal until Ni-Al MD/MC data exist.
+- rev. 2, same day (review of the v0.2 diff, no decision changed, the code made to follow sections 5, 15, 16 and 17): a
+  rejected x_bc is a diagnostic only (label x_bc_diagnostic); same dmu and T checked; the section-16 test is computed on the
+  window-averaged spectrum; diagnostic_iv under D1 with a smaller cell follows the D1 rule.
 - rev. 2 (25 Nov, Erik): section 15 made exact (smaller bulk control: last MD step >= 0.95 x the run's, swap attempts per atom
   per MD step within 10 %, new manifest field; otherwise not accepted, x_iso, reason written). Question N1: section 17, column `diagnostic_iv`, "not tested" for every run without a bulk control
   (D1: Delta > 0 only); the test itself written as [PROPOSAL v0.2] P6. Still label D2: D2 is not released and no number

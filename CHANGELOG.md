@@ -32,6 +32,16 @@ docs/OPEN-DECISIONS_v0.2.md. (v0.1.1 was released from main on 25 Nov, see [0.1.
   column): "not tested" for every run without a bulk control (any Delta; with D1 the D1 rule: Delta > 0 only), "not usable"
   with a smaller bulk control, "test not yet defined" with a same-size one. The test itself: [PROPOSAL v0.2] P6 in
   docs/DEFINITIONS.md (bulk-control clusters vs a random alloy of the same composition + drift of x_bc), text only.
+### Fixed (review of the v0.2 diff, 25 Nov; no D1 number affected)
+- A bulk control that is NOT accepted (D2 section 15, or < 100 solute atoms) no longer gives Gamma / E / alpha rows vs x_bc
+  that look like reference numbers: they are relabelled `x_bc_diagnostic`, role "diagnostic" (never headline), and
+  Stage 4 ignores them (`Run.refs`, `Run.x_ref("x_bc")`). Before, Gamma(20 A) vs a rejected x_bc came out as a headline row.
+- Along-line peak test (D2 section 16): computed on the window-averaged spectrum in Stage 3 (`alongline.window_test`,
+  `window_peak_p`; rows alongline_window_*); the window means of the per-snapshot peak values (S_max, q_peak, lambda_peak,
+  p_peak) are no longer written to Stage 3 (they were not the defined test: a persistent peak of S = 5 over 10 snapshots
+  read as p = 0.08 instead of 3e-7).
+- Bulk control: its dmu and T must equal the run's (DEFINITIONS 5); not checked before.
+- `diagnostic_iv` with D1 and a smaller cell: the D1 rule (no bulk control), not "not usable".
 ### Changed (D2, 25 Nov)
 - Status: along-line quantities, McLean, the hysteresis verdict and Gamma_error_total are `definition` in D2 tables
   (along-line quantities in D1-labelled tables, e.g. the 24 Nov demo, stay `proposal`); only `domain_*` (P5) is `proposal`.

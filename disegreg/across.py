@@ -80,7 +80,8 @@ class Run:
         return (float(r["mean"]), float(r["sem"])) if r else (float("nan"), float("nan"))
 
     def refs(self) -> list[str]:
-        return sorted({k[3] for k in self.rows if k[0] == "x_ref" and k[3]})
+        # a diagnostic-only reference (x_bc of a bulk control that was not accepted) is not a reference for Stage 4
+        return sorted({k[3] for k in self.rows if k[0] == "x_ref" and k[3] and not k[3].endswith("_diagnostic")})
 
     def x_ref(self, ref: str):
         """(x_ref, its error) for one reference, as used by the Stage-3 Gamma of this run."""
@@ -91,6 +92,8 @@ class Run:
             return (float(x), 0.0) if x is not None else (float("nan"), float("nan"))
         if ref == "x_bc":
             info = self.prov.get("x_bc") or {}
+            if info.get("accepted") is False or info.get("enough_solute") is False:
+                return float("nan"), float("nan")   # not accepted: diagnostic only (D2 section 15, DEFINITIONS 5 2b)
             if info.get("value") is not None:
                 sem = info.get("sem")
                 return float(info["value"]), float(sem) if sem is not None else float("nan")

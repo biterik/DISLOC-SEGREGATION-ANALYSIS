@@ -63,6 +63,9 @@ def _md_step(dump, fallback) -> int:
     return int(m.group(1)) if m else int(fallback)
 
 
+XBC_DIAG = "x_bc_diagnostic"   # reference label of an x_bc from a bulk control that was NOT accepted (diagnostic only)
+
+
 def find_x_bc(run_id: str, label: str, folders, min_solute: int = 100):
     """x_bc of a bulk control from its Stage-3 table <run_id>_stage3_<label>.csv (first folder that has it):
     window mean and block-averaging SEM of the interior solute fraction. None if no table is found."""
@@ -82,21 +85,26 @@ def find_x_bc(run_id: str, label: str, folders, min_solute: int = 100):
             raise ValueError(f"{f}: no interior solute fraction -- is this a bulk-control table?")
         n_sol = ns["mean"] if ns else float("nan")
         side = f.with_name(f.name + ".provenance.json")
-        s3 = (json.loads(side.read_text()).get("stage3") or {}) if side.is_file() else {}
+        pj = json.loads(side.read_text()) if side.is_file() else {}
+        s3, mb = pj.get("stage3") or {}, pj.get("manifest_data") or {}
         return {"source": str(f), "value": c["mean"], "sem": c["sem"], "n_samples": c["n_samples"], "flat": c["flat"],
                 "n_solute": n_sol, "min_solute": min_solute, "enough_solute": bool(n_sol >= min_solute),
                 "n_atoms": s3.get("n_atoms"), "last_md_step": s3.get("last_md_step"),
-                "swap_attempts_per_atom_per_step": s3.get("swap_attempts_per_atom_per_step")}
+                "swap_attempts_per_atom_per_step": s3.get("swap_attempts_per_atom_per_step"),
+                "dmu": mb.get("dmu"), "temperature": mb.get("temperature")}
     return None
 
 
-def bulk_control_check(x_bc_info: dict, n_atoms_run: int, last_md_step_run, definitions, swap_rate_run=None) -> dict:
+def bulk_control_check(x_bc_info: dict, n_atoms_run: int, last_md_step_run, definitions, swap_rate_run=None,
+                       run_state: dict | None = None) -> dict:
     """Is the bulk control acceptable as x_bc for this run (DEFINITIONS 5; D2 section 15)?
     Same size or larger: yes (a different run length is flagged). Unknown size (table without n_atoms): no.
     Smaller: D1 no (section 5: same size). D2 only if (i) its last MD step >= min_run_length_fraction (0.95) x the run's
     and (ii) its swap attempts per atom per MD step agree with the run's within swap_rate_tolerance (10 %, relative to the
-    run's); a missing step or swap rate counts as failed. Never for diagnostic (iv). Not accepted -> x_bc is reported as a
-    diagnostic only and the run is referred to x_iso (and c_B) as without a bulk control; the reasons go to ``reasons``."""
+    run's); a missing step or swap rate counts as failed. Never for diagnostic (iv). Any size: the same dmu and T as the
+    run (section 5; ``run_state`` = {"dmu", "temperature"} of the run, compared within 1e-6) -- unknown counts as failed.
+    Not accepted -> x_bc is reported as a diagnostic only and the run is referred to x_iso (and c_B) as without a bulk
+    control; the reasons go to ``reasons``."""
     from .results import DIAG_IV_NOT_TESTED, DIAG_IV_NOT_USABLE, DIAG_IV_PENDING
 
     bc = (definitions.params if hasattr(definitions, "params") else definitions).get("bulk_control") or {}
@@ -137,8 +145,15 @@ def bulk_control_check(x_bc_info: dict, n_atoms_run: int, last_md_step_run, defi
                 elif abs(float(sb) / float(sr) - 1.0) > tol + 1e-9:   # the boundary itself is accepted
                     out["reasons"].append(f"swap rate differs by more than {tol:.0%}: bulk control {sb:g}, run {sr:g} "
                                           f"attempts per atom per MD step ({label} section 15)")
-        if out["reasons"]:
-            out["accepted"] = False
+    if run_state is not None:   # DEFINITIONS 5: same dmu and T (any size)
+        for key, unit in (("dmu", "eV"), ("temperature", "K")):
+            vb, vr = x_bc_info.get(key), run_state.get(key)
+            if vb is None or vr is None:
+                out["reasons"].append(f"{key} of the bulk control or of the run unknown")
+            elif abs(float(vb) - float(vr)) > 1e-6:
+                out["reasons"].append(f"{key} differs: bulk control {vb:g} {unit}, run {vr:g} {unit} (DEFINITIONS 5)")
+    if out["reasons"]:
+        out["accepted"] = False
     if out["same_run_length"] is False and out["accepted"]:
         out["flags"].append(f"run length differs: bulk control to step {lb}, run to step {lr}")
     if not out["accepted"]:
@@ -289,7 +304,8 @@ def _cmd_analyse(args) -> int:
         # is the bulk control acceptable (size, run length; D2 section 15)? Only for a bulk control found as a table
         if x_bc_info is not None and "enough_solute" in x_bc_info:
             x_bc_info.update(bulk_control_check(x_bc_info, snap.n_atoms, max(s["md_step"] for s in snaps), d,
-                                                m.get("swap_attempts_per_atom_per_step")))
+                                                m.get("swap_attempts_per_atom_per_step"),
+                                                {"dmu": m.get("dmu"), "temperature": m.get("temperature")}))
             for fl in x_bc_info["flags"]:
                 print(f"  bulk control: {fl}")
             if x_bc_info["smaller"] and x_bc_info["accepted"]:
@@ -297,6 +313,18 @@ def _cmd_analyse(args) -> int:
                       f"({d.label} section 15), diagnostic (iv) {x_bc_info['diagnostic_iv']}")
         has_bc = (bool(m.get("bulk_control")) and "x_bc" in refs
                   and (x_bc_info is None or (x_bc_info.get("enough_solute", True) and x_bc_info.get("accepted", True))))
+        if "x_bc" in refs and not has_bc:
+            # DEFINITIONS 5 (2b) / D2 section 15: a bulk control that is not accepted gives x_bc as a DIAGNOSTIC only --
+            # its rows get the reference label "x_bc_diagnostic": never a headline, not used by Stage 4
+            refs[XBC_DIAG] = refs.pop("x_bc")
+            for r in rows:
+                if r.get("ref") == "x_bc":
+                    r["ref"] = XBC_DIAG
+            for s in snaps:
+                rr = s["info"].get("refs")
+                if isinstance(rr, dict) and "x_bc" in rr:
+                    rr[XBC_DIAG] = rr.pop("x_bc")
+            print(f"  x_bc not accepted -> reported as '{XBC_DIAG}' (diagnostic only)")
         if not has_bc:
             missing = [r for r in ref_rule["without_bulk_control_report_against"] if r != "c_B" and r not in refs]
             if missing:
@@ -328,6 +356,10 @@ def _cmd_analyse(args) -> int:
         except ValueError as e:
             print(f"  Stage 3 skipped: {e}")
             continue
+        if "alongline" in d.params:   # D2 section 16: the test on the window-averaged spectrum, not window means of
+            from . import alongline   # per-snapshot peak values (those stay in Stage 2 only)
+            rows3 = [r for r in rows3 if r["quantity"] not in alongline.PER_SNAPSHOT_ONLY]
+            rows3 += alongline.window_test(rows3, float(d["alongline"]["p_threshold"]))
         for r in rows3:
             r.update(run_id=m["run_id"], definition_set=d.label, tool_version=tv)
         fa = next((r["mean"] for r in rows3 if r["quantity"] == "fallback_active"), 0.0)

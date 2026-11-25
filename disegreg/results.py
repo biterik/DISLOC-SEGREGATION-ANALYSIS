@@ -65,11 +65,16 @@ def diagnostic_iv(definitions, delta: float, x_bc_info: dict | None) -> str:
     """Value of the column diagnostic_iv for one run.
     No bulk-control table (none named, not found, or x_bc only from the command line) or a bulk control of unknown size:
     "not tested" -- with D2 (section 17) for every Delta, with D1 (section 5) only for Delta > 0 (else empty).
-    Bulk control smaller than the dislocation cell: "not usable" (D2 section 15; also under D1, where it is no bulk control).
+    Bulk control smaller than the dislocation cell: "not usable" (D2 section 15); under D1 it is no bulk control (rule above).
     Same size or larger: the test itself is [PROPOSAL v0.2] P6, not defined yet."""
     p = getattr(definitions, "params", definitions)
+    smaller_is_bc = bool((p.get("bulk_control") or {}).get("smaller_cell_allowed", False))   # D2 yes, D1 no
     if x_bc_info is not None and "enough_solute" in x_bc_info and x_bc_info.get("smaller") is not None:
-        return DIAG_IV_NOT_USABLE if x_bc_info["smaller"] else DIAG_IV_PENDING
+        if not x_bc_info["smaller"]:
+            return DIAG_IV_PENDING
+        if smaller_is_bc:
+            return DIAG_IV_NOT_USABLE
+        # D1: a smaller cell is no bulk control -> the rule for runs without one (below)
     rule = (p.get("diagnostic_iv") or {}).get("not_tested_without_bulk_control", "delta_positive")
     if rule == "all" or float(delta) > 0:
         return DIAG_IV_NOT_TESTED
@@ -137,10 +142,14 @@ def read_table(path) -> list[dict]:
 
 
 # ------------------------------------------------------------------------------------------ headline, check, paper hold
-def gamma_role(quantity, region, basis, headline_radius: float, check_radius: float) -> str:
-    """headline = Gamma(20 A), check = Gamma(40 A), curve = any other R; only for Gamma under r (DEFINITIONS 6)."""
+def gamma_role(quantity, region, basis, headline_radius: float, check_radius: float, ref: str = "") -> str:
+    """headline = Gamma(20 A), check = Gamma(40 A), curve = any other R; only for Gamma under r (DEFINITIONS 6).
+    A diagnostic-only reference (x_bc of a bulk control that was not accepted, ref "..._diagnostic") is never headline or
+    check: role "diagnostic"."""
     if quantity != "Gamma" or basis != "r":
         return ""
+    if str(ref).endswith("_diagnostic"):
+        return "diagnostic"
     if region == f"{float(headline_radius):g}":
         return "headline"
     if region == f"{float(check_radius):g}":
@@ -169,7 +178,7 @@ def gamma_curve(stage3_rows, headline_radius: float, check_radius: float) -> lis
         if r["quantity"] != "Gamma":
             continue
         out.append({"run_id": r["run_id"], "R": float(r["region"]), "basis": r["basis"], "ref": r["ref"],
-                    "role": gamma_role("Gamma", r["region"], r["basis"], headline_radius, check_radius),
+                    "role": gamma_role("Gamma", r["region"], r["basis"], headline_radius, check_radius, r["ref"]),
                     "mean": r["mean"], "sem": r["sem"], "n_samples": r["n_samples"], "flat": r["flat"],
                     "definition_set": r["definition_set"], "tool_version": r["tool_version"]})
     return sorted(out, key=lambda r: (r["basis"], r["ref"], r["R"]))
@@ -204,7 +213,7 @@ def collect_runs(stage3_files) -> tuple[list[dict], dict]:
         for r in read_table(f):
             rows.append({**meta, "run_id": r["run_id"], "quantity": r["quantity"], "region": r["region"],
                          "basis": r["basis"], "ref": r["ref"],
-                         "role": gamma_role(r["quantity"], r["region"], r["basis"], hr, cr),
+                         "role": gamma_role(r["quantity"], r["region"], r["basis"], hr, cr, r["ref"]),
                          "value": r["mean"], "error": r["sem"], "n_samples": r["n_samples"],
                          "flat": r["flat"], "flat_rev3_sem": r.get("flat_rev3_sem", ""),
                          "run_converged": s3.get("converged", ""), "window_fraction": s3.get("window_fraction", ""),

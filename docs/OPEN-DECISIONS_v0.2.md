@@ -285,3 +285,23 @@ parameter: Mendelev cells were first given 39 instead of 40 periods because the 
   number of clusters >= 5 atoms; 1st-shell clusters only (recommended) or also alpha2 for ordering solutes (Ni-Al).
   Blocked for demo numbers: no harvested bulk control yet (Ni-Cu thread 11).
 
+### 6.6 E1 fix and review of the whole v0.2 diff (25 Nov)
+- E1 fix (Erik): D2 section 15 exact -- a smaller bulk control only with last MD step >= 0.95 x the run's and swap attempts per
+  atom per MD step within 10 % (new manifest field `swap_attempts_per_atom_per_step`, required for bulk controls and for runs
+  naming one; schema stays 1); otherwise not accepted, x_iso (and c_B), reason in `x_bc.reasons` and `reference_rule`.
+- Review (independent subagent, whole `git diff main..v0.2-dev` against PLAN_v0.2 and DEFINITIONS; correctness and definitions
+  only). Four findings, all confirmed by reading the code, all fixed with tests:
+  1. A rejected x_bc (section 15 or < 100 solute atoms) still produced Gamma(20 A) vs x_bc with role headline, and Stage 4
+     used it -> now reference label `x_bc_diagnostic`, role "diagnostic", ignored by Stage 4.
+  2. The section-16 peak test was not implemented as defined: Stage 3 reported the window MEAN of per-snapshot p-values
+     (a persistent peak S = 5 in 10 snapshots: 0.08 instead of 3e-7) -> now `alongline_window_*` from the window-averaged
+     spectrum (exact Gamma distributions for the mean of n independent snapshots); per-snapshot peak values stay in Stage 2.
+     Assumption written into section 16: snapshots of the window independent.
+  3. `diagnostic_iv` under D1 with a smaller cell said "not usable" -> D1 rule (no bulk control).
+  4. Same dmu and T of bulk control and run were never checked (section 5) -> checked, not accepted otherwise.
+  Reported as correct by the review: D1 = D2 for every D1 quantity, McLean, hysteresis, Gamma_error_total, uptake errors,
+  section-15 thresholds, P5 status, Stage-3 time units. 152 tests pass.
+- Effect on the demo numbers of section 3: only the along-line peak verdicts can change (the demo summary had already used a
+  window-averaged test, but without the one-degree-of-freedom mode); no Ni-Cu / Nb-Au / Cu-Zr run has a bulk control, so 1, 3,
+  4 change nothing there. The 59 runs are being re-analysed to confirm (regression/output/v0.2-D2r2).
+

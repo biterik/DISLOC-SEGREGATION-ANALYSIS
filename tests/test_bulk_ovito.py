@@ -117,7 +117,19 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     prov4 = json.loads((out4 / "RUN_stage3_D2.csv.provenance.json").read_text())
     assert prov4["x_bc"]["accepted"] is False and "swap rate differs" in prov4["x_bc"]["reasons"][0]
     assert "no bulk control" in prov4["reference_rule"] and "swap rate differs" in prov4["reference_rule"]
-    assert prov4["x_ref"]["x_iso"] == 0.05
+    assert prov4["x_ref"]["x_iso"] == 0.05 and "x_bc" not in prov4["x_ref"]
+    # review finding 1: the rejected x_bc is only a diagnostic -- reference label x_bc_diagnostic, never headline, no Stage 4
+    refs4 = {r["ref"] for r in read_table(out4 / "RUN_stage2_D2.csv") if r["quantity"] == "Gamma"}
+    assert refs4 == {"c_B", "x_iso", "x_bc_diagnostic"}
+    assert main(["table", str(out4), "--out", str(tmp_path / "all4.csv")]) == 0
+    g20 = {r["ref"]: r["role"] for r in read_table(tmp_path / "all4.csv")
+           if r["quantity"] == "Gamma" and r["region"] == "20" and r["basis"] == "r"}
+    assert g20 == {"c_B": "headline", "x_iso": "headline", "x_bc_diagnostic": "diagnostic"}
+    assert main(["across", str(out4), "--out", str(tmp_path / "s4b.csv")]) == 0
+    assert not [r for r in read_table(tmp_path / "s4b.csv") if "x_bc" in r["ref"]]
+    # Stage 3 carries the section-16 window test, not window means of per-snapshot peak values
+    q3 = {r["quantity"] for r in read_table(out4 / "RUN_stage3_D2.csv")}
+    assert "alongline_window_periodic" in q3 and "alongline_p_peak" not in q3
     # D1 (bulk control = same size): the smaller cell is not a bulk control, x_bc only as a diagnostic
     out3 = tmp_path / "out3"
     assert main(["analyse", str(fd), str(fb), "--out", str(out3), "--cache", str(tmp_path / "cache"),

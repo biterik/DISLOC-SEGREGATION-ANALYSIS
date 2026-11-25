@@ -27,9 +27,14 @@ import numpy as np
 
 from .geometry import Cell, n_slabs_for
 
+# per-snapshot peak values: meaningful per snapshot only (their window mean is not the section-16 test) -> not in Stage 3
+PER_SNAPSHOT_ONLY = ("alongline_S_max", "alongline_q_peak", "alongline_lambda_peak", "alongline_p_peak")
+# the section-16 test on the window-averaged spectrum (Stage 3, window_test)
+WINDOW_QUANTITIES = ("alongline_window_S_max", "alongline_window_q_peak", "alongline_window_lambda_peak",
+                     "alongline_window_p_peak", "alongline_window_periodic")
 QUANTITIES = ("alongline_n_bins", "alongline_bin_width", "alongline_c", "alongline_dispersion", "alongline_S",
               "alongline_S_max", "alongline_q_peak", "alongline_lambda_peak", "alongline_p_peak", "alongline_N_bin",
-              "alongline_N_sol_bin")
+              "alongline_N_sol_bin") + WINDOW_QUANTITIES
 
 
 @dataclass
@@ -105,3 +110,54 @@ def records(al: AlongLine, add) -> None:
     for kk, (nn, ss) in enumerate(zip(al.N, al.s)):
         add("alongline_N_bin", nn, region=f"x{kk}")
         add("alongline_N_sol_bin", ss, region=f"x{kk}")
+
+
+def window_peak_p(S_max: float, n_snap: int, m: int, m1: int = 0) -> float:
+    """P(max over the modes of the WINDOW-AVERAGED spectrum >= S_max) under binomial noise, for n_snap independent
+    snapshots: the mean of n_snap exp(1) variables is Gamma(n_snap, 1/n_snap), the mean of n_snap chi^2_1 variables (the
+    q = n/2 mode of an even bin number) Gamma(n_snap / 2, 2 / n_snap). n_snap = 1 gives binomial_peak_p."""
+    from scipy.stats import gamma
+
+    if not np.isfinite(S_max) or m + m1 <= 0 or n_snap < 1:
+        return float("nan")
+    if S_max <= 0:
+        return 1.0
+    below = m * np.log(gamma.cdf(S_max, a=n_snap, scale=1.0 / n_snap)) if m else 0.0
+    if m1:
+        below += m1 * np.log(gamma.cdf(S_max, a=n_snap / 2.0, scale=2.0 / n_snap))
+    return float(-np.expm1(below))
+
+
+def window_test(stage3_rows, p_threshold: float = 0.01) -> list[dict]:
+    """The section-16 test (D2) on the window-averaged spectrum: from the Stage-3 window means of alongline_S (regions
+    q1 .. q<n/2>) and their sample count, the highest mode, its wavelength L_x / q, its p-value under binomial noise
+    (window_peak_p; snapshots treated as independent) and the verdict 1 = periodic (p < p_threshold) / 0 / NaN.
+    Returns Stage-3-style rows (mean = the value; no SEM, no drift test)."""
+    S = {int(r["region"][1:]): r for r in stage3_rows if r["quantity"] == "alongline_S"}
+    nb = next((r for r in stage3_rows if r["quantity"] == "alongline_n_bins"), None)
+    L = next((r for r in stage3_rows if r["quantity"] == "L_x"), None)
+    if not S or nb is None:
+        return []
+    n_bins = int(round(float(nb["mean"])))
+    q = sorted(S)
+    vals = np.array([float(S[k]["mean"]) for k in q])
+    n_snap = int(min(int(S[k]["n_samples"]) for k in q))
+    proto = S[q[0]]
+    if not np.isfinite(vals).any():
+        smax, qp, p = float("nan"), 0, float("nan")
+    else:
+        j = int(np.nanargmax(vals))
+        smax, qp = float(vals[j]), int(q[j])
+        m1 = int(n_bins % 2 == 0 and n_bins // 2 in S)
+        p = window_peak_p(smax, n_snap, len(q) - m1, m1)
+    lam = float(L["mean"]) / qp if (L is not None and qp) else float("nan")
+    verdict = float(p < p_threshold) if np.isfinite(p) else float("nan")
+    out = []
+    for quantity, value in (("alongline_window_S_max", smax), ("alongline_window_q_peak", float(qp) if qp else float("nan")),
+                            ("alongline_window_lambda_peak", lam), ("alongline_window_p_peak", p),
+                            ("alongline_window_periodic", verdict)):
+        out.append({"quantity": quantity, "region": "C", "basis": "", "ref": "", "mean": value, "sem": float("nan"),
+                    "n_samples": n_snap, "sem_plateau": "", "change": float("nan"), "change_se": float("nan"), "flat": "",
+                    "flat_rev3_sem": "", "t_first": proto.get("t_first"), "t_last": proto.get("t_last")})
+    return out
+

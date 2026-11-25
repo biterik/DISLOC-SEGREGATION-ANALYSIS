@@ -85,8 +85,9 @@ def main():
     write(out / "summary_hysteresis.csv", hy, ["potential", "character", "delta", "quantity", "region", "ref", "value", "error",
                                                "status", "runs", "flags"])
     # ---- along line (P4) and domains (P5), per run, window means
-    keep = {("alongline_dispersion", "C"), ("alongline_S_max", "C"), ("alongline_q_peak", "C"),
-            ("alongline_lambda_peak", "C"), ("alongline_p_peak", "C"), ("alongline_c", "C"),
+    keep = {("alongline_dispersion", "C"), ("alongline_c", "C"), ("alongline_window_S_max", "C"),
+            ("alongline_window_q_peak", "C"), ("alongline_window_lambda_peak", "C"), ("alongline_window_p_peak", "C"),
+            ("alongline_window_periodic", "C"),
             ("domain_frac_ordered", "C"), ("domain_frac_ordered", "B"), ("domain_n_all", "all"), ("c", "C")}
     per = {}
     for r in res:
@@ -94,25 +95,7 @@ def main():
             d = per.setdefault(r["run_id"], {"run_id": r["run_id"], "potential": r["potential"], "character": r["character"],
                                              "delta": r["delta"], "start_type": r["start_type"], "n_samples": r["n_samples"]})
             d[f"{r['quantity']}:{r['region']}"] = r["value"]
-    # window-averaged spectrum and its peak test (mean of n independent exp(1) -> Gamma(n, 1/n))
-    from scipy.stats import gamma as gamma_dist
-    spec = {}
-    for r in res:
-        if r["quantity"] == "alongline_S" and r["ref"] == "":
-            spec.setdefault(r["run_id"], {})[int(r["region"][1:])] = (r["value"], int(r["n_samples"]))
-    for rid, d in per.items():
-        if rid not in spec:
-            continue
-        q = sorted(spec[rid])
-        S = np.array([spec[rid][k][0] for k in q])
-        n = max(1, spec[rid][q[0]][1])
-        j = int(np.nanargmax(S)) if np.isfinite(S).any() else -1
-        if j < 0:
-            continue
-        p1 = gamma_dist.sf(S[j], a=n, scale=1.0 / n)          # one mode
-        d["S_mean_max"] = float(S[j])
-        d["q_mean_max"] = q[j]
-        d["p_mean_max"] = float(1 - (1 - p1) ** len(q))        # any of the modes
+    # the window test of the spectrum (D2 section 16) comes from Stage 3 (alongline_window_*), see disegreg.alongline
     write(out / "summary_alongline_domains.csv", sorted(per.values(), key=lambda d: (d["potential"], d["character"], d["delta"])))
     # ---- site tables
     prov = json.loads((out / "stage4.csv.provenance.json").read_text())

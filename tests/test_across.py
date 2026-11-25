@@ -387,6 +387,15 @@ def test_bulk_control_check_size_run_length_and_swap_rate():
     missing = bulk_control_check(bc(32000, 800000, None), 570000, 800000, D2, 1.0)
     assert missing["accepted"] is False and "missing" in missing["reasons"][0]
     assert bulk_control_check(bc(32000, 800000), 570000, 800000, D2, None)["accepted"] is False
+    # same dmu and T as the run, any size (DEFINITIONS 5; review finding 4)
+    st = {"dmu": 0.88, "temperature": 300}
+    ok = bulk_control_check({**bc(570000, 800000), "dmu": 0.88, "temperature": 300}, 570000, 800000, D2, 1.0, st)
+    assert ok["accepted"]
+    other = bulk_control_check({**bc(570000, 800000), "dmu": 0.85, "temperature": 300}, 570000, 800000, D2, 1.0, st)
+    assert other["accepted"] is False and "dmu differs" in other["reasons"][0]
+    hot = bulk_control_check({**bc(32000, 800000), "dmu": 0.88, "temperature": 600}, 570000, 800000, D2, 1.0, st)
+    assert hot["accepted"] is False and "temperature differs" in hot["reasons"][0]
+    assert bulk_control_check(bc(570000, 800000), 570000, 800000, D2, 1.0, st)["accepted"] is False   # dmu unknown
     # a same-size bulk control is not held to the 0.95 / 10 % rules (only flagged)
     same_short = bulk_control_check(bc(570000, 400000, 2.0), 570000, 800000, D2, 1.0)
     assert same_short["accepted"] and "run length differs" in same_short["flags"][0]
@@ -427,7 +436,9 @@ def test_diagnostic_iv_column(tmp_path):
     assert diagnostic_iv(d1, -0.1, None) == "" and diagnostic_iv(d1, 0.0, None) == ""
     assert diagnostic_iv(d1, 1.0, None) == DIAG_IV_NOT_TESTED
     small = {"enough_solute": True, "smaller": True}
-    assert diagnostic_iv(D2, -0.1, small) == DIAG_IV_NOT_USABLE and diagnostic_iv(d1, 1.0, small) == DIAG_IV_NOT_USABLE
+    assert diagnostic_iv(D2, -0.1, small) == DIAG_IV_NOT_USABLE
+    # D1: a smaller cell is no bulk control -> the D1 rule for runs without one (review finding 3)
+    assert diagnostic_iv(d1, 1.0, small) == DIAG_IV_NOT_TESTED and diagnostic_iv(d1, -0.5, small) == ""
     assert diagnostic_iv(D2, -0.1, {"enough_solute": True, "smaller": False}) == DIAG_IV_PENDING
     assert diagnostic_iv(D2, -0.1, {"enough_solute": True, "smaller": None}) == DIAG_IV_NOT_TESTED   # size unknown
     # the results table carries it from the Stage-3 provenance

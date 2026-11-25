@@ -83,3 +83,36 @@ def test_stage2_writes_alongline_with_D2():
     assert sum(res.value("alongline_N_bin", region=f"x{k}") for k in range(n_bins)) == res.value("N", region="C")
     plain = analyse_snapshot(snap, load_definitions("D1"), A, z_gp=z0)   # D1: no along-line quantities
     assert not any(r["quantity"].startswith("alongline") for r in plain.records)
+
+
+def test_window_test_on_the_window_averaged_spectrum():
+    """D2 section 16: "periodic" from the p-value of the WINDOW-AVERAGED spectrum (review finding 2), not the mean of the
+    per-snapshot p-values. A persistent moderate peak (S = 5 in every one of 10 snapshots) is periodic; per snapshot it is
+    not significant."""
+    assert alongline.window_peak_p(6.0, 1, 9, 1) == pytest.approx(alongline.binomial_peak_p(6.0, 9, 1), rel=1e-9)
+    assert alongline.binomial_peak_p(5.0, 9, 1) > 0.05                    # one snapshot: not significant
+    assert alongline.window_peak_p(5.0, 10, 9, 1) < 1e-5                  # window of 10: clearly periodic (2.7e-7)
+
+    def s3(S, n_snap, n_bins=20, L=100.0):
+        rows = [{"quantity": "alongline_S", "region": f"q{q}", "mean": v, "n_samples": n_snap, "t_first": 0, "t_last": 1}
+                for q, v in zip(range(1, n_bins // 2 + 1), S)]
+        return rows + [{"quantity": "alongline_n_bins", "region": "C", "mean": float(n_bins), "n_samples": n_snap},
+                       {"quantity": "L_x", "region": "", "mean": L, "n_samples": n_snap}]
+
+    S = np.ones(10)
+    S[3] = 5.0                                                           # q = 4: lambda = 25 A
+    out = {r["quantity"]: r["mean"] for r in alongline.window_test(s3(S, 10), 0.01)}
+    assert out["alongline_window_q_peak"] == 4 and out["alongline_window_lambda_peak"] == pytest.approx(25.0)
+    assert out["alongline_window_periodic"] == 1.0 and out["alongline_window_p_peak"] < 1e-5
+    # binomial noise: false "periodic" in ~1 % of windows (snapshots independent)
+    rng = np.random.default_rng(7)
+    hits, trials = 0, 4000
+    for _ in range(trials):
+        n_snap = 5
+        per = rng.exponential(1.0, size=(n_snap, 10))
+        per[:, -1] = rng.chisquare(1, size=n_snap)                       # q = n/2 = 10: one degree of freedom
+        res = {r["quantity"]: r["mean"] for r in alongline.window_test(s3(per.mean(axis=0), n_snap), 0.01)}
+        hits += res["alongline_window_periodic"] == 1.0
+    assert 0.005 < hits / trials < 0.016
+    assert alongline.window_test([], 0.01) == []
+
