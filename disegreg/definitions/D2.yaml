@@ -6,7 +6,7 @@
 # spectrum, diagnostic-(iv) status). The ordered-domain sizes (P5) are NOT part of D2: they stay a proposal (proposals_v0.2.yaml).
 # Changing ANY value here creates a new definition set (D3, ...) with a line in the revision log of docs/DEFINITIONS.md.
 label: D2
-status: "rev. 2 (2026-11-25): D1 rev. 4 + sections 12-17 (Erik 25 Nov); not yet released (branch v0.2-dev)"
+status: "rev. 3 (2026-11-26): D1 rev. 4 + sections 12-17 (Erik 25/26 Nov); not yet released (branch v0.2-dev)"
 extends: D1                              # every section of D1.yaml is here with the same values
 
 input:                                   # section 1
@@ -91,18 +91,20 @@ hysteresis:                              # section 13 (was P2): when are bottom-
     - [Gamma, "20", r]
     - [c, C, ""]
 
-bulk_control:                            # sections 14 (was P3) and 15 (was E1)
+bulk_control:                            # sections 14 (was P3) and 15 (was E1; rev. 3: Erik 26 Nov)
   propagate_x_ref_error: true            # 14: error of Gamma vs x_bc includes N(r < R) / L_x x SEM(x_bc), in quadrature
+  min_run_length_fraction: 0.95          # 15 (rev. 3: EVERY bulk control, any size): its last MD step >= 0.95 x the run's,
+  swap_rate_tolerance: 0.10              #   and its swap attempts per atom per MD step (manifest) = the run's within 10 %
   smaller_cell_allowed: true             # 15: a bulk-control cell smaller than the dislocation cell gives x_bc (>= 100 solute
-                                         #   atoms in its interior, size recorded in its manifest: field n_atoms) only if
-  smaller_cell_min_run_length_fraction: 0.95   # its last MD step >= 0.95 x the run's, and
-  smaller_cell_swap_rate_tolerance: 0.10 # its swap attempts per atom per MD step (manifest) = the run's within 10 % ...
+                                         #   atoms in its interior, size recorded in its manifest: field n_atoms) ...
   smaller_cell_for_diagnostic_iv: false  # ... but NOT protocol diagnostic (iv) (does the dislocation-free crystal precipitate?)
 
 alongline:                               # section 16 (was P4): along-line core composition + spectrum vs binomial noise
   regions: [C]                           # atoms analysed: the core (r < 5 A)
   bin_width: 5.0                         # X bins (actual width L_x / round(L_x / 5))
   p_threshold: 0.01                      # a spectrum peak counts as "periodic" if its binomial-noise p-value < 0.01
+  n_eff_from: block_averaging_c_C        # rev. 3 (Erik 26 Nov, N3): p for n_eff = n_s (SEM_naive / SEM_block)^2 effective
+  n_eff_without_plateau: 1               #   snapshots of the block averaging of c_C over the window; no plateau: 1, flagged
 
 diagnostic_iv:                           # section 17 (Erik 25 Nov, N1): column diagnostic_iv of the results table
   not_tested_without_bulk_control: all   # every run without a bulk control is "not tested", whatever Delta (D1 section 5:

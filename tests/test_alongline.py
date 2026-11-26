@@ -101,7 +101,7 @@ def test_window_test_on_the_window_averaged_spectrum():
 
     S = np.ones(10)
     S[3] = 5.0                                                           # q = 4: lambda = 25 A
-    out = {r["quantity"]: r["mean"] for r in alongline.window_test(s3(S, 10), 0.01)}
+    out = {r["quantity"]: r["mean"] for r in alongline.window_test(s3(S, 10), 0.01, None)}
     assert out["alongline_window_q_peak"] == 4 and out["alongline_window_lambda_peak"] == pytest.approx(25.0)
     assert out["alongline_window_periodic"] == 1.0 and out["alongline_window_p_peak"] < 1e-5
     # binomial noise: false "periodic" in ~1 % of windows (snapshots independent)
@@ -111,8 +111,56 @@ def test_window_test_on_the_window_averaged_spectrum():
         n_snap = 5
         per = rng.exponential(1.0, size=(n_snap, 10))
         per[:, -1] = rng.chisquare(1, size=n_snap)                       # q = n/2 = 10: one degree of freedom
-        res = {r["quantity"]: r["mean"] for r in alongline.window_test(s3(per.mean(axis=0), n_snap), 0.01)}
+        res = {r["quantity"]: r["mean"] for r in alongline.window_test(s3(per.mean(axis=0), n_snap), 0.01, None)}
         hits += res["alongline_window_periodic"] == 1.0
     assert 0.005 < hits / trials < 0.016
-    assert alongline.window_test([], 0.01) == []
+    assert alongline.window_test([], 0.01, None) == []
+
+
+def test_window_test_effective_number_of_snapshots():
+    """D2 rev. 3 (Erik 26 Nov, N3 option b): the window test uses n_eff = n_s (SEM_naive / SEM_block)^2 from the block
+    averaging of c_C over the same snapshots; without a plateau n_eff = 1, flagged."""
+    from disegreg.timeseries import block_sem
+
+    def s3(S, n_snap, n_bins=20, L=100.0):
+        rows = [{"quantity": "alongline_S", "region": f"q{q}", "mean": v, "n_samples": n_snap, "t_first": 0, "t_last": 1}
+                for q, v in zip(range(1, n_bins // 2 + 1), S)]
+        return rows + [{"quantity": "alongline_n_bins", "region": "C", "mean": float(n_bins), "n_samples": n_snap},
+                       {"quantity": "L_x", "region": "", "mean": L, "n_samples": n_snap}]
+
+    S = np.ones(10)
+    S[3] = 2.2
+    rng = np.random.default_rng(3)
+    # uncorrelated c_C (plateau at level 0): n_eff = n_s, the same p as for independent snapshots
+    c_iid = 0.05 + 0.002 * rng.standard_normal(64)
+    b = block_sem(c_iid)
+    assert b.plateau and b.level == 0
+    info = {}
+    rows = {r["quantity"]: r for r in alongline.window_test(s3(S, 64), 0.01, c_iid, info=info)}
+    assert rows["alongline_window_n_eff"]["mean"] == pytest.approx(64.0)
+    assert rows["alongline_window_p_peak"]["mean"] == pytest.approx(alongline.window_peak_p(2.2, 64, 9, 1), rel=1e-12)
+    assert rows["alongline_window_p_peak"]["sem_plateau"] is True and info["alongline_window"]["flag"] == ""
+    # strongly correlated c_C (an AR(1) series, plateau reached): n_eff < n_s -> larger p, verdict can flip
+    x = np.empty(256)
+    x[0] = 0.0
+    for i in range(1, 256):
+        x[i] = 0.9 * x[i - 1] + rng.standard_normal()
+    c_cor = 0.05 + 0.001 * x
+    ne = alongline.window_n_eff(c_cor, 256)
+    bb = block_sem(c_cor)
+    assert bb.plateau and ne["n_eff"] == pytest.approx(256 * (bb.sem_naive / bb.sem) ** 2) and ne["n_eff"] < 256 / 4
+    p_ind, p_eff = (alongline.window_peak_p(1.5, n, 9, 1) for n in (256, ne["n_eff"]))
+    assert p_eff > 10 * p_ind
+    # no plateau (2 or 3 snapshots always; here 3): n_eff = 1 and a flag
+    info = {}
+    rows = {r["quantity"]: r for r in alongline.window_test(s3(S, 3), 0.01, np.array([0.05, 0.051, 0.052]), info=info)}
+    assert rows["alongline_window_n_eff"]["mean"] == 1.0 and rows["alongline_window_n_eff"]["sem_plateau"] is False
+    assert rows["alongline_window_p_peak"]["mean"] == pytest.approx(alongline.binomial_peak_p(2.2, 9, 1), rel=1e-9)
+    assert "without plateau" in info["alongline_window"]["flag"]
+    # one snapshot: n_eff = 1 exactly, no flag
+    one = alongline.window_n_eff(np.array([0.05]), 1)
+    assert one["n_eff"] == 1.0 and one["flag"] == ""
+    # n_eff stays within [1, n_s]
+    for c in (c_iid, c_cor):
+        assert 1.0 <= alongline.window_n_eff(c, len(c))["n_eff"] <= len(c)
 

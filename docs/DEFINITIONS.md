@@ -1,8 +1,8 @@
 # disegreg -- definitions (sets D1 and D2)
 
 - **D1**, rev. 4 of 2026-11-24: final, released with disegreg v0.1.0 (and v0.1.1, same numbers). Sections 1-11.
-- **D2**, rev. 2 of 2026-11-25 (Erik): D1 rev. 4 UNCHANGED + sections 12-17 (McLean core sites, hysteresis criterion, error of
-  Gamma vs x_bc, smaller bulk-control cells, along-line spectrum, diagnostic-(iv) status). Every D1 quantity is defined and computed identically in D2
+- **D2**, rev. 3 of 2026-11-26 (Erik): D1 rev. 4 UNCHANGED + sections 12-17 (McLean core sites, hysteresis criterion, error of
+  Gamma vs x_bc, bulk-control acceptance, along-line spectrum, diagnostic-(iv) status). Every D1 quantity is defined and computed identically in D2
   (D2.yaml repeats every D1 parameter value for value; tests/test_definitions.py, tests/test_manifest_stage2.py). Not yet
   released (branch v0.2-dev). Lines in sections 1-11 marked [D2] only point to the new sections.
 
@@ -115,7 +115,8 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
 ## 5. Reference composition x_ref
 Order of preference, chosen per run in the manifest and always reported with its source:
 1. x_bc: bulk control cell (no dislocation, same size, same dmu, same run length), interior atoms, time average with block-averaging error.
-   [D2] A smaller bulk-control cell is accepted for x_bc, but not for diagnostic (iv): section 15. Error of Gamma vs x_bc: section 14.
+   [D2] Every bulk control needs >= 0.95 x the run's last MD step and the run's swap rate within 10 %; a smaller cell is
+   accepted for x_bc, but not for diagnostic (iv): section 15. Error of Gamma vs x_bc: section 14.
 2. x_iso: the potential's own bulk SGC isotherm x(dmu, T) of the perfect crystal (project data), used when
    (a) there is no bulk control at this dmu (reason recorded in the manifest), or
    (b) the bulk control holds too few solute atoms (expected solute count in its interior < 100, e.g. EAM-X Au at x ~ 1e-5).
@@ -239,8 +240,8 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
 
 ---
 
-# Definition set D2 (rev. 2, 25 Nov 2026): D1 rev. 4 + sections 12-17
-Decided by Erik on 25 Nov 2026 (docs/OPEN-DECISIONS_v0.2.md, section 5) from the v0.2 proposals P1-P4 and the project question
+# Definition set D2 (rev. 3, 26 Nov 2026): D1 rev. 4 + sections 12-17
+Decided by Erik on 25 and 26 Nov 2026 (docs/OPEN-DECISIONS_v0.2.md, section 5) from the v0.2 proposals P1-P4 and the project question
 E1, each as recommended, and section 17 (question N1). Sections 1-11 above are D2 too, unchanged. Parameter values:
 `disegreg/definitions/D2.yaml` (sections mclean, hysteresis, bulk_control, alongline, diagnostic_iv). Every number of these sections carries the label D2 and
 `status = definition`; computed with D1, the along-line quantities do not exist and Stage 4 gives only the uptake exponents
@@ -274,9 +275,11 @@ and the hysteresis differences.
 - Total error quoted for Gamma(R) vs x_bc: sqrt(SEM_Gamma^2 + (N(r < R) / L_x x SEM(x_bc))^2) (Stage 4, row "Gamma_error_total";
   column error = the x_bc part alone).
 
-## 15. Bulk-control cell size (section 5; was question E1 from the Ni-Cu project; conditions made exact on 25 Nov by Erik)
-- A bulk-control cell SMALLER than the dislocation cell (same dmu and T) is accepted for x_bc only if ALL of:
-  1. its last MD step is >= 0.95 x the last MD step of the run (snapshots of both, Stage 3);
+## 15. Bulk-control acceptance: run length, swap rate, cell size (section 5; was question E1; Erik 25 Nov, rev. 3 26 Nov)
+- EVERY bulk-control cell (any size: smaller, same size or larger than the dislocation cell; same dmu and T) is accepted for
+  x_bc only if ALL of:
+  1. its last MD step is >= 0.95 x the last MD step of the run (snapshots of both, Stage 3); a longer bulk control is
+     accepted (a different run length is flagged);
   2. its swap attempts per atom per MD step agree with the run's within 10 % (|rate_bc / rate_run - 1| <= 0.10). Both
      manifests state the rate (field `swap_attempts_per_atom_per_step`, required for a bulk control and for every run that
      names one); a missing rate counts as failed;
@@ -285,9 +288,9 @@ and the hysteresis differences.
   snapshots).
 - If 1 or 2 fails: not accepted -- x_bc is reported as a diagnostic only, the run is referred to x_iso (and c_B) as without a
   bulk control (paper_flag where section 5 sets it), and the reason is written into the provenance (`x_bc.reasons`,
-  `reference_rule`). Parameters: D2.yaml `bulk_control.smaller_cell_min_run_length_fraction` 0.95,
-  `smaller_cell_swap_rate_tolerance` 0.10.
-- A bulk control of the same size (or larger) is accepted as in section 5; a different run length is only flagged.
+  `reference_rule`). Parameters: D2.yaml `bulk_control.min_run_length_fraction` 0.95, `swap_rate_tolerance` 0.10.
+- A bulk control SMALLER than the dislocation cell is accepted for x_bc under the same rules 1-3 (rev. 2: these rules held
+  for smaller cells only; rev. 3: for every bulk control).
 - Every bulk control (any size): its manifest dmu and T must equal the run's (section 5: "same dmu"; compared within 1e-6 eV
   and 1e-6 K); otherwise, or if unknown, not accepted.
 - A bulk control that is not accepted (any of the above, or fewer than 100 solute atoms, section 5 2b): its x_bc appears in the
@@ -295,7 +298,8 @@ and the hysteresis differences.
   Stage 4 (uptake exponent, McLean, hysteresis, x_bc error).
 - A smaller cell is NOT used for protocol diagnostic (iv) (does the dislocation-free crystal precipitate at this dmu?), even
   when accepted for x_bc: a small cell has fewer nucleation sites and fits only smaller clusters (section 17: "not usable").
-- Under D1 (section 5: "same size") a smaller cell is not a bulk control: x_bc is then reported as a diagnostic only.
+- Under D1 (section 5: "same size") a smaller cell is not a bulk control: x_bc is then reported as a diagnostic only; rules
+  1 and 2 do not exist in D1 (a different run length is only flagged).
 
 ## 16. Along-line core composition and its spectrum (section 7; was P4)
 Question: does the core hold a continuous line state (solute spread evenly along the line) or a periodic array of particles?
@@ -310,9 +314,17 @@ Question: does the core hold a continuous line state (solute spread evenly along
   for 0 < q < n/2; the mode q = n/2 of an even n has one degree of freedom, chi-squared with 1 degree of freedom);
   "periodic" if p < 0.01 in the WINDOW-AVERAGED spectrum: Stage 3 averages S(q) over the n_s snapshots of the window, takes the
   highest mode and its p under binomial noise for the mean of n_s independent snapshots (Gamma(n_s, 1/n_s) per mode,
-  Gamma(n_s/2, 2/n_s) for q = n/2). Stage-3 rows alongline_window_S_max, _q_peak, _lambda_peak, _p_peak, _periodic (1/0).
-  The per-snapshot peak values (alongline_S_max, _q_peak, _lambda_peak, _p_peak) stay in Stage 2 only; their window means
-  are not reported. Assumption: snapshots of the window independent (correlated snapshots make p too small).
+  Gamma(n_s/2, 2/n_s) for q = n/2). Stage-3 rows alongline_window_S_max, _q_peak, _lambda_peak, _p_peak, _periodic (1/0),
+  _n_eff. The per-snapshot peak values (alongline_S_max, _q_peak, _lambda_peak, _p_peak) stay in Stage 2 only; their window
+  means are not reported.
+- Correlated snapshots (rev. 3, Erik 26 Nov, question N3): the snapshots of one window are not independent, so n_s in the
+  Gamma distributions above is replaced by the effective number of snapshots
+  n_eff = n_s x (SEM_naive / SEM_block)^2,
+  from the block averaging (section 8) of the core concentration c_C over the same window snapshots (SEM_naive = standard
+  deviation / sqrt(n_s), SEM_block = the plateau value); n_eff is kept within [1, n_s]. If that block averaging reaches no
+  plateau (always so for 2 or 3 snapshots), n_eff = 1 -- the test of a single snapshot -- and the run is flagged (Stage-3
+  provenance `alongline_window.flag`; column sem_plateau = False on the alongline_window_* rows). One snapshot: n_eff = 1
+  exactly, no flag. No new parameter (D2.yaml `alongline.n_eff_from`, `n_eff_without_plateau` record the rule).
 - Limit: with L_x ~ 100 A and 5 A bins, wavelengths 10-100 A are resolved (q = 1 .. 10); particle spacings above L_x cannot be seen
   in one cell.
 
@@ -337,6 +349,11 @@ Question: does the core hold a continuous line state (solute spread evenly along
   per MD step within 10 %, new manifest field; otherwise not accepted, x_iso, reason written). Question N1: section 17, column `diagnostic_iv`, "not tested" for every run without a bulk control
   (D1: Delta > 0 only); the test itself written as [PROPOSAL v0.2] P6. Still label D2: D2 is not released and no number
   for the paper has been produced with it. No D1 quantity changed.
+- rev. 3 (26 Nov, Erik, question N3 and section 15): section 16 -- the window test uses the effective number of snapshots
+  n_eff from the block averaging of c_C (option b of N3); without a plateau n_eff = 1, flagged. Section 15 -- the run-length
+  (>= 0.95) and swap-rate (10 %) rules hold for EVERY bulk control, not only for smaller ones (D2.yaml keys renamed
+  `min_run_length_fraction`, `swap_rate_tolerance`). Still label D2 (not released, no paper number made with it). No D1
+  quantity changed.
 
 ---
 

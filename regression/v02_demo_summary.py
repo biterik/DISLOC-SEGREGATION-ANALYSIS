@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """v0.2 demo: Stage 4 + summary tables + figures from the final demo analysis (M5).
 
-    python regression/v02_demo_summary.py [--in regression/output/v0.2-D2] [--out regression/results/v0.2-demo] [--label D2]
+    python regression/v02_demo_summary.py [--in regression/output/v0.2-D2r3] [--out regression/results/v0.2-demo] [--label D2]
 
 Input: the Stage-2/3 tables written by (definition set D2, the default since 25 Nov; the 24 Nov demo used D1 + proposals,
 regression/output/v0.2-final)
-    disegreg analyse examples/stage4/manifests/{nbau,nicu,turlo}/*.yaml --out regression/output/v0.2-D2
+    disegreg analyse examples/stage4/manifests/{nbau,nicu,turlo}/*.yaml --out regression/output/v0.2-D2r3
 Output (small, committed): stage4.csv (+ provenance), results.csv is NOT copied (large); summary_*.csv; fig/*.png.
 """
 
@@ -43,7 +43,7 @@ def write(path, rows, keys=None):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--in", dest="inp", default=str(ROOT / "regression/output/v0.2-D2"))
+    ap.add_argument("--in", dest="inp", default=str(ROOT / "regression/output/v0.2-D2r3"))
     ap.add_argument("--out", default=str(ROOT / "regression/results/v0.2-demo"))
     ap.add_argument("--label", default="D2", help="definition set of the input tables (file names <run>_stage2_<label>.csv)")
     a = ap.parse_args()
@@ -87,7 +87,7 @@ def main():
     # ---- along line (P4) and domains (P5), per run, window means
     keep = {("alongline_dispersion", "C"), ("alongline_c", "C"), ("alongline_window_S_max", "C"),
             ("alongline_window_q_peak", "C"), ("alongline_window_lambda_peak", "C"), ("alongline_window_p_peak", "C"),
-            ("alongline_window_periodic", "C"),
+            ("alongline_window_periodic", "C"), ("alongline_window_n_eff", "C"),
             ("domain_frac_ordered", "C"), ("domain_frac_ordered", "B"), ("domain_n_all", "all"), ("c", "C")}
     per = {}
     for r in res:

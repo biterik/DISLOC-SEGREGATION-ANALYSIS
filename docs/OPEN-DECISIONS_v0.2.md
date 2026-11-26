@@ -3,7 +3,7 @@
 State: 24 Nov 2026, written by the unattended Claude Code session (docs/PLAN_v0.2.md). Nothing here is merged into main,
 nothing is tagged, D1 rev. 4 is unchanged (D1.yaml byte-identical). All proposals live in docs/DEFINITIONS.md, section
 "[PROPOSAL v0.2]", their parameters in disegreg/definitions/proposals_v0.2.yaml (label P-v0.2).
-**Update 25 Nov:** Erik decided (section 5). Done: v0.1.1 released from main (0.1); P1-P4 and E1 are definition set D2
+**Update 25/26 Nov:** Erik decided (sections 5, 6.5, 6.7; D2 now rev. 3). Done: v0.1.1 released from main (0.1); P1-P4 and E1 are definition set D2
 (docs/DEFINITIONS.md sections 12-16, disegreg/definitions/D2.yaml); P5 stays a proposal. What was done, the code decisions
 taken on the way and the two new open points (N1, N2): section 6. Sections 0-4 below are the record of 24 Nov.
 
@@ -180,7 +180,7 @@ This is TURLO-REDO's own thread-51 finding (top-down: the complexion dissolves a
 definitions and an error criterion. The verdict does not depend on the factor 2 vs 3.
 
 **Along-line spectrum (P4)** (summary_alongline_domains.csv, fig/alongline_*; updated 25 Nov with the section-16 window test,
-see 6.6): ACE Ni-Cu: dispersion D = 4.4-9.4 and spectrum peaks far above noise in 7 of 8 runs (p = 1e-13 to 2e-3; d60 -0.10 kT:
+see 6.6, and 26 Nov with n_eff, D2 rev. 3, see 6.7): ACE Ni-Cu: dispersion D = 4.4-9.4 and spectrum peaks far above noise in 7 of 8 runs (p = 1e-13 to 2e-3; d60 -0.10 kT:
 S = 36 at q = 2, i.e. two Cu-rich stretches 50 A apart; d30 -0.50 kT: D = 0.75, no peak) -> particles along the line
 (single snapshots). Lee-Shim: D = 0.8-2.2, at -0.10 kT no significant peak (d0-d90: p = 0.10-0.58) -> an evenly filled
 core, the continuous line state. Mendelev Nb: D = 0.24-0.57 -> MORE even than random (Nb-Nb avoidance along the core). EAM-X Au:
@@ -308,7 +308,7 @@ parameter: Mendelev cells were first given 39 instead of 40 periods because the 
   (1 800 408 cells); Stage 4 identical except tool_version; along-line: one verdict flips (Lee-Shim d60 -0.50 kT, 2 snapshots:
   p 0.007 -> 0.014, now "not periodic"); p-values are larger than in the 24 Nov summary because the q = n/2 mode (one degree
   of freedom, heavier tail) is now included, exactly as for the per-snapshot p.
-- **N3 (new, needs you): snapshot correlation in the section-16 window test.** The test treats the n_s snapshots of the window
+- **N3 (DECIDED 26 Nov: option b + n_eff = 1 without plateau, see 6.7): snapshot correlation in the section-16 window test.** The test treats the n_s snapshots of the window
   as independent. On the demo, 5 of the 51 runs outside ACE come out "periodic" at p = 0.004-0.01 (EAM-X Au d0 -1.0 / -0.5,
   d30 -1.0 kT with D = 0.93-1.17, i.e. random-like; Lee-Shim d90 -1.0 kT) where ~0.5 false alarms are expected -- consistent
   with correlated snapshots (Nb-Au: 8-9 snapshots per window, not independent). Lee-Shim d90 -0.25 kT (p = 6e-5, D = 2.1) is
@@ -317,3 +317,34 @@ parameter: Mendelev cells were first given 39 instead of 40 periods because the 
   the Gamma distributions (no new parameter, more conservative); (c) test only the snapshot with the highest S_max, with a
   Bonferroni factor n_s. Recommendation: (b).
 
+### 6.7 Erik's decisions of 26 Nov: N3 and section 15 -> D2 rev. 3 (done)
+- Erik: "N3: option (b), with one addition: when the block averaging of the core concentration has no plateau, use n_eff = 1
+  and flag it. Also apply the run-length (>= 0.95) and swap-rate (10 %) rules of section 15 to every bulk control, not only
+  smaller ones. Record both in D2 (rev. 3)."
+- Done: DEFINITIONS sections 15 and 16 + D2 revision log (rev. 3); D2.yaml (`bulk_control.min_run_length_fraction`,
+  `swap_rate_tolerance` -- renamed from `smaller_cell_*`; `alongline.n_eff_from`, `n_eff_without_plateau`). Code:
+  `alongline.window_n_eff` (n_eff = n_s (SEM_naive / SEM_block)^2 of c_C over the window snapshots, within [1, n_s]),
+  new Stage-3 row `alongline_window_n_eff`, flag in the Stage-3 provenance (`alongline_window.flag`) and on the console;
+  `bulk_control_check` applies 0.95 / 10 % to every bulk control (D2; D1 unchanged: a different run length is only flagged);
+  the along-line spectrum plot draws its noise band for n_eff. 153 tests.
+- Code decisions (inside the decision, reported): one snapshot in the window: n_eff = 1 exactly, no flag (nothing to
+  correlate); c_C constant over the window (block SEM 0, counts as a plateau): n_eff = n_s (no demo run has this).
+- What "no plateau" means in practice: the block averaging (section 8, at least 4 block means per level) has a second level
+  only from 8 snapshots on, so a window with 2-7 snapshots ALWAYS gets n_eff = 1 (flagged). n_eff > 1 needs >= 8 snapshots
+  in the window.
+- Demo re-run (regression/output/v0.2-D2r3, 59 runs): every D1 quantity identical to the D1 analysis (1 800 408 cells, 177
+  tables); Stage 4 identical except tool_version. Window snapshots: 17 runs 1, 32 runs 2-7, 10 runs >= 8. n_eff = 1 flagged in
+  35 runs (all 32 with 2-7 snapshots, plus EAM-X Au d0 -0.50 kT (10), d30 -1.00 kT (9), d90 -0.25 kT (8)); a plateau in 7 runs
+  (EAM-X Au d90 -1.00 kT n_eff 8 of 8; TURLO D00, U00, U10, U20 20 of 20, Dm05 18 of 18, D10 8.2 of 16).
+- Along-line verdicts that changed (rev. 2 -> rev. 3), all "periodic" -> "not periodic":
+
+  | run | window snapshots | n_eff | dispersion D | p rev. 2 | p rev. 3 |
+  |---|---|---|---|---|---|
+  | EAM-X Au d0, -0.50 kT | 10 | 1 (flag) | 0.93 | 0.004 | 0.54 |
+  | EAM-X Au d0, -1.00 kT | 6 | 1 (flag) | 1.16 | 0.004 | 0.35 |
+  | EAM-X Au d30, -1.00 kT | 9 | 1 (flag) | 1.10 | 0.006 | 0.60 |
+  | Lee-Shim d90, -1.00 kT | 2 | 1 (flag) | 1.43 | 0.010 | 0.093 |
+
+  Unchanged: ACE Ni-Cu 7 of 8 periodic (single snapshots, p = 1e-13 to 2e-3), Lee-Shim d90 -0.25 kT still periodic
+  (2 snapshots, n_eff 1: p 6e-5 -> 0.006, D = 2.1, q = 1), every other run not periodic. Outside ACE now 1 of 51 runs
+  periodic (~0.5 expected by chance at p < 0.01): the four flips were the false alarms of N3.

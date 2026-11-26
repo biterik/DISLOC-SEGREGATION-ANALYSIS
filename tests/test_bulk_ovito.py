@@ -130,6 +130,11 @@ def test_bulk_control_feeds_x_bc_automatically(tmp_path):
     # Stage 3 carries the section-16 window test, not window means of per-snapshot peak values
     q3 = {r["quantity"] for r in read_table(out4 / "RUN_stage3_D2.csv")}
     assert "alongline_window_periodic" in q3 and "alongline_p_peak" not in q3
+    # rev. 3 (N3): the window row n_eff and its record in the provenance (one snapshot in the window: n_eff = 1 exactly)
+    ne3 = next(r for r in read_table(out4 / "RUN_stage3_D2.csv") if r["quantity"] == "alongline_window_n_eff")
+    aw = json.loads((out4 / "RUN_stage3_D2.csv.provenance.json").read_text())["stage3"]["alongline_window"]
+    assert float(ne3["mean"]) == 1.0 and int(ne3["n_samples"]) == aw["n_snapshots"] == 1
+    assert aw["n_eff"] == 1.0 and aw["flag"] == "" and aw["n_eff_source"].startswith("block averaging of c")
     # D1 (bulk control = same size): the smaller cell is not a bulk control, x_bc only as a diagnostic
     out3 = tmp_path / "out3"
     assert main(["analyse", str(fd), str(fb), "--out", str(out3), "--cache", str(tmp_path / "cache"),

@@ -56,10 +56,12 @@ def test_d2_is_d1_plus_new_sections():
     assert "ordered_domains" not in d2.params                      # P5 stays a proposal
     assert d2["mclean"] == {"core_site_radius": 5.0, "missing_sites": "tabulated_only", "min_coverage": 0.9}
     assert d2["hysteresis"] == {"factor": 2.0, "quantities": [["Gamma", "20", "r"], ["c", "C", ""]]}
-    assert d2["bulk_control"] == {"propagate_x_ref_error": True, "smaller_cell_allowed": True,
-                                  "smaller_cell_min_run_length_fraction": 0.95, "smaller_cell_swap_rate_tolerance": 0.10,
-                                  "smaller_cell_for_diagnostic_iv": False}
-    assert d2["alongline"] == {"regions": ["C"], "bin_width": 5.0, "p_threshold": 0.01}
+    assert d2["bulk_control"] == {"propagate_x_ref_error": True, "min_run_length_fraction": 0.95,
+                                  "swap_rate_tolerance": 0.10, "smaller_cell_allowed": True,
+                                  "smaller_cell_for_diagnostic_iv": False}           # rev. 3: 0.95 / 10 % for every bulk control
+    assert d2["alongline"] == {"regions": ["C"], "bin_width": 5.0, "p_threshold": 0.01,
+                               "n_eff_from": "block_averaging_c_C", "n_eff_without_plateau": 1}   # rev. 3 (N3)
+    assert d2.status.startswith("rev. 3")
     assert d2["diagnostic_iv"] == {"not_tested_without_bulk_control": "all"}       # section 17 (Erik 25 Nov, N1)
     # D1.yaml itself is the released file (v0.1.0), byte for byte
     import hashlib

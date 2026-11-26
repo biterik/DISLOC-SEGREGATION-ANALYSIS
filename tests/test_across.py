@@ -356,7 +356,8 @@ def test_bulk_snapshot_exact_and_find_x_bc(tmp_path):
 
 
 def test_bulk_control_check_size_run_length_and_swap_rate():
-    """DEFINITIONS 5 / D2 section 15 (Erik 25 Nov: E1 option a; fix: run length >= 0.95, swap rate within 10 %)."""
+    """DEFINITIONS 5 / D2 section 15 (Erik 25 Nov: E1 option a; fix: run length >= 0.95, swap rate within 10 %;
+    rev. 3, 26 Nov: both rules for every bulk control)."""
     from disegreg.cli import bulk_control_check
 
     d1 = load_definitions("D1")
@@ -396,9 +397,20 @@ def test_bulk_control_check_size_run_length_and_swap_rate():
     hot = bulk_control_check({**bc(32000, 800000), "dmu": 0.88, "temperature": 600}, 570000, 800000, D2, 1.0, st)
     assert hot["accepted"] is False and "temperature differs" in hot["reasons"][0]
     assert bulk_control_check(bc(570000, 800000), 570000, 800000, D2, 1.0, st)["accepted"] is False   # dmu unknown
-    # a same-size bulk control is not held to the 0.95 / 10 % rules (only flagged)
-    same_short = bulk_control_check(bc(570000, 400000, 2.0), 570000, 800000, D2, 1.0)
-    assert same_short["accepted"] and "run length differs" in same_short["flags"][0]
+    # D2 rev. 3 (Erik 26 Nov): the 0.95 / 10 % rules hold for EVERY bulk control, also same size or larger
+    same_short = bulk_control_check(bc(570000, 400000), 570000, 800000, D2, 1.0)
+    assert same_short["accepted"] is False and "too short" in same_short["reasons"][0]
+    same_fast = bulk_control_check(bc(570000, 800000, 2.0), 570000, 800000, D2, 1.0)
+    assert same_fast["accepted"] is False and "swap rate differs" in same_fast["reasons"][0]
+    big_short = bulk_control_check(bc(1000000, 759999), 570000, 800000, D2, 1.0)
+    assert big_short["accepted"] is False and not big_short["smaller"]
+    assert bulk_control_check(bc(1000000, 760000, 1.10), 570000, 800000, D2, 1.0)["accepted"]   # boundaries accepted
+    assert bulk_control_check(bc(570000, 800000, None), 570000, 800000, D2, 1.0)["accepted"] is False
+    longer = bulk_control_check(bc(570000, 900000), 570000, 800000, D2, 1.0)
+    assert longer["accepted"] and "run length differs" in longer["flags"][0]   # longer: accepted, flagged
+    # D1 has no such rule: a same-size bulk control of another run length is only flagged (D1 unchanged)
+    d1_short = bulk_control_check(bc(570000, 400000, 2.0), 570000, 800000, d1, 1.0)
+    assert d1_short["accepted"] and "run length differs" in d1_short["flags"][0]
 
 
 def test_proposals_file_holds_only_P5():

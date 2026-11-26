@@ -16,7 +16,9 @@ along the line) or a PERIODIC ARRAY of particles (solute-rich stretches separate
                m1 = 1 for even n (the mode q = n/2 is real: S = Z^2, one degree of freedom), else 0.
 
 Averaging S(q) over the snapshots of the window (Stage 3 does this for every Stage-2 quantity) sharpens the test: the mean
-of n_s independent exp(1) values has standard deviation 1/sqrt(n_s).
+of n_s independent exp(1) values has standard deviation 1/sqrt(n_s). Snapshots of one window are correlated, so the test
+(D2 rev. 3, section 16) uses the effective number of snapshots n_eff = n_s (SEM_naive / SEM_block)^2 of the block averaging
+of the core concentration c_C over the same snapshots; without a plateau n_eff = 1 (flagged).
 """
 
 from __future__ import annotations
@@ -31,7 +33,7 @@ from .geometry import Cell, n_slabs_for
 PER_SNAPSHOT_ONLY = ("alongline_S_max", "alongline_q_peak", "alongline_lambda_peak", "alongline_p_peak")
 # the section-16 test on the window-averaged spectrum (Stage 3, window_test)
 WINDOW_QUANTITIES = ("alongline_window_S_max", "alongline_window_q_peak", "alongline_window_lambda_peak",
-                     "alongline_window_p_peak", "alongline_window_periodic")
+                     "alongline_window_p_peak", "alongline_window_periodic", "alongline_window_n_eff")
 QUANTITIES = ("alongline_n_bins", "alongline_bin_width", "alongline_c", "alongline_dispersion", "alongline_S",
               "alongline_S_max", "alongline_q_peak", "alongline_lambda_peak", "alongline_p_peak", "alongline_N_bin",
               "alongline_N_sol_bin") + WINDOW_QUANTITIES
@@ -112,10 +114,11 @@ def records(al: AlongLine, add) -> None:
         add("alongline_N_sol_bin", ss, region=f"x{kk}")
 
 
-def window_peak_p(S_max: float, n_snap: int, m: int, m1: int = 0) -> float:
+def window_peak_p(S_max: float, n_snap: float, m: int, m1: int = 0) -> float:
     """P(max over the modes of the WINDOW-AVERAGED spectrum >= S_max) under binomial noise, for n_snap independent
     snapshots: the mean of n_snap exp(1) variables is Gamma(n_snap, 1/n_snap), the mean of n_snap chi^2_1 variables (the
-    q = n/2 mode of an even bin number) Gamma(n_snap / 2, 2 / n_snap). n_snap = 1 gives binomial_peak_p."""
+    q = n/2 mode of an even bin number) Gamma(n_snap / 2, 2 / n_snap). n_snap = 1 gives binomial_peak_p. n_snap may be
+    an effective (non-integer) number of snapshots, n_eff (window_n_eff)."""
     from scipy.stats import gamma
 
     if not np.isfinite(S_max) or m + m1 <= 0 or n_snap < 1:
@@ -128,11 +131,39 @@ def window_peak_p(S_max: float, n_snap: int, m: int, m1: int = 0) -> float:
     return float(-np.expm1(below))
 
 
-def window_test(stage3_rows, p_threshold: float = 0.01) -> list[dict]:
-    """The section-16 test (D2) on the window-averaged spectrum: from the Stage-3 window means of alongline_S (regions
-    q1 .. q<n/2>) and their sample count, the highest mode, its wavelength L_x / q, its p-value under binomial noise
-    (window_peak_p; snapshots treated as independent) and the verdict 1 = periodic (p < p_threshold) / 0 / NaN.
-    Returns Stage-3-style rows (mean = the value; no SEM, no drift test)."""
+def window_n_eff(core_c, n_snap: int, without_plateau: float = 1.0) -> dict:
+    """Effective number of independent snapshots for the window test (D2 rev. 3, section 16, Erik 26 Nov, N3 option b):
+    n_eff = n_snap x (SEM_naive / SEM_block)^2 of the block averaging (Flyvbjerg-Petersen, timeseries.block_sem) of the
+    core concentration c_C over the window snapshots ``core_c``, clipped to [1, n_snap]. No plateau of the block averaging
+    (always so for 2-3 snapshots): n_eff = 1 and a flag. One snapshot: n_eff = 1 exactly, no flag.
+    ``core_c`` None: snapshots treated as independent (n_eff = n_snap) -- synthetic tests only."""
+    from .timeseries import block_sem
+
+    out = {"n_snapshots": int(n_snap), "n_eff_source": "block averaging of c (region C)", "c_C_plateau": "", "flag": ""}
+    if core_c is None:
+        out.update(n_eff=float(n_snap), n_eff_source="snapshots treated as independent")
+        return out
+    if n_snap <= 1:
+        out.update(n_eff=1.0)
+        return out
+    b = block_sem(core_c)
+    out["c_C_plateau"] = bool(b.plateau)
+    if not b.plateau:
+        out.update(n_eff=float(without_plateau), flag=f"block averaging of c_C without plateau ({len(core_c)} snapshots): "
+                   f"n_eff = {without_plateau:g} in the along-line window test (D2 section 16)")
+        return out
+    f = (b.sem_naive / b.sem) ** 2 if b.sem > 0 else 1.0   # c_C constant in the window (SEM 0): no correlation measured
+    out["n_eff"] = float(min(max(n_snap * f, 1.0), float(n_snap)))
+    return out
+
+
+def window_test(stage3_rows, p_threshold: float, core_c, info: dict | None = None,
+                n_eff_without_plateau: float = 1.0) -> list[dict]:
+    """The section-16 test (D2 rev. 3) on the window-averaged spectrum: from the Stage-3 window means of alongline_S
+    (regions q1 .. q<n/2>) and their sample count n_s, the highest mode, its wavelength L_x / q, its p-value under binomial
+    noise for n_eff effective snapshots (window_peak_p, window_n_eff; ``core_c`` = c_C of the window snapshots) and the
+    verdict 1 = periodic (p < p_threshold) / 0 / NaN. Returns Stage-3-style rows (mean = the value; no SEM, no drift test;
+    sem_plateau = the plateau of the c_C block averaging); ``info`` (Stage-3 info) gets the n_eff record."""
     S = {int(r["region"][1:]): r for r in stage3_rows if r["quantity"] == "alongline_S"}
     nb = next((r for r in stage3_rows if r["quantity"] == "alongline_n_bins"), None)
     L = next((r for r in stage3_rows if r["quantity"] == "L_x"), None)
@@ -143,21 +174,25 @@ def window_test(stage3_rows, p_threshold: float = 0.01) -> list[dict]:
     vals = np.array([float(S[k]["mean"]) for k in q])
     n_snap = int(min(int(S[k]["n_samples"]) for k in q))
     proto = S[q[0]]
+    ne = window_n_eff(core_c, n_snap, n_eff_without_plateau)
+    if info is not None:
+        info["alongline_window"] = ne
     if not np.isfinite(vals).any():
         smax, qp, p = float("nan"), 0, float("nan")
     else:
         j = int(np.nanargmax(vals))
         smax, qp = float(vals[j]), int(q[j])
         m1 = int(n_bins % 2 == 0 and n_bins // 2 in S)
-        p = window_peak_p(smax, n_snap, len(q) - m1, m1)
+        p = window_peak_p(smax, ne["n_eff"], len(q) - m1, m1)
     lam = float(L["mean"]) / qp if (L is not None and qp) else float("nan")
     verdict = float(p < p_threshold) if np.isfinite(p) else float("nan")
     out = []
     for quantity, value in (("alongline_window_S_max", smax), ("alongline_window_q_peak", float(qp) if qp else float("nan")),
                             ("alongline_window_lambda_peak", lam), ("alongline_window_p_peak", p),
-                            ("alongline_window_periodic", verdict)):
+                            ("alongline_window_periodic", verdict), ("alongline_window_n_eff", ne["n_eff"])):
         out.append({"quantity": quantity, "region": "C", "basis": "", "ref": "", "mean": value, "sem": float("nan"),
-                    "n_samples": n_snap, "sem_plateau": "", "change": float("nan"), "change_se": float("nan"), "flat": "",
-                    "flat_rev3_sem": "", "t_first": proto.get("t_first"), "t_last": proto.get("t_last")})
+                    "n_samples": n_snap, "sem_plateau": ne["c_C_plateau"], "change": float("nan"),
+                    "change_se": float("nan"), "flat": "", "flat_rev3_sem": "", "t_first": proto.get("t_first"),
+                    "t_last": proto.get("t_last")})
     return out
 

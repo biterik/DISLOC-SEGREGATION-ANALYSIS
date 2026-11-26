@@ -32,6 +32,16 @@ docs/OPEN-DECISIONS_v0.2.md. (v0.1.1 was released from main on 25 Nov, see [0.1.
   column): "not tested" for every run without a bulk control (any Delta; with D1 the D1 rule: Delta > 0 only), "not usable"
   with a smaller bulk control, "test not yet defined" with a same-size one. The test itself: [PROPOSAL v0.2] P6 in
   docs/DEFINITIONS.md (bulk-control clusters vs a random alloy of the same composition + drift of x_bc), text only.
+### Changed (D2 rev. 3, Erik 26 Nov; no D1 number affected)
+- Along-line window test (D2 section 16, question N3 option b): the p-value uses the effective number of snapshots
+  n_eff = n_s (SEM_naive / SEM_block)^2 of the block averaging of c_C over the window snapshots, within [1, n_s]
+  (`alongline.window_n_eff`, `timeseries.window_series`); no plateau (always for 2-3 snapshots): n_eff = 1, flagged in the
+  Stage-3 provenance (`alongline_window.flag`) and printed. New Stage-3 row `alongline_window_n_eff`; column `sem_plateau`
+  of the alongline_window_* rows = the plateau of the c_C block averaging. D2.yaml `alongline.n_eff_from`,
+  `n_eff_without_plateau`. `disegreg plot alongline` draws the binomial-noise band for the same n_eff.
+- Bulk controls (D2 section 15): the run-length (last MD step >= 0.95 x the run's) and swap-rate (within 10 %) rules hold for
+  EVERY bulk control, not only for smaller ones; D2.yaml keys renamed `min_run_length_fraction`, `swap_rate_tolerance`.
+  D1 unchanged (a different run length only flagged).
 ### Fixed (review of the v0.2 diff, 25 Nov; no D1 number affected)
 - A bulk control that is NOT accepted (D2 section 15, or < 100 solute atoms) no longer gives Gamma / E / alpha rows vs x_bc
   that look like reference numbers: they are relabelled `x_bc_diagnostic`, role "diagnostic" (never headline), and

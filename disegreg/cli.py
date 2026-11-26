@@ -98,10 +98,10 @@ def find_x_bc(run_id: str, label: str, folders, min_solute: int = 100):
 def bulk_control_check(x_bc_info: dict, n_atoms_run: int, last_md_step_run, definitions, swap_rate_run=None,
                        run_state: dict | None = None) -> dict:
     """Is the bulk control acceptable as x_bc for this run (DEFINITIONS 5; D2 section 15)?
-    Same size or larger: yes (a different run length is flagged). Unknown size (table without n_atoms): no.
-    Smaller: D1 no (section 5: same size). D2 only if (i) its last MD step >= min_run_length_fraction (0.95) x the run's
+    Unknown size (table without n_atoms): no. Smaller: D1 no (section 5: same size); D2 yes, but never for diagnostic (iv).
+    D2 (rev. 3), EVERY bulk control, whatever its size: (i) its last MD step >= min_run_length_fraction (0.95) x the run's
     and (ii) its swap attempts per atom per MD step agree with the run's within swap_rate_tolerance (10 %, relative to the
-    run's); a missing step or swap rate counts as failed. Never for diagnostic (iv). Any size: the same dmu and T as the
+    run's); a missing step or swap rate counts as failed. D1 has no such rule (a different run length is only flagged). Any size: the same dmu and T as the
     run (section 5; ``run_state`` = {"dmu", "temperature"} of the run, compared within 1e-6) -- unknown counts as failed.
     Not accepted -> x_bc is reported as a diagnostic only and the run is referred to x_iso (and c_B) as without a bulk
     control; the reasons go to ``reasons``."""
@@ -131,20 +131,20 @@ def bulk_control_check(x_bc_info: dict, n_atoms_run: int, last_md_step_run, defi
             if not bool(bc.get("smaller_cell_allowed", False)):
                 out["reasons"].append(f"bulk control smaller than the dislocation cell ({n_bc} < {n_atoms_run} atoms): not a "
                                       f"bulk control under {label} (same size)")
-            else:
-                fmin = float(bc.get("smaller_cell_min_run_length_fraction", 0.95))
-                tol = float(bc.get("smaller_cell_swap_rate_tolerance", 0.10))
-                if lb is None or lr is None:
-                    out["reasons"].append("run length of the bulk control or of the run unknown")
-                elif int(lb) < fmin * int(lr):
-                    out["reasons"].append(f"bulk control too short: last MD step {lb} < {fmin:g} x {lr} of the run "
-                                          f"({label} section 15)")
-                if sb is None or not sr:
-                    out["reasons"].append("swap attempts per atom per MD step missing in the manifest of the bulk control "
-                                          "or of the run")
-                elif abs(float(sb) / float(sr) - 1.0) > tol + 1e-9:   # the boundary itself is accepted
-                    out["reasons"].append(f"swap rate differs by more than {tol:.0%}: bulk control {sb:g}, run {sr:g} "
-                                          f"attempts per atom per MD step ({label} section 15)")
+    if "min_run_length_fraction" in bc:   # D2 rev. 3 section 15: run length and swap rate for EVERY bulk control
+        fmin = float(bc["min_run_length_fraction"])
+        tol = float(bc.get("swap_rate_tolerance", 0.10))
+        if lb is None or lr is None:
+            out["reasons"].append("run length of the bulk control or of the run unknown")
+        elif int(lb) < fmin * int(lr):
+            out["reasons"].append(f"bulk control too short: last MD step {lb} < {fmin:g} x {lr} of the run "
+                                  f"({label} section 15)")
+        if sb is None or not sr:
+            out["reasons"].append("swap attempts per atom per MD step missing in the manifest of the bulk control "
+                                  "or of the run")
+        elif abs(float(sb) / float(sr) - 1.0) > tol + 1e-9:   # the boundary itself is accepted
+            out["reasons"].append(f"swap rate differs by more than {tol:.0%}: bulk control {sb:g}, run {sr:g} "
+                                  f"attempts per atom per MD step ({label} section 15)")
     if run_state is not None:   # DEFINITIONS 5: same dmu and T (any size)
         for key, unit in (("dmu", "eV"), ("temperature", "K")):
             vb, vr = x_bc_info.get(key), run_state.get(key)
@@ -358,8 +358,14 @@ def _cmd_analyse(args) -> int:
             continue
         if "alongline" in d.params:   # D2 section 16: the test on the window-averaged spectrum, not window means of
             from . import alongline   # per-snapshot peak values (those stay in Stage 2 only)
+            from .timeseries import window_series   # rev. 3: n_eff from the block averaging of c_C (same snapshots)
+
             rows3 = [r for r in rows3 if r["quantity"] not in alongline.PER_SNAPSHOT_ONLY]
-            rows3 += alongline.window_test(rows3, float(d["alongline"]["p_threshold"]))
+            core_c = window_series(rows, info3, ("c", "C", "", ""), m.get("md_timestep_ps"))
+            rows3 += alongline.window_test(rows3, float(d["alongline"]["p_threshold"]), core_c, info=info3,
+                                           n_eff_without_plateau=float(d["alongline"]["n_eff_without_plateau"]))
+            if (info3.get("alongline_window") or {}).get("flag"):
+                print(f"  FLAG: {info3['alongline_window']['flag']}")
         for r in rows3:
             r.update(run_id=m["run_id"], definition_set=d.label, tool_version=tv)
         fa = next((r["mean"] for r in rows3 if r["quantity"] == "fallback_active"), 0.0)
@@ -601,8 +607,10 @@ def _cmd_plot(args) -> int:
             print(f"no along-line quantities in {f} (analysed with --no-proposals?)")
             return 1
         f3 = f.with_name(f.name.replace("_stage2_", "_stage3_"))
+        n_eff = None
         if f3.is_file():  # only the snapshots of the averaging window
             info3 = json.loads(f3.with_name(f3.name + ".provenance.json").read_text()).get("stage3", {})
+            n_eff = (info3.get("alongline_window") or {}).get("n_eff")   # D2 rev. 3: the window test's n_eff
             k = (dt or 1.0)
             steps = [t for t in steps if info3["window_t_start"] - 1e-6 <= t * k <= info3["window_t_end"] + 1e-6] or steps
         nb = int(next(r["value"] for r in rows if r["quantity"] == "alongline_n_bins"))
@@ -630,7 +638,8 @@ def _cmd_plot(args) -> int:
                                   title=f"{run}: core composition along the line", aspect="auto")
         for p in plotting.save(fig, str(base) + "_map", fmts):
             print(f"-> {p}")
-        fig = plotting.alongline_spectrum(q, Sm, Se, L, len(steps), title=f"{run}: along-line spectrum of the core")
+        fig = plotting.alongline_spectrum(q, Sm, Se, L, len(steps), title=f"{run}: along-line spectrum of the core",
+                                          n_eff=n_eff)
         out = str(base) + "_spectrum"
     else:  # pragma: no cover -- argparse restricts the choices
         return 1

@@ -103,7 +103,7 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 
 ## State v0.2 (branch v0.2-dev, worktree ~/DEVEL/DISLOC-SEGREGATION-ANALYSIS-v0.2, env disegreg-dev; unattended session)
 - Rules: docs/PLAN_v0.2.md. Decisions for Erik: docs/OPEN-DECISIONS_v0.2.md (the one page). D1 unchanged (D1.yaml byte-identical);
-  D2 (25 Nov) = D1 + sections 12-17 in docs/DEFINITIONS.md and disegreg/definitions/D2.yaml; the open proposals (P5; P6 text only) in
+  D2 (rev. 3, 26 Nov) = D1 + sections 12-17 in docs/DEFINITIONS.md and disegreg/definitions/D2.yaml; the open proposals (P5; P6 text only) in
   "[PROPOSAL v0.2]" + proposals_v0.2.yaml, its outputs carry status = proposal.
 - 24 Nov: item A (Stage 4: across.py, sites.py, bulk-control manifests + automatic x_bc) done with tests; plotting module
   (item B) drafted. disegreg-dev now has the editable install of the worktree (it had none).
@@ -119,6 +119,11 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
 - 25 Nov (Erik, N2): main (v0.1.1 + DOIs) merged INTO v0.2-dev; still no merge into main.
 - 25 Nov (Erik, N1): D2 rev. 2 = + section 17, results column diagnostic_iv ("not tested" for every run without a bulk
   control); the test itself = [PROPOSAL v0.2] P6 (bulk-control clusters vs random alloy + x_bc drift), text only. 151 tests.
+- 25 Nov (Erik, E1 fix + review): smaller bulk control needs last MD step >= 0.95 x run's and swap rate within 10 % (manifest
+  field swap_attempts_per_atom_per_step); review subagent: 4 findings fixed (rejected x_bc -> x_bc_diagnostic; section-16 test
+  on the window spectrum; dmu/T check; diagnostic_iv under D1). Release notes draft docs/RELEASE-NOTES_v0.2.0.md.
+- 26 Nov (Erik, N3 + section 15): D2 rev. 3 -- window test with n_eff from the block averaging of c_C (no plateau: n_eff = 1,
+  flagged); 0.95 / 10 % rules for EVERY bulk control. Demo re-run regression/output/v0.2-D2r3. Still not merged, not tagged.
 
 ## Next steps
 1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing

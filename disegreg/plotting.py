@@ -378,15 +378,20 @@ def signed_map(x_edges, y_edges, values, xlabel: str, ylabel: str, cbar_label: s
 
 
 # ---------------------------------------------------------------------------------- along-line spectrum (P4)
-def alongline_spectrum(q, S_mean, S_sem, line_length: float, n_snapshots: int, title: str = ""):
+def alongline_spectrum(q, S_mean, S_sem, line_length: float, n_snapshots: int, title: str = "",
+                       n_eff: float | None = None):
     """Mean normalised spectrum S(q) of the core composition along the line, with the binomial-noise level 1 and its
-    95 % band for the mean of n_snapshots independent spectra (exp(1) values: sd 1/sqrt(n))."""
+    95 % band for the mean of n_eff independent spectra (exp(1) values: sd 1/sqrt(n_eff)); n_eff = the effective number
+    of snapshots of the window test (D2 section 16, from the Stage-3 provenance), else n_snapshots."""
     q = np.asarray(q, float)
     with _ctx():
         fig, ax, _ = _figure()
-        band = 1.96 / np.sqrt(max(n_snapshots, 1))
-        ax.axhspan(max(0.0, 1 - band), 1 + band, color=GRID, alpha=0.6, lw=0,
-                   label=f"binomial noise ± 95 % ({n_snapshots} snapshot{'s' if n_snapshots != 1 else ''})")
+        ne = float(n_eff) if n_eff is not None and np.isfinite(n_eff) else float(n_snapshots)
+        band = 1.96 / np.sqrt(max(ne, 1.0))
+        lab = f"{n_snapshots} snapshot{'s' if n_snapshots != 1 else ''}"
+        if n_eff is not None and n_snapshots > 1:
+            lab += f", effective {ne:.3g}"
+        ax.axhspan(max(0.0, 1 - band), 1 + band, color=GRID, alpha=0.6, lw=0, label=f"binomial noise ± 95 % ({lab})")
         ax.axhline(1.0, color=TEXT_2, lw=1.5, ls=":")
         ax.errorbar(q, S_mean, yerr=np.where(np.isfinite(S_sem), S_sem, 0), color=PALETTE[0], marker="o", capsize=3,
                     label="core, mean over the window")
