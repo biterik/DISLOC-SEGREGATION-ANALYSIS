@@ -59,3 +59,26 @@ value given with `--x-ref`). Without a bulk control every such number exists for
 | Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE (Ni-Cu) | `nCu_interior` | +1 (fix atom/swap) | builder metadata: 00_CORRECTED-CELLS-A0-3.52 gate reports (glide gap at a = 3.52 A: scale by a_cell / 3.52) |
 | Nb-Au-AT-DISLOCS-Ni-ACE-EAM | `nSol_interior` | +1 (DMU = mu_Nb - mu_Ni) | EAM-X Au counts are tiny (x ~ 1e-5): x_ref from the isotherm (dilute law), not from a bulk control |
 | TURLO-REDO (Cu-Zr) | `NZr_mcgroup` | -1 (fix sgcmc: DMU_SGC = -dmu) | free (111) z faces; complexion runs are `mixed`; PTM label 4 = icosahedral |
+
+## v0.2 additions (released with v0.2.0, 27 Nov 2026)
+- **Definition set D2** (rev. 3, 26 Nov) is the default since v0.2.0: D1 unchanged + McLean core sites, hysteresis criterion, x_bc
+  error, bulk-control acceptance, along-line spectrum, diagnostic-(iv) column (docs/DEFINITIONS.md sections 12-17). Output files are then
+  `<run_id>_stage2_D2.csv` etc.; every D1 quantity in them equals the D1 value. `--definitions D1` gives the v0.1 outputs.
+- **Bulk control runs**: write a manifest for the bulk-control cell itself with `cell_type: bulk_control` and `n_atoms: <atoms
+  in the cell>` (character, frame, frame_source, z_gp, z_gp_source, x_ref_source, start_type are not needed) and name its run_id
+  in the `bulk_control` field of every dislocation run at the same dmu. `disegreg analyse` takes bulk controls first and passes
+  their x_bc on automatically (`--bulk-dir <folder>` if the bulk control was analysed into another folder).
+  Both the bulk-control manifest and every run naming it state `swap_attempts_per_atom_per_step` (MC swap attempts per atom
+  per MD step). Under D2 (rev. 3) EVERY bulk control, whatever its size, is accepted for x_bc only if its last MD step is
+  >= 0.95 x the run's, its swap rate is within 10 % of the run's, it has the run's dmu and T, and it has >= 100 solute atoms
+  in its interior; otherwise disegreg uses x_iso (and c_B) and writes the reason into the provenance. So run the bulk control
+  at least as long as the dislocation run, with the same swap settings. A cell smaller than the dislocation cell (e.g. 32 000
+  atoms) is accepted for x_bc under these rules, but does NOT count for diagnostic (iv) (does the dislocation-free crystal
+  precipitate?).
+- **rsync the MC stream together with the dumps.** Stage 3 takes the averaging window from the stream; snapshots later than the
+  end of the stream are not used (v0.1.1 and v0.2 print a WARNING with their number).
+- Across runs: `disegreg across <folder with *_stage3_D2.csv> --out stage4.csv [--sites sites.yaml]` (uptake exponent, McLean,
+  bottom-up vs top-down). Plots: `disegreg plot gamma | timeseries | delta | uptake | regions | alongline ...`.
+- Rows with `status = proposal` depend on the still undecided proposal P5 (ordered domains): do not quote them in the paper.
+- Column `diagnostic_iv` of the results table (D2 section 17): "not tested" for every run without a bulk control -- then you
+  cannot say whether the perfect crystal itself clusters or precipitates at that dmu; "not usable" with a smaller bulk control.

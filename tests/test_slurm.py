@@ -16,7 +16,7 @@ def test_slurm_script(tmp_path):
     assert main(["slurm", "--dumps", str(tmp_path / "run" / "*.dump"), "--out", str(out), "--chunk", "20"]) == 0
     text = out.read_text()
     assert "#SBATCH --array=0-2%20" in text and "#SBATCH --partition=s.cmmg" in text
-    assert "--definitions D1" in text and "DISEGREG_CACHE=/u/$USER/PTMP/DISEGREG-CACHE" in text
+    assert "--definitions D2" in text and "DISEGREG_CACHE=/u/$USER/PTMP/DISEGREG-CACHE" in text
     lines = (tmp_path / "jobs" / "s1.slurm.dumps.txt").read_text().split()
     assert len(lines) == 45
     assert subprocess.run(["bash", "-n", str(out)]).returncode == 0

@@ -4,7 +4,98 @@ All notable changes to `disegreg` are listed here. Versions follow semantic vers
 the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 
 ## [Unreleased]
-### Added
+
+## [0.2.0] - 2026-11-27
+Release notes: docs/RELEASE-NOTES_v0.2.0.md. **New definition set D2** (rev. 3, 25/26 Nov, Erik): D1 rev. 4 unchanged +
+sections 12-17 of docs/DEFINITIONS.md (from proposals P1-P4 and questions E1, N1); D2 is the default, D1 stays
+selectable (`--definitions D1`) and gives the v0.1 outputs. The ordered-domain sizes (P5) stay a proposal
+(disegreg/definitions/proposals_v0.2.yaml), marked `status = proposal` in every table. Open decisions:
+docs/OPEN-DECISIONS_v0.2.md. (v0.1.1 was released from main on 25 Nov, see [0.1.1] below; main merged into v0.2-dev the same day.)
+### Added (D2, 25 Nov)
+- `disegreg/definitions/D2.yaml`: every D1 parameter value for value (`extends: D1`) + sections `mclean` (12: core sites
+  r < 5 A of the 0 K DXA line, tabulated sites only, coverage < 90 % flagged), `hysteresis` (13: different if
+  |d| > 2 sqrt(SEM_up^2 + SEM_down^2), Gamma(20 A) and c_C), `bulk_control` (14: Gamma_error_total incl. SEM(x_bc);
+  15: smaller bulk-control cells accepted for x_bc, not for diagnostic (iv)), `alongline` (16: 5 A bins, core atoms,
+  periodic if p < 0.01). Default definition set = D2 (`DEFAULT_LABEL`); `disegreg across` takes the tables' own set.
+- Bulk controls (D2 section 15): manifest field `n_atoms` (required for `cell_type: bulk_control`; schema stays 1);
+  `disegreg analyse` checks the snapshots against it and records size and last MD step; a run taking x_bc gets
+  `n_atoms_run`, `size_ratio`, `smaller`, `accepted`, `diagnostic_iv`, `same_run_length` and flags in its provenance.
+  Under D1 a smaller cell is not accepted (x_bc reported as a diagnostic only, paper_flag kept).
+- Tests: D2 = D1 + new sections (parameters), every D1 Stage-2 record bit-identical under D2 on a synthetic snapshot,
+  Stage 4 with D1 tables = uptake + hysteresis differences only, bulk-control size / run-length check (150 tests).
+- regression/check_d2_vs_d1.py: the 59 demo runs give identical tables under D1 (+ proposals) and D2 (2 318 883 cells; Stage 4
+  identical except `status`); regression/results/v0.2-demo/ regenerated from D2.
+- D2 rev. 2 (Erik 25 Nov, E1 fix): a smaller bulk control is accepted only if its last MD step >= 0.95 x the run's and its
+  swap attempts per atom per MD step are within 10 % of the run's (new manifest field `swap_attempts_per_atom_per_step`,
+  required for bulk controls and for runs naming one; D2.yaml `smaller_cell_min_run_length_fraction`,
+  `smaller_cell_swap_rate_tolerance`); otherwise not accepted, x_iso (and c_B) used, reasons in `x_bc.reasons` and
+  `reference_rule`.
+- D2 rev. 2 (Erik 25 Nov, N1): section 17 / YAML section `diagnostic_iv`; results-table column `diagnostic_iv` (last
+  column): "not tested" for every run without a bulk control (any Delta; with D1 the D1 rule: Delta > 0 only), "not usable"
+  with a smaller bulk control, "test not yet defined" with a same-size one. The test itself: [PROPOSAL v0.2] P6 in
+  docs/DEFINITIONS.md (bulk-control clusters vs a random alloy of the same composition + drift of x_bc), text only.
+### Changed (D2 rev. 3, Erik 26 Nov; no D1 number affected)
+- Along-line window test (D2 section 16, question N3 option b): the p-value uses the effective number of snapshots
+  n_eff = n_s (SEM_naive / SEM_block)^2 of the block averaging of c_C over the window snapshots, within [1, n_s]
+  (`alongline.window_n_eff`, `timeseries.window_series`); no plateau (always for 2-3 snapshots): n_eff = 1, flagged in the
+  Stage-3 provenance (`alongline_window.flag`) and printed. New Stage-3 row `alongline_window_n_eff`; column `sem_plateau`
+  of the alongline_window_* rows = the plateau of the c_C block averaging. D2.yaml `alongline.n_eff_from`,
+  `n_eff_without_plateau`. `disegreg plot alongline` draws the binomial-noise band for the same n_eff.
+- Bulk controls (D2 section 15): the run-length (last MD step >= 0.95 x the run's) and swap-rate (within 10 %) rules hold for
+  EVERY bulk control, not only for smaller ones; D2.yaml keys renamed `min_run_length_fraction`, `swap_rate_tolerance`.
+  D1 unchanged (a different run length only flagged).
+### Fixed (review of the v0.2 diff, 25 Nov; no D1 number affected)
+- A bulk control that is NOT accepted (D2 section 15, or < 100 solute atoms) no longer gives Gamma / E / alpha rows vs x_bc
+  that look like reference numbers: they are relabelled `x_bc_diagnostic`, role "diagnostic" (never headline), and
+  Stage 4 ignores them (`Run.refs`, `Run.x_ref("x_bc")`). Before, Gamma(20 A) vs a rejected x_bc came out as a headline row.
+- Along-line peak test (D2 section 16): computed on the window-averaged spectrum in Stage 3 (`alongline.window_test`,
+  `window_peak_p`; rows alongline_window_*); the window means of the per-snapshot peak values (S_max, q_peak, lambda_peak,
+  p_peak) are no longer written to Stage 3 (they were not the defined test: a persistent peak of S = 5 over 10 snapshots
+  read as p = 0.08 instead of 3e-7).
+- Bulk control: its dmu and T must equal the run's (DEFINITIONS 5); not checked before.
+- `diagnostic_iv` with D1 and a smaller cell: the D1 rule (no bulk control), not "not usable".
+### Changed (D2, 25 Nov)
+- Status: along-line quantities, McLean, the hysteresis verdict and Gamma_error_total are `definition` in D2 tables
+  (along-line quantities in D1-labelled tables, e.g. the 24 Nov demo, stay `proposal`); only `domain_*` (P5) is `proposal`.
+- `stage4()` takes the definition set instead of the proposals; `load_site_cores()` reads `definitions["mclean"]`
+  (new parameter `min_coverage` 0.90, the value that was hard-coded); Stage-4 rows have an empty `proposal_set`.
+- `disegreg analyse`: the along-line spectrum comes from the definition set (D2), no longer from the proposals file;
+  `--no-proposals` now only leaves out P5.
+- proposals_v0.2.yaml holds only `ordered_domains` (P5).
+### Added (v0.2)
+- Stage 4, `disegreg across` (`disegreg.across`): run sets ordered by Delta (up = bottom-up + seeded, down = top-down), uptake
+  exponent n_up = Delta ln c_C / Delta ln x_ref between neighbouring offsets for every shared reference with propagated errors,
+  hysteresis bottom-up vs top-down at the same Delta (differences; verdict = proposal P2), McLean prediction (proposal P1),
+  error of Gamma vs x_bc incl. SEM(x_bc) (proposal P3). Output: tidy table with `status` per row.
+- `disegreg.sites`: 0 K site-energy tables (adapters `segE0K-by-site` for Ni-Cu thread 09 / Nb-Au thread 06, and `csv`),
+  core sites = r < 5 A of the 0 K DXA line, periodic copies merged, coverage and degenerate sites reported; McLean occupancy
+  and its local exponent. Site configuration YAML (examples/stage4/sites.yaml).
+- Bulk-control runs: manifest field `cell_type: bulk_control` (optional; schema 1 unchanged), `stage2.analyse_bulk_snapshot`,
+  `disegreg analyse` analyses bulk controls first and feeds x_bc automatically into the runs naming them (`--bulk-dir`), with
+  the D1 minimum of 100 solute atoms.
+- Results table: last column `status` (definition | proposal); a proposal with role headline is refused.
+- Stage 1: optional periodicity override (`pbc`) for LAMMPS data files; v0.1 cache keys unchanged.
+- `disegreg plot gamma | timeseries | delta | uptake | regions` (`disegreg.plotting`, item B): house style (fonts >= 13 pt,
+  Okabe-Ito palette checked for colour-vision deficiency, fixed colour per character, symmetric diverging scale for signed
+  maps); optional dependency `plot` (matplotlib).
+- Along-line core composition (`disegreg.alongline`, proposal P4, item C): core solute counts in ~5 A X bins, dispersion
+  index, spectrum normalised to binomial noise, peak wavelength and p-value (exact for the q = n/2 mode); Stage-2 quantities
+  `alongline_*` (status proposal); `disegreg plot alongline` (kymograph with symmetric scale + window-averaged spectrum).
+- Ordered-domain sizes (`disegreg.domains`, proposal P5, item D): ordered solute (no solute 1st, >= 4 of 6 solute 2nd
+  neighbours), 2nd-shell-connected domains with their surface atoms, equivalent diameter, per region and in bulk controls;
+  Stage-2 quantities `domain_*` (status proposal). Synthetic L1_2 Ni3Al spheres 1.6-4 nm recovered to 1-5 %.
+- `disegreg analyse` adds the proposal quantities by default (`--no-proposals`: D1 only).
+- Stage 3 warns and counts snapshots later than the end of the window signal (MC stream), which v0.1.0 drops silently.
+- examples/stage4/: demo manifests for 52 Nb-Au and Ni-Cu thread-07 runs (make_demo_manifests.py), site configuration.
+- regression/v02_demo_summary.py and regression/results/v0.2-demo/: Stage 4 + summaries + figures of the 59 demo runs.
+### Fixed (v0.2 branch; no v0.1.0 number affected)
+- Uptake exponent: an unknown SEM of c_C (single snapshot) gives an unknown error (was treated as 0).
+- McLean sites: line period from the 0 K cell's own lattice parameter (the run's a_cell gave 39 instead of 40 periods for
+  Mendelev); periodic copies merged; the "more than one period" flag looks at the distinct sites.
+- `plotting.save` keeps names with dots (run ids such as ..._0.10kT...); `with_suffix` cut them and files overwrote each other.
+- `results.write_table` writes numpy numbers as plain numbers (numpy >= 2 repr was "np.float64(...)"); also in 0.1.1.
+- `paper_flag` is dropped only when x_bc is actually used, not as soon as a bulk control is named; also in 0.1.1.
+### Added (main, after v0.1.1)
 - Zenodo DOI of v0.1.1 (10.5281/zenodo.24535067) in README.md and CITATION.cff.
 
 ## [0.1.1] - 2026-11-25

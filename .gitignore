@@ -29,3 +29,6 @@ regression/output/
 
 # run logs (contain absolute local paths)
 *.log
+
+# v0.2 demo: provenance side files hold local paths and the host name (kept on the M5 only)
+regression/results/v0.2-demo/*.provenance.json

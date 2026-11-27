@@ -22,6 +22,76 @@ GAMMA_CURVE_COLUMNS = ("run_id", "R", "basis", "ref", "role", "mean", "sem", "n_
                        "tool_version")
 PAPER_HOLD = "no paper number before bulk control"
 
+# v0.2 (docs/PLAN_v0.2.md, rule 3): quantities that depend on an undecided [PROPOSAL v0.2] carry status "proposal" in the
+# results table, and the table refuses them for role "headline". Modules that compute such quantities register them here.
+# Quantities that became definitions in a later set (D2, Erik 25 Nov 2026) are registered with that set's number: in a table
+# of an older set (e.g. a v0.2 demo table labelled D1) they are still proposals.
+STATUS_DEFINITION, STATUS_PROPOSAL = "definition", "proposal"
+PROPOSAL_QUANTITIES: set[str] = set()
+DEFINED_SINCE: dict[str, int] = {}
+
+
+def _register_proposals():
+    from .alongline import QUANTITIES as alongline_q  # D2 section 16 (was P4)
+    from .domains import QUANTITIES as domain_q        # P5, still a proposal
+
+    DEFINED_SINCE.update({q: 2 for q in alongline_q})
+    PROPOSAL_QUANTITIES.update(domain_q)
+
+
+_register_proposals()
+
+
+def quantity_status(quantity: str, definition_set: str | None = None) -> str:
+    """"proposal" for a P5 quantity, and for a quantity defined only in a later set than ``definition_set``."""
+    from .definitions import label_number
+
+    if quantity in PROPOSAL_QUANTITIES:
+        return STATUS_PROPOSAL
+    since = DEFINED_SINCE.get(quantity)
+    n = label_number(definition_set) if definition_set is not None else None
+    if since is not None and n is not None and n < since:
+        return STATUS_PROPOSAL
+    return STATUS_DEFINITION
+
+
+# protocol diagnostic (iv): does the dislocation-free crystal precipitate at this dmu? (DEFINITIONS 5; D2 sections 15, 17)
+DIAG_IV_NOT_TESTED = "not tested"
+DIAG_IV_NOT_USABLE = "not usable: bulk control smaller than the dislocation cell"
+DIAG_IV_PENDING = "bulk control available; test not yet defined ([PROPOSAL v0.2] P6)"
+
+
+def diagnostic_iv(definitions, delta: float, x_bc_info: dict | None) -> str:
+    """Value of the column diagnostic_iv for one run.
+    No bulk-control table (none named, not found, or x_bc only from the command line) or a bulk control of unknown size:
+    "not tested" -- with D2 (section 17) for every Delta, with D1 (section 5) only for Delta > 0 (else empty).
+    Bulk control smaller than the dislocation cell: "not usable" (D2 section 15); under D1 it is no bulk control (rule above).
+    Same size or larger: the test itself is [PROPOSAL v0.2] P6, not defined yet."""
+    p = getattr(definitions, "params", definitions)
+    smaller_is_bc = bool((p.get("bulk_control") or {}).get("smaller_cell_allowed", False))   # D2 yes, D1 no
+    if x_bc_info is not None and "enough_solute" in x_bc_info and x_bc_info.get("smaller") is not None:
+        if not x_bc_info["smaller"]:
+            return DIAG_IV_PENDING
+        if smaller_is_bc:
+            return DIAG_IV_NOT_USABLE
+        # D1: a smaller cell is no bulk control -> the rule for runs without one (below)
+    rule = (p.get("diagnostic_iv") or {}).get("not_tested_without_bulk_control", "delta_positive")
+    if rule == "all" or float(delta) > 0:
+        return DIAG_IV_NOT_TESTED
+    return ""
+
+
+class ProposalAsHeadline(ValueError):
+    pass
+
+
+def check_headline_status(rows) -> None:
+    """Refuse a number that depends on an undecided proposal as a headline."""
+    bad = [r for r in rows if r.get("role") == "headline" and r.get("status") == STATUS_PROPOSAL]
+    if bad:
+        raise ProposalAsHeadline(f"{len(bad)} row(s) with status proposal and role headline, e.g. "
+                                 f"{bad[0].get('quantity')} {bad[0].get('region')} of {bad[0].get('run_id') or bad[0].get('runs')}")
+
 
 def tool_version(versions: dict) -> str:
     v = versions.get("disegreg", "?")
@@ -72,10 +142,14 @@ def read_table(path) -> list[dict]:
 
 
 # ------------------------------------------------------------------------------------------ headline, check, paper hold
-def gamma_role(quantity, region, basis, headline_radius: float, check_radius: float) -> str:
-    """headline = Gamma(20 A), check = Gamma(40 A), curve = any other R; only for Gamma under r (DEFINITIONS 6)."""
+def gamma_role(quantity, region, basis, headline_radius: float, check_radius: float, ref: str = "") -> str:
+    """headline = Gamma(20 A), check = Gamma(40 A), curve = any other R; only for Gamma under r (DEFINITIONS 6).
+    A diagnostic-only reference (x_bc of a bulk control that was not accepted, ref "..._diagnostic") is never headline or
+    check: role "diagnostic"."""
     if quantity != "Gamma" or basis != "r":
         return ""
+    if str(ref).endswith("_diagnostic"):
+        return "diagnostic"
     if region == f"{float(headline_radius):g}":
         return "headline"
     if region == f"{float(check_radius):g}":
@@ -104,7 +178,7 @@ def gamma_curve(stage3_rows, headline_radius: float, check_radius: float) -> lis
         if r["quantity"] != "Gamma":
             continue
         out.append({"run_id": r["run_id"], "R": float(r["region"]), "basis": r["basis"], "ref": r["ref"],
-                    "role": gamma_role("Gamma", r["region"], r["basis"], headline_radius, check_radius),
+                    "role": gamma_role("Gamma", r["region"], r["basis"], headline_radius, check_radius, r["ref"]),
                     "mean": r["mean"], "sem": r["sem"], "n_samples": r["n_samples"], "flat": r["flat"],
                     "definition_set": r["definition_set"], "tool_version": r["tool_version"]})
     return sorted(out, key=lambda r: (r["basis"], r["ref"], r["R"]))
@@ -114,7 +188,7 @@ def gamma_curve(stage3_rows, headline_radius: float, check_radius: float) -> lis
 RESULTS_COLUMNS = ("project", "run_id", "potential", "host", "solute", "character", "temperature", "delta", "start_type",
                    "quantity", "region", "basis", "ref", "role", "value", "error", "n_samples", "flat", "flat_rev3_sem",
                    "run_converged", "window_fraction", "drift_criterion", "check_required", "paper_flag", "bulk_control",
-                   "x_ref_source", "definition_set", "tool_version")
+                   "x_ref_source", "definition_set", "tool_version", "status", "diagnostic_iv")
 RUN_FIELDS = {"project": "project", "potential": "potential", "host": "host_element", "solute": "solute_element",
               "character": "character", "temperature": "temperature", "delta": "delta", "start_type": "start_type"}
 
@@ -139,16 +213,18 @@ def collect_runs(stage3_files) -> tuple[list[dict], dict]:
         for r in read_table(f):
             rows.append({**meta, "run_id": r["run_id"], "quantity": r["quantity"], "region": r["region"],
                          "basis": r["basis"], "ref": r["ref"],
-                         "role": gamma_role(r["quantity"], r["region"], r["basis"], hr, cr),
+                         "role": gamma_role(r["quantity"], r["region"], r["basis"], hr, cr, r["ref"]),
                          "value": r["mean"], "error": r["sem"], "n_samples": r["n_samples"],
                          "flat": r["flat"], "flat_rev3_sem": r.get("flat_rev3_sem", ""),
                          "run_converged": s3.get("converged", ""), "window_fraction": s3.get("window_fraction", ""),
                          "drift_criterion": s3.get("criterion", ""), "check_required": s3.get("check_required", ""),
                          "paper_flag": s3.get("paper_flag", ""), "bulk_control": man.get("bulk_control") or "",
                          "x_ref_source": man.get("x_ref_source", ""), "definition_set": r["definition_set"],
-                         "tool_version": r["tool_version"]})
+                         "tool_version": r["tool_version"], "status": quantity_status(r["quantity"], r["definition_set"]),
+                         "diagnostic_iv": s3.get("diagnostic_iv", "")})
         sources.append({"file": str(f), "run_id": man.get("run_id"), "tool_version": prov.get("tool_version"),
                         "manifest": prov.get("manifest")})
     if len(labels) > 1:
         raise ValueError(f"tables from different definition sets {sorted(map(str, labels))} must not be merged")
+    check_headline_status(rows)
     return rows, {"definition_set": labels.pop() if labels else None, "inputs": sources}

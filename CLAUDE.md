@@ -101,6 +101,31 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   Stage-2/3/Gamma(R) tables with v0.1.0 and v0.1.1 (only tool_version differs). 104 tests pass. Tagged v0.1.1, GitHub release; Zenodo DOI v0.1.1 10.5281/zenodo.24535067
   (README, CITATION.cff).
 
+## State v0.2 (branch v0.2-dev, worktree ~/DEVEL/DISLOC-SEGREGATION-ANALYSIS-v0.2, env disegreg-dev; unattended session)
+- Rules: docs/PLAN_v0.2.md. Decisions for Erik: docs/OPEN-DECISIONS_v0.2.md (the one page). D1 unchanged (D1.yaml byte-identical);
+  D2 (rev. 3, 26 Nov) = D1 + sections 12-17 in docs/DEFINITIONS.md and disegreg/definitions/D2.yaml; the open proposals (P5; P6 text only) in
+  "[PROPOSAL v0.2]" + proposals_v0.2.yaml, its outputs carry status = proposal.
+- 24 Nov: item A (Stage 4: across.py, sites.py, bulk-control manifests + automatic x_bc) done with tests; plotting module
+  (item B) drafted. disegreg-dev now has the editable install of the worktree (it had none).
+- 24 Nov: items C (alongline.py, P4) and D (domains.py, P5) done with synthetic tests; item B plots checked by eye on the Nb-Au
+  demo (titles wrapped, legend rows, uptake y range from well-determined values, regions as dots on log axis).
+- Demo outputs: Stage 2/3 (not in git) regression/output/v0.2-final/ (59 runs); summaries + figures (in git)
+  regression/results/v0.2-demo/ (regression/v02_demo_summary.py). Findings in docs/OPEN-DECISIONS_v0.2.md section 3:
+  Lee-Shim n_up 5.6 (60 deg) / 4.8 (edge) at -0.25 -> -0.10 kT; TURLO hysteresis different only at +2 kT; ACE core = particles.
+- 25 Nov (Erik's decisions, OPEN-DECISIONS section 5; Erik authorised work on main for v0.1.1 only): v0.1.1 released from
+  main (Stage-3 WARNING + count, two robustness fixes, HOWTO rsync line; D1 unchanged, outputs cell-by-cell identical to v0.1.0;
+  Zenodo DOI v0.1.1 10.5281/zenodo.24535067). On the branch: definition set D2 = D1 rev. 4 unchanged + DEFINITIONS sections
+  12-16 (P1-P4, E1); D2.yaml, default D2, P5 stays in proposals_v0.2.yaml. v0.2 NOT tagged, NOT merged into main.
+- 25 Nov (Erik, N2): main (v0.1.1 + DOIs) merged INTO v0.2-dev; still no merge into main.
+- 25 Nov (Erik, N1): D2 rev. 2 = + section 17, results column diagnostic_iv ("not tested" for every run without a bulk
+  control); the test itself = [PROPOSAL v0.2] P6 (bulk-control clusters vs random alloy + x_bc drift), text only. 151 tests.
+- 25 Nov (Erik, E1 fix + review): smaller bulk control needs last MD step >= 0.95 x run's and swap rate within 10 % (manifest
+  field swap_attempts_per_atom_per_step); review subagent: 4 findings fixed (rejected x_bc -> x_bc_diagnostic; section-16 test
+  on the window spectrum; dmu/T check; diagnostic_iv under D1). Release notes draft docs/RELEASE-NOTES_v0.2.0.md.
+- 26 Nov (Erik, N3 + section 15): D2 rev. 3 -- window test with n_eff from the block averaging of c_C (no plateau: n_eff = 1,
+  flagged); 0.95 / 10 % rules for EVERY bulk control. Demo re-run regression/output/v0.2-D2r3. Still not merged, not tagged.
+- 27 Nov (Erik): v0.2.0 released -- v0.2-dev merged into main, tag v0.2.0, GitHub release (docs/RELEASE-NOTES_v0.2.0.md).
+
 ## Next steps
 1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing
    (DESIGN: one demo run per project).

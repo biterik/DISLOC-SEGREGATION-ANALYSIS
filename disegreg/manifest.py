@@ -59,13 +59,22 @@ FIELDS = {
     "mc_stream": (False, str, "MC stream file (total solute count vs step), for the drift test"),
     "mc_stream_column": (False, str, "solute-count column of the stream (default: n*_interior or n*_mcgroup)"),
     "notes": (False, str, "free text"),
+    # v0.2 (optional, schema 1 unchanged: every v0.1 manifest stays valid)
+    "cell_type": (False, str, "dislocation (default) | bulk_control: a cell without dislocation that gives x_bc to the runs "
+                  "naming it in bulk_control (DEFINITIONS 5)"),
+    "n_atoms": (False, int, "number of atoms in the cell; required for a bulk control (D2 section 15: its size is recorded)"),
+    "swap_attempts_per_atom_per_step": (False, (int, float), "MC swap attempts per atom per MD step; required for a bulk "
+                                        "control and for a run naming one (D2 section 15)"),
 }
+# not required in a bulk-control manifest (no line, no glide plane, no reference of its own)
+NOT_REQUIRED_FOR_BULK = ("character", "frame", "frame_source", "z_gp", "z_gp_source", "x_ref_source", "start_type")
 CHOICES = {
     "character": ("d0", "d30", "d60", "d90"),
     "coex_line": ("incoherent", "coherent"),
     "z_boundary": ("fixed", "free"),
     "x_ref_source": ("bulk_control", "isotherm"),
     "start_type": ("bottom-up", "top-down", "seeded"),
+    "cell_type": ("dislocation", "bulk_control"),
 }
 
 
@@ -102,9 +111,12 @@ def validate(data: dict) -> list[str]:
     for k in data:
         if k not in FIELDS:
             errs.append(f"unknown field '{k}'")
+    bulk = data.get("cell_type") == "bulk_control"
+    if "cell_type" in data and data["cell_type"] not in CHOICES["cell_type"]:
+        errs.append(f"cell_type: {data['cell_type']!r} not one of {CHOICES['cell_type']}")
     for k, (req, typ, _) in FIELDS.items():
         if k not in data:
-            if req:
+            if req and not (bulk and k in NOT_REQUIRED_FOR_BULK):
                 errs.append(f"missing field '{k}'")
             continue
         v = data[k]
@@ -117,9 +129,10 @@ def validate(data: dict) -> list[str]:
     if data["schema_version"] != SCHEMA_VERSION:
         errs.append(f"schema_version {data['schema_version']} != {SCHEMA_VERSION}")
     for k, allowed in CHOICES.items():
-        if data[k] not in allowed:
+        if k in data and data[k] not in allowed and k != "cell_type":
             errs.append(f"{k}: {data[k]!r} not one of {allowed}")
-    errs += _check_frame(data["frame"])
+    if "frame" in data:
+        errs += _check_frame(data["frame"])
     if data["quenched"] is not True:
         errs.append("quenched: must be true (DEFINITIONS 1: quenched snapshots only)")
     if data["dmu_lammps_sign"] not in (1, -1):
@@ -132,6 +145,19 @@ def validate(data: dict) -> list[str]:
         d = (data["dmu"] - data["dmu_coex"]) / (K_B * data["temperature"])
         if abs(d - data["delta"]) > DELTA_TOLERANCE:
             errs.append(f"delta {data['delta']} != (dmu - dmu_coex)/kT = {d:.4f}")
+    if "n_atoms" in data and data["n_atoms"] <= 0:
+        errs.append("n_atoms must be positive")
+    if "swap_attempts_per_atom_per_step" in data and data["swap_attempts_per_atom_per_step"] <= 0:
+        errs.append("swap_attempts_per_atom_per_step must be positive")
+    if (bulk or data.get("bulk_control")) and "swap_attempts_per_atom_per_step" not in data:
+        errs.append("swap_attempts_per_atom_per_step is required for a bulk control and for a run naming one "
+                    "(D2 section 15)")
+    if bulk:
+        if data.get("bulk_control"):
+            errs.append("a bulk-control manifest cannot name a bulk_control of its own")
+        if "n_atoms" not in data:
+            errs.append("a bulk-control manifest needs n_atoms (its cell size, D2 section 15)")
+        return errs + (["x_iso given without x_iso_source"] if "x_iso" in data and not data.get("x_iso_source") else [])
     if not data.get("bulk_control") and not data.get("bulk_control_reason"):
         errs.append("bulk_control is empty: bulk_control_reason is required")
     if data["x_ref_source"] == "bulk_control" and not data.get("bulk_control"):
@@ -161,6 +187,10 @@ class Manifest:
 
     def get(self, key, default=None):
         return self.data.get(key, default)
+
+    @property
+    def is_bulk_control(self) -> bool:
+        return self.data.get("cell_type", "dislocation") == "bulk_control"
 
     @property
     def kT(self) -> float:

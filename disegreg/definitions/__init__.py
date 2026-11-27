@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-DEFAULT_LABEL = "D1"
+DEFAULT_LABEL = "D2"   # v0.2: D2 = D1 rev. 4 unchanged + sections 12-17 (Erik 25 Nov 2026)
 _DIR = Path(__file__).resolve().parent
 
 
@@ -54,3 +54,21 @@ def load_definitions(label_or_path: str | Path = DEFAULT_LABEL) -> Definitions:
         path=str(p),
         params=params,
     )
+
+
+PROPOSALS_LABEL = "proposals_v0.2"
+
+
+def load_proposals(label_or_path: str | Path = PROPOSALS_LABEL) -> Definitions:
+    """Parameters of the still open v0.2 proposals (``proposals_v0.2.yaml``; since 25 Nov only P5, ordered domains).
+    NOT a definition set: every number computed with them carries status = proposal (docs/PLAN_v0.2.md, rule 3)."""
+    p = Path(label_or_path)
+    if p.suffix not in (".yaml", ".yml"):
+        p = _DIR / f"{label_or_path}.yaml"
+    return load_definitions(p)
+
+
+def label_number(label: str) -> int | None:
+    """2 for "D2"; None for a label that is not of the form D<n> (a YAML file given by path with its own label)."""
+    s = str(label or "")
+    return int(s[1:]) if s[:1] == "D" and s[1:].isdigit() else None

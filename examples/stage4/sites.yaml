@@ -1,0 +1,20 @@
+# disegreg Stage 4: 0 K site-energy tables for the McLean prediction (DEFINITIONS 9, [PROPOSAL v0.2] P1).
+# One entry per table; {potential} and {character} in the paths are filled in for every listed pair.
+#   table      the project's 0 K single-solute segregation-energy table (read only)
+#   format     segE0K-by-site (Ni-Cu thread 09 and Nb-Au thread 06) | csv (columns id, E_seg, optional character, potential)
+#   cell_0K    the relaxed 0 K pure-host cell the table's atom ids refer to; disegreg runs Stage 1 (DXA) on it once (cached)
+#   cell_0K_pbc  periodicity, needed for LAMMPS data files (they do not store the boundary; the cells are p p s)
+site_tables:
+  - project: Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE
+    potentials: [LeeShim2004-MEAM, CuNi-ACE]
+    characters: [d0, d30, d60, d90]
+    table: ~/Desktop/SIMULATIONS/Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE/09_SEGREGATION-ENERGY-0K-SINGLE-CU/segE0K-by-site.dat
+    format: segE0K-by-site
+    cell_0K: ~/Desktop/SIMULATIONS/Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE/03_RELAX-0K-CORRECTED-CELLS/relax0K_Ni-disloc-{character}_{potential}/relaxed0K_Ni-disloc-{character}_{potential}_final-state.dump
+  - project: Nb-Au-AT-DISLOCS-Ni-ACE-EAM
+    potentials: [Mendelev2022-EAMFS, EAMX-DawChandross2023]
+    characters: [d0, d30, d60, d90]
+    table: ~/Desktop/SIMULATIONS/Nb-Au-AT-DISLOCS-Ni-ACE-EAM/06_SEGREGATION-ENERGY-0K-SINGLE-SOLUTE/segE0K-by-site.dat
+    format: segE0K-by-site
+    cell_0K: ~/Desktop/SIMULATIONS/Nb-Au-AT-DISLOCS-Ni-ACE-EAM/03_RELAX-0K-CORRECTED-CELLS/relax0K_Ni-disloc-{character}_{potential}/relaxed0K_Ni-disloc-{character}_{potential}.lmps
+    cell_0K_pbc: [true, true, false]

@@ -226,6 +226,25 @@ def group_records(rows):
     return {k: tuple(np.array(x) for x in zip(*sorted(v))) for k, v in out.items()}
 
 
+def in_window(t, t_start: float, t_end: float) -> np.ndarray:
+    """Mask of the snapshot times inside the averaging window; no snapshot inside (e.g. the stream runs past the last
+    dump): the last snapshot only."""
+    t = np.asarray(t, dtype=float)
+    m = (t >= t_start - 1e-9) & (t <= t_end + 1e-9)
+    return m if m.any() else (t == t.max())
+
+
+def window_series(stage2_rows, info: dict, key, md_timestep_ps: float | None = None) -> np.ndarray:
+    """Values of one Stage-2 quantity ``key`` = (quantity, region, basis, ref) in the averaging window of ``info`` (the
+    Stage-3 info of run_stage3), in time order -- the same snapshots run_stage3 averages."""
+    series = group_records(stage2_rows)
+    if key not in series:
+        return np.empty(0)
+    steps, vals = series[key]
+    t = steps * (float(md_timestep_ps) if md_timestep_ps else 1.0)
+    return vals[in_window(t, info["window_t_start"], info["window_t_end"])]
+
+
 def run_stage3(stage2_rows, params: dict, stream: Stream | None = None, stream_column: str | None = None,
                md_timestep_ps: float | None = None, key_quantity=("N_sol_inside", "20", "r", ""),
                criterion: str | None = None):
@@ -260,7 +279,7 @@ def run_stage3(stage2_rows, params: dict, stream: Stream | None = None, stream_c
     alt = next(c for c in CRITERIA if c != criterion)
     w_alt = averaging_window(sig_t, sig_y, ff, mf, fac, criterion=alt)
     d = w.test
-    # v0.1.1: snapshots later than the end of the window signal (MC stream) are outside every window and not used -- count them
+    # v0.1.1 (and v0.2): snapshots later than the end of the window signal (MC stream) are outside every window and not used -- count them
     all_t = np.unique(np.concatenate([st for st, _ in series.values()])) * scale if series else np.empty(0)
     info["snapshots_after_window_signal"] = int((all_t > float(sig_t[-1]) + 1e-9).sum())
     info["snapshots_total"] = int(len(all_t))
@@ -271,10 +290,7 @@ def run_stage3(stage2_rows, params: dict, stream: Stream | None = None, stream_c
     out = []
     for (q, reg, basis, ref), (steps, vals) in sorted(series.items()):
         t = steps * scale
-        m = (t >= w.t_start - 1e-9) & (t <= w.t_end + 1e-9)
-        if not m.any():
-            # no snapshot inside the window (e.g. the stream runs past the last dump): use the last snapshot only
-            m = t == t.max()
+        m = in_window(t, w.t_start, w.t_end)
         tv, yv = t[m], vals[m]
         dt = drift_test(tv, yv, fac)
         out.append({"quantity": q, "region": reg, "basis": basis, "ref": ref, "mean": dt.mean, "sem": dt.sem,

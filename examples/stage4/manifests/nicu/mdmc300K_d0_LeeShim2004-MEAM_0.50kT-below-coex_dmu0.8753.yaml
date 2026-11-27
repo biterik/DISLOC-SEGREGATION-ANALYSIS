@@ -1,0 +1,48 @@
+# DEMO manifest for disegreg v0.2 Stage 4 (examples/stage4/make_demo_manifests.py); the project owns the real one
+schema_version: 1
+project: Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE
+thread: 07_MDMC-CU-SEGREGATION-T300-COEX-OFFSETS
+run_id: mdmc300K_d0_LeeShim2004-MEAM_0.50kT-below-coex_dmu0.8753
+potential: LeeShim2004-MEAM
+host_element: Ni
+solute_element: Cu
+character: d0
+frame:
+  X:
+  - 0
+  - -1
+  - 1
+  Y:
+  - 2
+  - -1
+  - -1
+  Z:
+  - 1
+  - 1
+  - 1
+frame_source: Ni cells of 00_CORRECTED-CELLS-A0-3.52 (LAMMPS frame X = line)
+a_cell: 3.53469
+a_cell_source: mdmc-parameters.dat a(x,T)
+temperature: 300
+dmu: 0.8753
+dmu_lammps: 0.8753
+dmu_lammps_sign: 1
+dmu_coex: 0.8882
+coex_line: incoherent
+dmu_coex_source: mdmc-parameters.dat FINAL dmu_coex(300 K) = 0.8882 +- 0.03 meV vs fcc_Cu
+delta: -0.499
+dumps: ~/Desktop/SIMULATIONS/Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE/07_MDMC-CU-SEGREGATION-T300-COEX-OFFSETS/mdmc300K_d0_LeeShim2004-MEAM_0.50kT-below-coex_dmu0.8753/*_quenched_step*.dump
+quenched: true
+md_timestep_ps: 0.001
+z_boundary: fixed
+z_gp: 125.5063
+z_gp_source: builder glide gap 124.9847 A at a = 3.52 A x a_cell / 3.52
+bulk_control: null
+bulk_control_reason: no bulk control on the Mac yet (demo)
+x_ref_source: isotherm
+x_iso: 0.0051029
+x_iso_source: mdmc-parameters.dat xCu_overall (thread-02 up-scan)
+start_type: bottom-up
+notes: DEMO manifest for disegreg v0.2 Stage 4 (examples/stage4/make_demo_manifests.py); the project owns the real one
+mc_stream: ~/Desktop/SIMULATIONS/Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE/07_MDMC-CU-SEGREGATION-T300-COEX-OFFSETS/mdmc300K_d0_LeeShim2004-MEAM_0.50kT-below-coex_dmu0.8753/mdmc300K_d0_LeeShim2004-MEAM_0.50kT-below-coex_dmu0.8753_mc-stream.dat
+mc_stream_column: nCu_interior

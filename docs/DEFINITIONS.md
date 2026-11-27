@@ -1,8 +1,15 @@
-# disegreg -- definitions (set D1, rev. 4 of 2026-11-24: final, released with disegreg v0.1.0)
+# disegreg -- definitions (sets D1 and D2)
+
+- **D1**, rev. 4 of 2026-11-24: final, released with disegreg v0.1.0 (and v0.1.1, same numbers). Sections 1-11.
+- **D2**, rev. 3 of 2026-11-26 (Erik): D1 rev. 4 UNCHANGED + sections 12-17 (McLean core sites, hysteresis criterion, error of
+  Gamma vs x_bc, bulk-control acceptance, along-line spectrum, diagnostic-(iv) status). Every D1 quantity is defined and computed identically in D2
+  (D2.yaml repeats every D1 parameter value for value; tests/test_definitions.py, tests/test_manifest_stage2.py). Released
+  with disegreg v0.2.0 (27 Nov 2026). Lines in sections 1-11 marked [D2] only point to the new sections.
 
 Every number produced by `disegreg` carries the tool version (git hash) AND the definition-set label (D1, D2, ...).
 A change to anything in this file creates a new label; the paper's Methods section quotes the label it used.
-No [CONFIRM] or [PROPOSAL] items are left (24 Nov 2026).
+Open: [PROPOSAL v0.2] P5 (ordered-domain sizes) and P6 (the diagnostic-(iv) test), end of this file, not part of any
+definition set.
 
 Abbreviations: DXA = dislocation extraction algorithm (OVITO); a-CNA = adaptive common-neighbour analysis (OVITO);
 CNA = common-neighbour analysis; PTM = polyhedral template matching; MD/MC = molecular dynamics / Monte Carlo;
@@ -108,12 +115,14 @@ SGC = semi-grand-canonical ensemble (fixed total atom number, fixed chemical-pot
 ## 5. Reference composition x_ref
 Order of preference, chosen per run in the manifest and always reported with its source:
 1. x_bc: bulk control cell (no dislocation, same size, same dmu, same run length), interior atoms, time average with block-averaging error.
+   [D2] Every bulk control needs >= 0.95 x the run's last MD step and the run's swap rate within 10 %; a smaller cell is
+   accepted for x_bc, but not for diagnostic (iv): section 15. Error of Gamma vs x_bc: section 14.
 2. x_iso: the potential's own bulk SGC isotherm x(dmu, T) of the perfect crystal (project data), used when
    (a) there is no bulk control at this dmu (reason recorded in the manifest), or
    (b) the bulk control holds too few solute atoms (expected solute count in its interior < 100, e.g. EAM-X Au at x ~ 1e-5).
    Caveat: x_iso gives the reference composition but NOT protocol diagnostic (iv) (does the dislocation-free crystal precipitate at this
    dmu?). For Delta > 0 (supersaturated) without a bulk control the results table marks diagnostic (iv) as "not tested". [rule (a) from
-   TURLO-REDO feedback]
+   TURLO-REDO feedback] [D2] "not tested" for every run without a bulk control, whatever Delta: section 17.
 3. c_B, the in-cell far field: diagnostic only. The ratio c_B / x_ref is reported for every run; a ratio clearly different from 1 is a result
    (e.g. long-range elastic enrichment by the dislocation's pressure field, or a cell-size effect).
 Reporting rule (Erik, 24 Nov): until a run has its bulk control, enrichments and Gamma are reported against BOTH c_B and x_iso,
@@ -154,6 +163,7 @@ and 0.5-0.85 for ACE at -0.50 kT. If the bulk control also shows the ACE bulk cl
   atom's region (no cluster-to-region assignment needed).
 - Planned for v0.2: ordered-domain sizes (for Ni-Al, against the 2.7 nm L1_2 domains of Howard et al. 2025); along-line core composition in
   5 A bins with its Fourier spectrum (periodic array of particles vs continuous line state).
+  [D2] The along-line composition and spectrum: section 16. Ordered domains: still [PROPOSAL v0.2] P5.
 
 ## 8. Time series, convergence, averages (per run)
 - Primary drift signal: total solute count from the MC stream file (high time resolution); secondary: the Stage-2 quantities per snapshot.
@@ -177,6 +187,8 @@ and 0.5-0.85 for ACE at -0.50 kT. If the bulk control also shows the ACE bulk cl
   theta_i / (1 - theta_i) = x_ref / (1 - x_ref) exp(-E_i / kT); predicted c_C = mean theta_i, compared with the measured c_C.
 - Hysteresis: bottom-up vs top-down runs at the same Delta, compared with block-averaging errors.
 - Output: one tidy long table (run, quantity, region, value, error, definition set, tool version).
+- [D2] Which 0 K sites are core sites for the McLean prediction: section 12. When bottom-up and top-down are "different":
+  section 13.
 
 ## 10. Provenance (in every output file)
 Tool version (git hash), definition set, OVITO version (pinned), Python/numpy/scipy versions, SHA-256 of every input file, all parameters, host name.
@@ -224,3 +236,159 @@ Each change will be quantified on the regression runs (Nb-Au time-avg_07_2026-11
   Same day: c_B as reference is taken per snapshot, not as a window mean (section 5); DXA deterministic on one machine
   (section 2). No value changed.
 - final (24 Nov): D1 rev. 4 released with disegreg v0.1.0. Any further change creates D2.
+- 25 Nov: D1 rev. 4 also released with disegreg v0.1.1 (a WARNING for snapshots after the end of the MC stream; no number changed).
+
+---
+
+# Definition set D2 (rev. 3, 26 Nov 2026): D1 rev. 4 + sections 12-17
+Decided by Erik on 25 and 26 Nov 2026 (docs/OPEN-DECISIONS_v0.2.md, section 5) from the v0.2 proposals P1-P4 and the project question
+E1, each as recommended, and section 17 (question N1). Sections 1-11 above are D2 too, unchanged. Parameter values:
+`disegreg/definitions/D2.yaml` (sections mclean, hysteresis, bulk_control, alongline, diagnostic_iv). Every number of these sections carries the label D2 and
+`status = definition`; computed with D1, the along-line quantities do not exist and Stage 4 gives only the uptake exponents
+and the hysteresis differences.
+
+## 12. McLean prediction: which 0 K sites are core sites (section 9; was P1)
+- Input: a project's table of 0 K single-solute segregation energies E_i (one solute atom on site i of the relaxed 0 K pure-host
+  cell with one dislocation; negative = attraction), sites identified by atom id, and that relaxed 0 K cell.
+- Site i is a CORE site if its atom lies closer than 5 A (the core radius of section 4) to a DXA line of the relaxed 0 K cell
+  (Stage 1 with the DXA parameters of section 2, all periodic images). The table is meant to cover one line period; entries that
+  repeat an earlier site shifted by a whole line period along X are the same site and count once. The line period is taken
+  from the 0 K cell's own lattice parameter.
+- Predicted core concentration: c_C(McLean) = mean of theta_i over the TABULATED core sites (core sites of the 0 K cell without a
+  table entry are left out), with theta_i / (1 - theta_i) = x_ref / (1 - x_ref) exp(-E_i / kT), for every reference x_ref of the
+  run (c_B, x_iso, x_bc). Reported: c_C(McLean), measured c_C / c_C(McLean), and the local exponent of the prediction
+  d ln c_C / d ln x_ref (<= 1).
+- Coverage = tabulated core sites / core atoms per line period of the 0 K cell, always reported; below 90 % the rows are flagged
+  (on 25 Nov: EAM-X Au d90, 47 % -- a corrected 0 K site table is requested from the Nb-Au project).
+- Caveat (Ni-Cu thread 09, 4 Nov): many tabulated sites relax to the same deepest state because the partial glides to the solute;
+  their E_i is not their own. The number of such "degenerate" sites is reported. Then c_C(McLean) is an upper bound.
+
+## 13. Hysteresis criterion (section 9; was P2)
+- Pairs: a bottom-up and a top-down run of the same run set at the same Delta (|difference| < 0.001). Seeded runs are not compared.
+- Compared: Gamma(20 A) under r (every reference both runs have) and c_C. Difference d = up - down, error s = sqrt(SEM_up^2 +
+  SEM_down^2) (block-averaging SEMs of the two windows).
+- The two runs are DIFFERENT if |d| > 2 s (two independent normal errors: a false "different" in ~5 % of pairs). The difference
+  and |d| / s are always reported, the verdict as 1 (different) / 0 (not different) / NaN (a value or its error missing).
+
+## 14. Error of Gamma vs x_bc (section 5; was P3)
+- The Stage-3 SEM of Gamma vs x_bc holds only the time scatter of the dislocation run; x_bc is one number with its own SEM.
+- Total error quoted for Gamma(R) vs x_bc: sqrt(SEM_Gamma^2 + (N(r < R) / L_x x SEM(x_bc))^2) (Stage 4, row "Gamma_error_total";
+  column error = the x_bc part alone).
+
+## 15. Bulk-control acceptance: run length, swap rate, cell size (section 5; was question E1; Erik 25 Nov, rev. 3 26 Nov)
+- EVERY bulk-control cell (any size: smaller, same size or larger than the dislocation cell; same dmu and T) is accepted for
+  x_bc only if ALL of:
+  1. its last MD step is >= 0.95 x the last MD step of the run (snapshots of both, Stage 3); a longer bulk control is
+     accepted (a different run length is flagged);
+  2. its swap attempts per atom per MD step agree with the run's within 10 % (|rate_bc / rate_run - 1| <= 0.10). Both
+     manifests state the rate (field `swap_attempts_per_atom_per_step`, required for a bulk control and for every run that
+     names one); a missing rate counts as failed;
+  3. at least 100 solute atoms in its interior (section 5, 2b);
+  and its size is recorded in its manifest (field `n_atoms`, required for `cell_type: bulk_control`; checked against the
+  snapshots).
+- If 1 or 2 fails: not accepted -- x_bc is reported as a diagnostic only, the run is referred to x_iso (and c_B) as without a
+  bulk control (paper_flag where section 5 sets it), and the reason is written into the provenance (`x_bc.reasons`,
+  `reference_rule`). Parameters: D2.yaml `bulk_control.min_run_length_fraction` 0.95, `swap_rate_tolerance` 0.10.
+- A bulk control SMALLER than the dislocation cell is accepted for x_bc under the same rules 1-3 (rev. 2: these rules held
+  for smaller cells only; rev. 3: for every bulk control).
+- Every bulk control (any size): its manifest dmu and T must equal the run's (section 5: "same dmu"; compared within 1e-6 eV
+  and 1e-6 K); otherwise, or if unknown, not accepted.
+- A bulk control that is not accepted (any of the above, or fewer than 100 solute atoms, section 5 2b): its x_bc appears in the
+  tables only under the reference label `x_bc_diagnostic` -- never role headline or check (role "diagnostic"), not used by
+  Stage 4 (uptake exponent, McLean, hysteresis, x_bc error).
+- A smaller cell is NOT used for protocol diagnostic (iv) (does the dislocation-free crystal precipitate at this dmu?), even
+  when accepted for x_bc: a small cell has fewer nucleation sites and fits only smaller clusters (section 17: "not usable").
+- Under D1 (section 5: "same size") a smaller cell is not a bulk control: x_bc is then reported as a diagnostic only; rules
+  1 and 2 do not exist in D1 (a different run length is only flagged).
+
+## 16. Along-line core composition and its spectrum (section 7; was P4)
+Question: does the core hold a continuous line state (solute spread evenly along the line) or a periodic array of particles?
+- Atoms: the core, region C (r < 5 A).
+- Bins: n = round(L_x / 5 A) bins along X (actual width L_x / n, as the X slabs of 3.3). Per bin k: N_k core atoms, s_k core solute
+  atoms; c = sum s_k / sum N_k; fluctuation d_k = s_k - c N_k.
+- Dispersion index D = sum d_k^2 / ((1 - 1/n) sum N_k c (1 - c)): 1 for independent (binomial) placement, >> 1 for solute bunched
+  into particles, < 1 for a more even than random spread.
+- Spectrum S(q) = |sum_k d_k exp(-2 pi i q k / n)|^2 / (n Nbar c (1 - c)), q = 1 .. n/2 (wavelength L_x / q): mean 1 at every q
+  for binomial placement. A periodic array of particles with spacing lambda gives a peak at q = L_x / lambda.
+- Peak test: p = probability that binomial noise alone gives a peak this high, over the m modes (S(q) ~ exponential with mean 1
+  for 0 < q < n/2; the mode q = n/2 of an even n has one degree of freedom, chi-squared with 1 degree of freedom);
+  "periodic" if p < 0.01 in the WINDOW-AVERAGED spectrum: Stage 3 averages S(q) over the n_s snapshots of the window, takes the
+  highest mode and its p under binomial noise for the mean of n_s independent snapshots (Gamma(n_s, 1/n_s) per mode,
+  Gamma(n_s/2, 2/n_s) for q = n/2). Stage-3 rows alongline_window_S_max, _q_peak, _lambda_peak, _p_peak, _periodic (1/0),
+  _n_eff. The per-snapshot peak values (alongline_S_max, _q_peak, _lambda_peak, _p_peak) stay in Stage 2 only; their window
+  means are not reported.
+- Correlated snapshots (rev. 3, Erik 26 Nov, question N3): the snapshots of one window are not independent, so n_s in the
+  Gamma distributions above is replaced by the effective number of snapshots
+  n_eff = n_s x (SEM_naive / SEM_block)^2,
+  from the block averaging (section 8) of the core concentration c_C over the same window snapshots (SEM_naive = standard
+  deviation / sqrt(n_s), SEM_block = the plateau value); n_eff is kept within [1, n_s]. If that block averaging reaches no
+  plateau (always so for 2 or 3 snapshots), n_eff = 1 -- the test of a single snapshot -- and the run is flagged (Stage-3
+  provenance `alongline_window.flag`; column sem_plateau = False on the alongline_window_* rows). One snapshot: n_eff = 1
+  exactly, no flag. No new parameter (D2.yaml `alongline.n_eff_from`, `n_eff_without_plateau` record the rule).
+- Limit: with L_x ~ 100 A and 5 A bins, wavelengths 10-100 A are resolved (q = 1 .. 10); particle spacings above L_x cannot be seen
+  in one cell.
+
+## 17. Diagnostic (iv) status (section 5; question N1, Erik 25 Nov)
+- Diagnostic (iv) asks whether the dislocation-free crystal precipitates (or clusters) at this dmu; only a bulk control can
+  answer it. The results table has a column `diagnostic_iv` (from the run's Stage-3 provenance):
+  - "not tested": the run has no bulk control (none named, its table not found, x_bc only given on the command line, or the
+    bulk control's size unknown) -- for EVERY Delta, not only Delta > 0 as in D1 section 5: ACE Ni-Cu forms Cu clusters in the
+    perfect crystal also below coexistence.
+  - "not usable: bulk control smaller than the dislocation cell" (section 15).
+  - "bulk control available; test not yet defined ([PROPOSAL v0.2] P6)": a bulk control of the same size (or larger).
+- The bulk control's own rows leave the column empty. With D1 the D1 rule applies ("not tested" only for Delta > 0).
+
+## Revision log of D2
+- rev. 1 (25 Nov 2026, Erik, given in the claude.ai design session): sections 12-16 from proposals P1-P4 and question E1, each
+  as recommended on 24 Nov (P1 option 1; P2 factor 2; P3 as proposed; P4 5 A bins, core atoms only, p < 0.01; E1 option a).
+  Sections 1-11 = D1 rev. 4, unchanged. P5 (ordered domains) not decided: stays a proposal until Ni-Al MD/MC data exist.
+- rev. 2, same day (review of the v0.2 diff, no decision changed, the code made to follow sections 5, 15, 16 and 17): a
+  rejected x_bc is a diagnostic only (label x_bc_diagnostic); same dmu and T checked; the section-16 test is computed on the
+  window-averaged spectrum; diagnostic_iv under D1 with a smaller cell follows the D1 rule.
+- rev. 2 (25 Nov, Erik): section 15 made exact (smaller bulk control: last MD step >= 0.95 x the run's, swap attempts per atom
+  per MD step within 10 %, new manifest field; otherwise not accepted, x_iso, reason written). Question N1: section 17, column `diagnostic_iv`, "not tested" for every run without a bulk control
+  (D1: Delta > 0 only); the test itself written as [PROPOSAL v0.2] P6. Still label D2: D2 is not released and no number
+  for the paper has been produced with it. No D1 quantity changed.
+- rev. 3 (26 Nov, Erik, question N3 and section 15): section 16 -- the window test uses the effective number of snapshots
+  n_eff from the block averaging of c_C (option b of N3); without a plateau n_eff = 1, flagged. Section 15 -- the run-length
+  (>= 0.95) and swap-rate (10 %) rules hold for EVERY bulk control, not only for smaller ones (D2.yaml keys renamed
+  `min_run_length_fraction`, `swap_rate_tolerance`). Still label D2 (not released, no paper number made with it). No D1
+  quantity changed.
+
+---
+
+# [PROPOSAL v0.2] -- open proposals, NOT part of D1 or D2
+P1-P4 became sections 12-16 of D2 on 25 Nov (see above). Still open: P5 (ordered domains) and P6 (the diagnostic-(iv) test).
+Every number that depends on them carries `status = proposal` in the output tables, and the results table refuses such a
+number for role "headline". Parameter values of P5: `disegreg/definitions/proposals_v0.2.yaml` (label P-v0.2); P6 is text
+only (no code yet). Options and demo numbers: docs/OPEN-DECISIONS_v0.2.md.
+
+## P5. Ordered-domain sizes (section 7, "planned for v0.2"; Ni-Al vs Howard et al. 2025: 2.7 +- 0.6 nm)
+- Ordered solute atom: no solute 1st neighbour and at least 4 of its 6 2nd neighbours solute (L1_2 Ni3Al: 0 and 6; D0_22: 0 and 4;
+  random solution at x = 0.13: ~0.3 % of the solute atoms qualify).
+- Domain: ordered solute atoms connected by 2nd-shell bonds, at least 4 of them; plus (option, recommended) the solute atoms that
+  are 2nd neighbours of the domain but not ordered themselves -- the domain surface.
+- Size: equivalent diameter d = (6 n a^3 / pi)^(1/3), n = solute atoms of the domain (L1_2: one solute atom per cube a^3).
+- Region of a domain: the region code (section 4) of the majority of its atoms; per region: number of domains, mean and largest d,
+  fraction of the region's solute that is ordered; the same for the bulk control (Howard: no domains away from dislocations).
+
+## P6. The diagnostic-(iv) test: does the dislocation-free crystal precipitate? (section 5, D2 section 17; Erik's note 25 Nov)
+- Input: a bulk control of the same size as the dislocation cell (D2 section 15: a smaller one is not usable), its window
+  (Stage 3 of the bulk control, as for x_bc).
+- (a) Clustering against a RANDOM ALLOY of the same composition -- NOT against the dislocation cell's far field (which may
+  itself be affected by the dislocation, section 5 point 3). Reference: the same cell (same lattice, same N, periodic), solute
+  placed at random with the bulk control's window-mean x_bc, many realisations (>= 200), the same 1st-shell cluster analysis
+  as section 7. Compared per snapshot and over the window: fraction of isolated solute atoms, mean cluster size per solute
+  atom, largest cluster. Proposal: "clusters" if the window-mean largest cluster exceeds the random alloy's 99th percentile, or
+  the isolated fraction lies below its 1st percentile. Random-alloy numbers in a 32 000-atom fcc cell (20 x 20 x 20 cubic
+  cells, 200 realisations): x = 0.0079: isolated 0.907 (= (1 - x)^12), largest cluster 99th percentile 4; x = 0.02: 0.786, 7;
+  x = 0.05: 0.540, 13; x = 0.10: 0.284, 41 atoms. These depend on N (the largest cluster grows with cell size), which is why the
+  reference must be built for the bulk control's own cell.
+- (b) Composition drift of the bulk control: the drift test of section 8 (|change| < 2 SE(change) over the last 30 %) on its
+  interior solute fraction x_bc(t). A bulk control that keeps taking up (or losing) solute has not reached the state that
+  x_bc is meant to describe; precipitation in a supersaturated crystal shows up as a drift long before a cluster is large.
+- Verdict: "no precipitation" only if (a) shows no clustering beyond random AND (b) is flat; "precipitates / clusters" if (a);
+  "not converged" if only (b) fails. The numbers of (a) and (b) are always reported.
+- Open choices: percentiles 99 / 1 (proposal) or 95 / 5; largest cluster or the whole cluster-size distribution (e.g. the
+  number of clusters >= 5 atoms); 1st-shell clusters only (proposal) or also 2nd-shell order (alpha2) for ordering solutes.
+

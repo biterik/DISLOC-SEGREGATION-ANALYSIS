@@ -135,7 +135,7 @@ def test_d1_rev4_drift_parameters():
 
 
 def test_stage3_counts_snapshots_after_the_stream():
-    """v0.1.1: a stream that ends before the last snapshot leaves those snapshots out of every window -- they are counted
+    """v0.1.1 (and v0.2): a stream that ends before the last snapshot leaves those snapshots out of every window -- they are counted
     (and `disegreg analyse` prints a WARNING); the window means of the snapshots used are unchanged."""
     from pathlib import Path
 

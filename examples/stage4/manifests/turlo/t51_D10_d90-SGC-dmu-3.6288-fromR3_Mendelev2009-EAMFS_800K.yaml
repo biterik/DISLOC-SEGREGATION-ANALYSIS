@@ -1,0 +1,41 @@
+# DEMO copy for disegreg v0.2 (examples/stage4/make_turlo_manifests.py), generated with TURLO-REDO's own make-manifests.py; the project owns the real manifest
+# disegreg run manifest (schema 1) -- t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K
+# Written by TURLO-REDO/52_PAPER-CONTRIBUTIONS-CU-ZR/DISEGREG/make-manifests.py (2026-11-24); every number derived from the files named in *_source.
+schema_version: 1
+project: TURLO-REDO
+thread: 51_COMPLEXION-ONSET-DMU-SCAN-CU-ZR
+run_id: t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K
+potential: Mendelev2009-EAMFS
+host_element: Cu
+solute_element: Zr
+character: d90
+frame:
+  X: [1, -2, 1]
+  Y: [1, 0, -1]
+  Z: [1, 1, 1]
+frame_source: "Cu-AT-DISLOCS-Ni-EAM-MEAM-ACE/00_CORRECTED-CELLS-A0-3.52/cells: dcreator_Ni_edge_x-101_y1-21_z111.dissparam (linev 1 -2 1, new_x = glide -1 0 1, new_z 1 1 1) + header of Ni_edge_x-101_y1-21_z111_corrected-period-vector.lmp (LAMMPS frame X=line, Y=-glide, Z=normal); TURLO cell = this cell rescaled affinely (33/00_SCALED-CELLS)"
+a_cell: 3.674111
+a_cell_source: "t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K.in: A_XT = a(x, 800 K) at this dmu (thread 32); equals the builder chain 3.52 x 1.043781466 = 3.674111 A"
+temperature: 800
+md_timestep_ps: 0.001
+dmu: -3.6288
+dmu_lammps: 3.6288
+dmu_lammps_sign: -1
+dmu_coex: -3.6977
+coex_line: incoherent
+dmu_coex_source: "TURLO-REDO/34_FREE-ENERGIES-AND-COEXISTENCE-AT-T/coexistence-at-T.dat (Mendelev2009-EAMFS, 800 K, line set by C15_Cu2Zr; kT = 0.068939 eV)"
+delta: 0.9994
+dumps: ~/Desktop/SIMULATIONS/TURLO-REDO/51_COMPLEXION-ONSET-DMU-SCAN-CU-ZR/t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K/t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K_quenched_step*.dump
+quenched: true
+z_boundary: free
+z_gp: 129.2232
+z_gp_source: "builder glide gap 124.9847 A at a0 3.52 (Ni-project gate report) x 1.033830966 about the origin (0 K Cu cell, 33/00_SCALED-CELLS) -> t50 R3: x 1.01240861 about the z centre 128.1626 A (R3 input change_box) = 129.2261 A -> this run: x 0.99725039 about the z centre 128.1626 A (this input change_box) = 129.2232 A; make-manifests.py"
+x_ref_source: isotherm
+bulk_control:
+bulk_control_reason: "no SGC bulk control at dmu -3.6288 eV (Delta +1.00); the only TURLO-REDO bulk cell, t50 R1b, is VC-SGC at c = 0.012 (about +3 kT)"
+x_iso: 8.3805e-04
+x_iso_source: "TURLO-REDO/32_BULK-X-OF-DMU-AND-A-AT-T/isotherm_Mendelev2009-EAMFS_fromCu.dat, log-linear interpolation (monotone envelope) at dmu -3.6288 eV"
+start_type: top-down
+mc_stream: ~/Desktop/SIMULATIONS/TURLO-REDO/51_COMPLEXION-ONSET-DMU-SCAN-CU-ZR/t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K/t51_D10_d90-SGC-dmu-3.6288-fromR3_Mendelev2009-EAMFS_800K_mc-stream.dat
+mc_stream_column: NZr_mcgroup
+notes: "top-down start from t50 R3 final thermal state (step 2050000, restart START_t50-R3-final-2ns_step2050000_restart.lmprst). Box rescaled affinely to a(x, 800 K) then 40 ps NVT without MC; MC/MD cycles of 2 x 10 ps from step 40000 (fix sgcmc every 100 steps, swap fraction 1). Quenched snapshots every 100 ps (5 cycles), steps 140000-2040000, 20 files. z faces: free (111) surfaces; 3 (111) layers per face have Fz = 0 and are outside the MC group. Expected mode: mixed (complexion kept at +2 kT; DXA 22 Nov: 110 A perfect 1/2[10-1] edge + Shockley fragments)."
