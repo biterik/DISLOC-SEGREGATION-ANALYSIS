@@ -50,7 +50,7 @@ value given with `--x-ref`). Without a bulk control every such number exists for
 - `check_required`: the fallback axis was active in the window -> quote Gamma(40 A) (`role` check) next to Gamma(20 A).
 - `paper_flag` = "no paper number before bulk control" (ACE Ni-Cu without a bulk control): do not put that run's
   enrichments or Gamma into the paper.
-- Quote numbers with the definition set (D1) and the tool version from the provenance file.
+- Quote numbers with the definition set (D2 since v0.2.0) and the tool version from the provenance file.
 
 ## Project notes
 
