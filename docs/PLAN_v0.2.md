@@ -3,9 +3,9 @@
 Erik wants v0.2 developed in parallel and largely without him. These rules make that safe; they come on top of CLAUDE.md.
 
 ## Working rules
-1. SEPARATE FOLDER. Never switch branches in /Users/e.bitzek/DEVEL/DISLOC-SEGREGATION-ANALYSIS: the simulation instances read its
+1. SEPARATE FOLDER. Never switch branches in ~/DEVEL/DISLOC-SEGREGATION-ANALYSIS: the simulation instances read its
    docs, and the M5 conda env `disegreg` runs its code (editable install). It stays on `main` (v0.1.0 + docs-only commits).
-   Develop in a git worktree: branch `v0.2-dev`, folder /Users/e.bitzek/DEVEL/DISLOC-SEGREGATION-ANALYSIS-v0.2, with its own conda env
+   Develop in a git worktree: branch `v0.2-dev`, folder ~/DEVEL/DISLOC-SEGREGATION-ANALYSIS-v0.2, with its own conda env
    `disegreg-dev` (from environment.yml, editable install of the worktree). Never install the worktree into the env `disegreg`.
 2. NO RELEASE. Commit freely on `v0.2-dev` and push that branch (GitHub Actions runs on it). Never push to main, never tag, never
    touch Zenodo. Merging and the v0.2.0 tag happen only with Erik.
@@ -15,7 +15,7 @@ Erik wants v0.2 developed in parallel and largely without him. These rules make 
    columns carry `status = proposal` and the results table refuses them for role `headline`. Then continue with the next item;
    do not stop and wait.
 4. Computations only on the M5 (natively) -- no cluster access, no cloud workspace. Use the snapshot copies on the Mac and the
-   M5 cache /Users/e.bitzek/Desktop/SIMULATIONS/DISEGREG-CACHE (read; new entries allowed). Never write into project folders.
+   M5 cache ~/Desktop/SIMULATIONS/DISEGREG-CACHE (read; new entries allowed). Never write into project folders.
 5. Every item: tests (synthetic exact cases first), CHANGELOG [Unreleased] on the branch, CLAUDE.md state on the branch.
    Keep the full test suite green; if a v0.1.0 result would change, stop that item and write it into OPEN-DECISIONS.
 6. Erik's style rules still apply to everything he will read (abbreviations spelled out, plots >= 13 pt, colour-blind-safe,
