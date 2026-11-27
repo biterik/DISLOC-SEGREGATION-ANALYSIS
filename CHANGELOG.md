@@ -4,8 +4,10 @@ All notable changes to `disegreg` are listed here. Versions follow semantic vers
 the definition set (D1, D2, ...) it implements (see docs/DEFINITIONS.md).
 
 ## [Unreleased]
-v0.2 development on branch v0.2-dev (docs/PLAN_v0.2.md). **New definition set D2** (25 Nov, Erik): D1 rev. 4 unchanged +
-sections 12-17 of docs/DEFINITIONS.md (from proposals P1-P4 and questions E1, N1); D2 is the default of this branch, D1 stays
+
+## [0.2.0] - 2026-11-27
+Release notes: docs/RELEASE-NOTES_v0.2.0.md. **New definition set D2** (rev. 3, 25/26 Nov, Erik): D1 rev. 4 unchanged +
+sections 12-17 of docs/DEFINITIONS.md (from proposals P1-P4 and questions E1, N1); D2 is the default, D1 stays
 selectable (`--definitions D1`) and gives the v0.1 outputs. The ordered-domain sizes (P5) stay a proposal
 (disegreg/definitions/proposals_v0.2.yaml), marked `status = proposal` in every table. Open decisions:
 docs/OPEN-DECISIONS_v0.2.md. (v0.1.1 was released from main on 25 Nov, see [0.1.1] below; main merged into v0.2-dev the same day.)

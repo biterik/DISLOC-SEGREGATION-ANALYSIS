@@ -60,8 +60,8 @@ value given with `--x-ref`). Without a bulk control every such number exists for
 | Nb-Au-AT-DISLOCS-Ni-ACE-EAM | `nSol_interior` | +1 (DMU = mu_Nb - mu_Ni) | EAM-X Au counts are tiny (x ~ 1e-5): x_ref from the isotherm (dilute law), not from a bulk control |
 | TURLO-REDO (Cu-Zr) | `NZr_mcgroup` | -1 (fix sgcmc: DMU_SGC = -dmu) | free (111) z faces; complexion runs are `mixed`; PTM label 4 = icosahedral |
 
-## v0.2 additions (branch v0.2-dev, not released -- for information; use v0.1.1 for numbers)
-- **Definition set D2** (rev. 3, 26 Nov) is the default on the branch: D1 unchanged + McLean core sites, hysteresis criterion, x_bc
+## v0.2 additions (released with v0.2.0, 27 Nov 2026)
+- **Definition set D2** (rev. 3, 26 Nov) is the default since v0.2.0: D1 unchanged + McLean core sites, hysteresis criterion, x_bc
   error, bulk-control acceptance, along-line spectrum, diagnostic-(iv) column (docs/DEFINITIONS.md sections 12-17). Output files are then
   `<run_id>_stage2_D2.csv` etc.; every D1 quantity in them equals the D1 value. `--definitions D1` gives the v0.1 outputs.
 - **Bulk control runs**: write a manifest for the bulk-control cell itself with `cell_type: bulk_control` and `n_atoms: <atoms

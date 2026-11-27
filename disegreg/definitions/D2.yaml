@@ -6,7 +6,7 @@
 # spectrum, diagnostic-(iv) status). The ordered-domain sizes (P5) are NOT part of D2: they stay a proposal (proposals_v0.2.yaml).
 # Changing ANY value here creates a new definition set (D3, ...) with a line in the revision log of docs/DEFINITIONS.md.
 label: D2
-status: "rev. 3 (2026-11-26): D1 rev. 4 + sections 12-17 (Erik 25/26 Nov); not yet released (branch v0.2-dev)"
+status: "rev. 3 (2026-11-26): D1 rev. 4 + sections 12-17 (Erik 25/26 Nov); released with v0.2.0 (2026-11-27)"
 extends: D1                              # every section of D1.yaml is here with the same values
 
 input:                                   # section 1

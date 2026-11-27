@@ -4,14 +4,17 @@ title: "disegreg: shared analysis of solute segregation and defect phases at dis
 abstract: >-
   disegreg analyses LAMMPS molecular-dynamics / Monte-Carlo snapshots of
   single dislocations in fcc alloys with one common, versioned set of
-  definitions. Version 0.1 covers one run at a time: dislocation lines
-  (OVITO DXA) with exact periodic distances in triclinic cells and a
-  structural fallback where DXA misses the line, region-resolved solute
-  concentrations, the line excess Gamma(R), chemical short-range order,
-  solute clusters, drift tests and block-averaged time averages, plus a tidy
-  results table across runs. Cross-run diagnostics (uptake exponent, McLean
-  comparison, bulk-control and hysteresis comparisons) are planned for
-  version 0.2.
+  definitions (D1, D2). Per run: dislocation lines (OVITO DXA) with exact
+  periodic distances in triclinic cells and a structural fallback where DXA
+  misses the line, region-resolved solute concentrations, the line excess
+  Gamma(R), chemical short-range order, solute clusters, the along-line core
+  composition and its spectrum against binomial noise, drift tests and
+  block-averaged time averages. Across runs (version 0.2): uptake exponent
+  between chemical-potential offsets, McLean prediction from 0 K site
+  energies, bottom-up vs top-down hysteresis, the reference composition from
+  bulk-control cells with explicit acceptance rules, and a tidy results
+  table with provenance and definition status. The bulk-control path and the
+  ordered-domain sizes (still a proposal) are tested on synthetic cells only.
   Funded by the Deutsche Forschungsgemeinschaft (DFG, German Research
   Foundation) through Project No. A02 of the SFB 1394 "Structural and
   Chemical Atomic Complexity – From Defect Phase Diagrams to Material
@@ -29,8 +32,8 @@ authors:
 repository-code: "https://github.com/biterik/DISLOC-SEGREGATION-ANALYSIS"
 url: "https://github.com/biterik/DISLOC-SEGREGATION-ANALYSIS"
 license: BSD-3-Clause
-version: "0.1.1"
-date-released: "2026-11-25"
+version: "0.2.0"
+date-released: "2026-11-27"
 doi: 10.5281/zenodo.24513776
 identifiers:
   - type: doi

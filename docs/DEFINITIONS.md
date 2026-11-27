@@ -3,8 +3,8 @@
 - **D1**, rev. 4 of 2026-11-24: final, released with disegreg v0.1.0 (and v0.1.1, same numbers). Sections 1-11.
 - **D2**, rev. 3 of 2026-11-26 (Erik): D1 rev. 4 UNCHANGED + sections 12-17 (McLean core sites, hysteresis criterion, error of
   Gamma vs x_bc, bulk-control acceptance, along-line spectrum, diagnostic-(iv) status). Every D1 quantity is defined and computed identically in D2
-  (D2.yaml repeats every D1 parameter value for value; tests/test_definitions.py, tests/test_manifest_stage2.py). Not yet
-  released (branch v0.2-dev). Lines in sections 1-11 marked [D2] only point to the new sections.
+  (D2.yaml repeats every D1 parameter value for value; tests/test_definitions.py, tests/test_manifest_stage2.py). Released
+  with disegreg v0.2.0 (27 Nov 2026). Lines in sections 1-11 marked [D2] only point to the new sections.
 
 Every number produced by `disegreg` carries the tool version (git hash) AND the definition-set label (D1, D2, ...).
 A change to anything in this file creates a new label; the paper's Methods section quotes the label it used.
