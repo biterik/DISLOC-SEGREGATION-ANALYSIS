@@ -52,6 +52,8 @@ BSD-3-Clause, see [LICENSE](LICENSE). How to cite: [CITATION.cff](CITATION.cff).
 - v0.1.0 (definition set D1 rev. 4): [10.5281/zenodo.24513777](https://doi.org/10.5281/zenodo.24513777)
 - v0.1.1 (definition set D1 rev. 4; same numbers as v0.1.0, plus a warning for snapshots after the end of the MC stream):
   [10.5281/zenodo.24535067](https://doi.org/10.5281/zenodo.24535067)
+- v0.2.0 (definition set D2 rev. 3 = D1 rev. 4 unchanged + Stage 4, along-line spectrum, bulk-control rules):
+  [10.5281/zenodo.24593811](https://doi.org/10.5281/zenodo.24593811)
 
 Cite the DOI of the version you used, together with the definition set label (D1 or D2), so a number can be traced to its code
 and definitions.

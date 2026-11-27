@@ -124,7 +124,8 @@ analysis package, `disegreg`, used read-only by all simulation projects. Read, i
   on the window spectrum; dmu/T check; diagnostic_iv under D1). Release notes draft docs/RELEASE-NOTES_v0.2.0.md.
 - 26 Nov (Erik, N3 + section 15): D2 rev. 3 -- window test with n_eff from the block averaging of c_C (no plateau: n_eff = 1,
   flagged); 0.95 / 10 % rules for EVERY bulk control. Demo re-run regression/output/v0.2-D2r3. Still not merged, not tagged.
-- 27 Nov (Erik): v0.2.0 released -- v0.2-dev merged into main, tag v0.2.0, GitHub release (docs/RELEASE-NOTES_v0.2.0.md).
+- 27 Nov (Erik): v0.2.0 released -- v0.2-dev merged into main, tag v0.2.0, GitHub release (docs/RELEASE-NOTES_v0.2.0.md);
+  Zenodo DOI v0.2.0 10.5281/zenodo.24593811 (README, CITATION.cff).
 
 ## Next steps
 1. Hand each project instance its "how to call disegreg" note (docs/HOWTO_PROJECTS.md); a Ni-Al demo manifest is still missing

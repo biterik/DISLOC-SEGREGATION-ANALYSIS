@@ -45,6 +45,9 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.24535067
     description: "DOI of version 0.1.1 (definition set D1 rev. 4; numbers identical to 0.1.0)"
+  - type: doi
+    value: 10.5281/zenodo.24593811
+    description: "DOI of version 0.2.0 (definition set D2 rev. 3 = D1 rev. 4 unchanged + sections 12-17)"
 keywords:
   - materials science
   - atomistic simulation
